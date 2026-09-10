@@ -3571,11 +3571,38 @@ def _force_foreground(win: "LauncherWindow"):
     QTimer.singleShot(150, lambda: (win.raise_(), win.activateWindow()))
 
 
+def _report_startup_failure(message: str):
+    """启动失败时给出可见提示。
+
+    静默模式（pythonw）下没有控制台，若不弹窗用户会看到「双击没反应」。
+    """
+    try:
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(
+            None, message, "Open-LLM-VTuber 启动器", 0x10  # MB_ICONERROR
+        )
+    except Exception:
+        pass
+
+
 def main():
-    app = QApplication(sys.argv)
-    win = LauncherWindow()
-    win.show()
-    _force_foreground(win)
+    try:
+        app = QApplication(sys.argv)
+        win = LauncherWindow()
+        win.show()
+        _force_foreground(win)
+    except Exception:
+        import traceback
+        detail = traceback.format_exc()
+        # 有控制台时也打印一份，方便 debug 模式查看
+        print(detail, file=sys.stderr)
+        _report_startup_failure(
+            "启动器启动失败：\n\n"
+            + detail.strip().splitlines()[-1]
+            + "\n\n完整信息：\n"
+            + detail
+        )
+        sys.exit(1)
     sys.exit(app.exec())
 
 

@@ -161,6 +161,28 @@ ruff check .
 ruff format .
 ```
 
+### 启动 GUI 启动器（推荐）
+
+双击项目根目录的 **`启动器.bat`** 即可，会以无控制台方式打开启动器窗口。
+
+```bat
+启动器.bat          :: 静默启动（双击用这个）
+启动器.bat debug    :: 调试模式，保留控制台窗口以便查看报错
+```
+
+该 bat 会自动使用 `.venv-gui` 虚拟环境；若环境缺失会给出创建命令。
+启动失败（例如缺依赖）时会弹窗提示完整 traceback，不会出现"双击没反应"。
+
+> **为什么不打包成 exe**：启动器 exe 不需要包含 Open-LLM-VTuber 项目本身
+> （它只读 conf.yaml 并 `uv run run_server.py`），所以改 `src/`、`conf.yaml`、
+> 模型、声音都**不需要重新打包**；但**改 `launcher/OpenLLMVTuber_GUI.py` 就需要**。
+> 由于启动器仍在频繁迭代，且 PySide6 打包产物通常 150MB+、每次打包耗时较长，
+> 现阶段用 bat 更划算。等功能稳定后再考虑 PyInstaller 打包。
+>
+> bat 文件以 **GBK 编码**保存、不加 `chcp`。因为本机控制台默认代码页是 936，
+> GBK 能被 cmd 原生解析；若用 UTF-8 + `chcp 65001` 会导致 cmd 按字节重读批处理，
+> 出现「注释里的中文被当成命令执行」的错误。
+
 ### GUI 启动器
 ```bash
 # 激活 GUI 虚拟环境后运行
@@ -379,12 +401,10 @@ TTS 页「声音模型」区：
 - GUI v2.2：参考音频试听；权重选择移入声音对话框 + 声音模型增删改查（即预设）；Live2D 页并入角色页；修复贴图预览误取 UI 图标与模型名回退
 - GUI v2.3：移除 Live2D 模型管理模块；TTS 显示「当前使用」的声音；启动完成后自动打开浏览器
 - GUI v2.4：Live2D「打开保存目录」按钮 + 「导入...」（文件夹/多文件夹/zip，自动登记 model_dict.json）；预览下方提示模型格式兼容性；确认前端只支持 `.model3.json`
+- 新增根目录 `启动器.bat`（GBK 编码，静默启动/`debug` 参数），GUI 启动失败时弹窗报错
 - conf.yaml 的 `ref_audio_path` 已改为指向 `voices/加藤惠/ref.wav`，不再使用 GPT-SoVITS 根目录的 ref.wav
+- 加藤惠live2d（Cubism 2.1，前端不支持）已弃用，其 `model_dict.json` 条目已移除；
+  其余 41 条 url 全部核对有效
 
 ### 待处理
-- **`live2d-models/加藤惠live2d/` 无法在前端加载**：它是 Cubism 2.1（`katou_01.model.json`），
-  而前端只读 `.model3.json`。转换为 3/4 格式必须用 Live2D Cubism Editor（手动操作，无法脚本化）。
-  当前 `model_dict.json` 中该条的 `url` 也是无效的（文件不存在）。可选处理：
-  ① 等有 Cubism 3/4 版本的加藤惠模型后重新导入；
-  ② 从 `model_dict.json` 删掉这一条（启动器下拉仍会列出该文件夹）。
-- `live2d-models/` 下其余 41 个模型的 `url` 均已核对，全部指向真实存在的文件。
+- 无（原「加藤惠live2d 格式不兼容」一项已通过弃用该模型解决）
