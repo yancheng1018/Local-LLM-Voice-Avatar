@@ -20,6 +20,87 @@ from ..chat_history_manager import store_message
 from ..service_context import ServiceContext
 
 from ..agent.output_types import SentenceOutput, AudioOutput
+from ..utils.language_guard import (
+    build_retry_reminder,
+    detect_language_mismatch,
+    normalize_language,
+)
+
+# 重试前最多缓冲几句用于语言判定。句子太短时判据不足，多等一句再下结论。
+_MAX_BUFFERED_SENTENCES = 3
+
+
+def _plain_text(items) -> str:
+    """把若干输出项的可显示文本拼起来，用于语言判定。"""
+    return " ".join(
+        getattr(getattr(i, "display_text", None), "text", "") or "" for i in items
+    )
+
+
+async def _language_checked_stream(agent, batch_input, target_lang):
+    """包装 agent 的回复流：转发前先判定首句语言，不符则加强提示词重试一次。
+
+    为什么要缓冲开头：回复会实时送到前端和 TTS，一旦把错误语言的句子转发出去就来不及了，
+    所以先扣住头几句、判定通过后再原样转发（正常情况仍是流式，不增加延迟）。
+    判据不足（句子太短）时会多等一句，最多缓冲 _MAX_BUFFERED_SENTENCES 句。
+
+    重试手段：临时把强提醒追加到 agent 系统提示词的末尾（近因效应）。
+    为避免 async generator 被提前中断时 finally 不立即执行、导致加强过的提示词泄漏到
+    后续轮次，重试那一版是**先完整收完再还原提示词**，之后才向下游转发 —— 代价是
+    重试时这一轮失去流式（约 4% 的偶发情况，可接受），换来确定的还原时机。
+    只重试一次，避免与模型反复拉扯。
+    """
+    original_system = getattr(agent, "_system", None)
+    can_retry = isinstance(original_system, str) and bool(original_system)
+
+    # ── 第一次尝试：边转发边守住开头几句做判定 ──
+    pending: list = []
+    decided = False
+    async for item in agent.chat(batch_input):
+        if decided or not isinstance(item, SentenceOutput):
+            yield item
+            continue
+
+        pending.append(item)
+        verdict = detect_language_mismatch(_plain_text(pending), target_lang)
+
+        if verdict is None and len(pending) < _MAX_BUFFERED_SENTENCES:
+            continue  # 判据不足，再等一句
+        if verdict is True and can_retry:
+            logger.warning(
+                f"Language guard: detected a reply not in '{target_lang}'; "
+                "discarding it and retrying once with a stronger reminder."
+            )
+            break  # 丢弃这一版（它不会进记忆：assistant 文本只在流结束时写入）
+
+        # 判定通过、或无法重试：原样放行缓冲内容
+        decided = True
+        for buffered in pending:
+            yield buffered
+        pending = []
+    else:
+        # 流正常结束：始终没能判定时也要放行，不能吞掉回复
+        if not decided:
+            for buffered in pending:
+                yield buffered
+        return
+
+    # ── 重试：先把输出完整收下来（期间提示词是加强过的），还原后再转发 ──
+    retry_items: list = []
+    try:
+        agent._system = f"{original_system}\n\n{build_retry_reminder(target_lang)}"
+        async for item in agent.chat(batch_input):
+            retry_items.append(item)
+    finally:
+        agent._system = original_system
+
+    if detect_language_mismatch(_plain_text(retry_items), target_lang) is True:
+        logger.error(
+            f"Language guard: reply is still not in '{target_lang}' after retry; "
+            "accepting it (check the model's instruction following)."
+        )
+    for item in retry_items:
+        yield item
 
 
 # Partial-GPU coexistence strategy:
@@ -88,7 +169,16 @@ async def process_single_conversation(
             # background Ollama preload to wait for here.
             # Keep consuming the LLM stream continuously.
             # TTSTaskManager.speak() only buffers TTS requests.
-            agent_output_stream = context.agent_engine.chat(batch_input)
+            #
+            # 角色设置了 language 时，用 language guard 包一层：首句语言不对就
+            # 丢弃并重试一次，避免小模型偶发跟随用户语言（详见 utils/language_guard.py）
+            target_lang = normalize_language(context.character_config.language)
+            if target_lang:
+                agent_output_stream = _language_checked_stream(
+                    context.agent_engine, batch_input, target_lang
+                )
+            else:
+                agent_output_stream = context.agent_engine.chat(batch_input)
 
             async for output_item in agent_output_stream:
                 if (
