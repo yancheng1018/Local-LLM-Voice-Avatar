@@ -1,5 +1,5 @@
 """
-Open-LLM-VTuber 启动器 v2.3
+Open-LLM-VTuber 启动器 v2.4
 - 自动发现项目根目录
 - 读取/保存 conf.yaml
 - 切换默认角色 / 语言模型 / TTS 模型
@@ -16,7 +16,14 @@ Open-LLM-VTuber 启动器 v2.3
 
 标签页顺序：服务 → 模型 → 角色 → LLM → TTS → ASR / VAD
 
-v2.3 新增：
+v2.4 新增：
+- 「形象」分组加「📂 打开保存目录」与「导入...」按钮
+- 导入 Live2D 模型：支持单个文件夹、包含多模型的总目录、多选 zip 压缩包；
+  自动查找入口文件（.model3.json 优先取最浅层）并写入 model_dict.json（自动备份）
+- 导入时拒绝 Cubism 2.1（.model.json）模型，因前端只支持 .model3.json
+- Live2D 预览下方提示模型格式兼容性（✔ Cubism 3/4 / ⚠ Cubism 2.1 不支持）
+
+v2.3：
 - 移除 Live2D 模型管理模块（下拉已自动列出 model_dict.json ∪ live2d-models/ 全部模型）
 - TTS 显示「当前使用」的声音（由 conf.yaml 的 ref_audio_path 反查）
 - 启动完成后自动用默认浏览器打开 http://localhost:12393（可关闭，也可手动点击打开）
@@ -320,6 +327,16 @@ def stop_audio():
         pass
 
 
+def _safe_extract(zf: zipfile.ZipFile, target: Path):
+    """解压 zip 到 target，拒绝越出目标目录的条目（zip slip 防护）。"""
+    base = target.resolve()
+    for member in zf.infolist():
+        dest = (target / member.filename).resolve()
+        if not str(dest).startswith(str(base)):
+            raise ValueError(f"压缩包内含非法路径：{member.filename}")
+    zf.extractall(target)
+
+
 def clear_layout(layout):
     """递归清空 layout 中的所有控件和子布局"""
     if layout is None:
@@ -554,7 +571,7 @@ class LauncherWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Open-LLM-VTuber 启动器 v2.3")
+        self.setWindowTitle("Open-LLM-VTuber 启动器 v2.4")
         self.resize(1220, 980)
 
         self.yaml = YAML()
@@ -775,10 +792,11 @@ class LauncherWindow(QMainWindow):
         self.l2d_preview.setAlignment(Qt.AlignCenter)
         self.l2d_preview.setStyleSheet("border: 1px solid #ccc; background: #fafafa;")
         preview_layout.addWidget(self.l2d_preview, alignment=Qt.AlignCenter)
-        preview_tip = QLabel("模型贴图静态预览，实际动画以前端为准")
-        preview_tip.setStyleSheet("color: #888; font-size: 11px;")
-        preview_tip.setAlignment(Qt.AlignCenter)
-        preview_layout.addWidget(preview_tip)
+        self.l2d_preview_tip = QLabel("模型贴图静态预览，实际动画以前端为准")
+        self.l2d_preview_tip.setStyleSheet("color: #888; font-size: 11px;")
+        self.l2d_preview_tip.setAlignment(Qt.AlignCenter)
+        self.l2d_preview_tip.setWordWrap(True)
+        preview_layout.addWidget(self.l2d_preview_tip)
         char_left.addWidget(preview_box)
 
         char_left.addStretch(1)
@@ -811,7 +829,7 @@ class LauncherWindow(QMainWindow):
         look_box = QGroupBox("形象")
         look_form = QFormLayout(look_box)
 
-        # Live2D 模型：下拉 + 刷新
+        # Live2D 模型：下拉 + 刷新 + 打开目录 + 导入
         w_l2d = EditableCombo()
         w_l2d.setToolTip("从 live2d-models/ 与 model_dict.json 自动扫描")
         row_l2d = QHBoxLayout()
@@ -820,7 +838,16 @@ class LauncherWindow(QMainWindow):
         btn_refresh_l2d.setFixedWidth(32)
         btn_refresh_l2d.setToolTip("刷新 Live2D 模型列表")
         btn_refresh_l2d.clicked.connect(self._populate_live2d_combo)
+        btn_open_l2d_dir = QPushButton("📂")
+        btn_open_l2d_dir.setFixedWidth(32)
+        btn_open_l2d_dir.setToolTip("在资源管理器中打开 live2d-models/ 保存目录")
+        btn_open_l2d_dir.clicked.connect(self._open_live2d_dir)
+        btn_import_l2d = QPushButton("导入...")
+        btn_import_l2d.setToolTip("从其他目录导入 Live2D 模型（文件夹或 zip 压缩包）")
+        btn_import_l2d.clicked.connect(self._import_live2d_menu)
         row_l2d.addWidget(btn_refresh_l2d)
+        row_l2d.addWidget(btn_open_l2d_dir)
+        row_l2d.addWidget(btn_import_l2d)
         look_form.addRow("Live2D 模型：", row_l2d)
         self.char_edit_fields["live2d_model_name"] = w_l2d
 
@@ -1649,15 +1676,33 @@ class LauncherWindow(QMainWindow):
                 return "file", p
         return None, None
 
-    def _show_l2d_preview(self, model_name: str, url: str = "", title: str = ""):
-        """按模型名刷新左上预览。"""
+    def _show_l2d_preview(self, model_name: str, url: str = ""):
+        """按模型名刷新左上预览，并在下方提示该模型能否被前端加载。"""
         model_dir = self._resolve_model_dir(model_name, url)
         if model_dir is None:
             self.l2d_preview.setPixmap(QPixmap())
             self.l2d_preview.setText(
                 f"（未找到模型文件夹）\n{model_name}" if model_name else "（未选择模型）"
             )
+            self.l2d_preview_tip.setText("模型贴图静态预览，实际动画以前端为准")
+            self.l2d_preview_tip.setStyleSheet("color: #888; font-size: 11px;")
             return
+
+        # 顺带判断格式兼容性（前端只支持 .model3.json）
+        entry, entry_kind = self._find_model_entry(model_dir)
+        if entry_kind == "model3":
+            self.l2d_preview_tip.setText("✔ Cubism 3/4，前端可加载")
+            self.l2d_preview_tip.setStyleSheet("color: #1a7f37; font-size: 11px;")
+        elif entry_kind == "model2":
+            self.l2d_preview_tip.setText(
+                f"⚠ Cubism 2.1（{entry.name}），前端不支持\n"
+                "需用 Live2D Cubism Editor 转为 .model3.json"
+            )
+            self.l2d_preview_tip.setStyleSheet("color: #b8860b; font-size: 11px;")
+        else:
+            self.l2d_preview_tip.setText("⚠ 未找到模型入口文件")
+            self.l2d_preview_tip.setStyleSheet("color: #b8860b; font-size: 11px;")
+
         kind, data = self._find_model_texture(model_dir)
         if kind is None:
             self.l2d_preview.setPixmap(QPixmap())
@@ -1666,11 +1711,11 @@ class LauncherWindow(QMainWindow):
         if kind == "file":
             pix = QPixmap(str(data))
         else:
-            zip_path, entry = data
+            zip_path, zentry = data
             try:
                 with zipfile.ZipFile(zip_path) as zf:
                     pix = QPixmap()
-                    pix.loadFromData(zf.read(entry))
+                    pix.loadFromData(zf.read(zentry))
             except Exception:
                 pix = QPixmap()
         if pix.isNull():
@@ -1693,6 +1738,229 @@ class LauncherWindow(QMainWindow):
         model_name = w.text().strip() if w is not None else ""
         if model_name:
             self._show_l2d_preview(model_name)
+
+    # ------------------------------------------------------------------
+    # Live2D 目录 / 导入
+    # ------------------------------------------------------------------
+
+    def _open_live2d_dir(self):
+        """在资源管理器中打开 live2d-models/ 目录。"""
+        if not self.project_root:
+            QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
+            return
+        d = self.project_root / "live2d-models"
+        d.mkdir(parents=True, exist_ok=True)
+        try:
+            os.startfile(str(d))
+            self._log(f"[启动器] 📂 已打开目录：{d}")
+        except Exception as e:
+            self._log(f"[启动器] ⚠ 打开目录失败：{e}（路径：{d}）")
+
+    @staticmethod
+    def _find_model_entry(model_dir: Path):
+        """在模型目录中寻找前端可用的入口文件。
+
+        返回 (entry_path, kind)：
+          kind = 'model3'  → Cubism 3/4，前端可用
+          kind = 'model2'  → Cubism 2.1，前端不支持
+          kind = None      → 未找到入口
+        优先取层级最浅的 .model3.json。
+        """
+        def shallow(paths):
+            return sorted(paths, key=lambda p: (len(p.relative_to(model_dir).parts), str(p)))
+
+        m3 = shallow(list(model_dir.rglob("*.model3.json")))
+        if m3:
+            return m3[0], "model3"
+        m2 = shallow(list(model_dir.rglob("*.model.json")))
+        if m2:
+            return m2[0], "model2"
+        return None, None
+
+    def _model_dict_upsert(self, name: str, entry_path: Path) -> bool:
+        """把模型写入 model_dict.json（存在则更新 url）。返回是否有改动。"""
+        url = "/" + entry_path.relative_to(self.project_root).as_posix()
+        entries = self._load_model_dict()
+        for item in entries:
+            if item.get("name") == name:
+                if item.get("url") == url:
+                    return False
+                item["url"] = url
+                break
+        else:
+            entries.append({
+                "name": name,
+                "description": "",
+                "url": url,
+                "kScale": 0.5,
+                "initialXshift": 0,
+                "initialYshift": 0,
+                "kXOffset": 1150,
+                "idleMotionGroupName": "Idle",
+                "emotionMap": {},
+                "tapMotions": {},
+            })
+
+        p = self._model_dict_path()
+        try:
+            if p.exists():
+                shutil.copy2(p, p.with_suffix(".json.bak"))
+            p.write_text(
+                json.dumps(entries, ensure_ascii=False, indent=4), encoding="utf-8"
+            )
+        except Exception as e:
+            self._log(f"[启动器] ⚠ 写入 model_dict.json 失败：{e}")
+            return False
+        return True
+
+    def _import_live2d_menu(self):
+        """导入入口：弹出菜单选择导入方式。"""
+        from PySide6.QtWidgets import QMenu
+
+        if not self.project_root:
+            QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
+            return
+        btn = self.sender()
+        menu = QMenu(self)
+        act_dir = menu.addAction("导入文件夹...")
+        act_dir.setToolTip("可选单个模型文件夹，或包含多个模型的总目录")
+        act_zip = menu.addAction("导入压缩包 (.zip)...")
+        act_zip.setToolTip("可一次选择多个 zip，各自解压为一个模型")
+        chosen = menu.exec(btn.mapToGlobal(btn.rect().bottomLeft())) if btn else None
+        if chosen is act_dir:
+            self._import_live2d_folder()
+        elif chosen is act_zip:
+            self._import_live2d_zip()
+
+    def _import_live2d_folder(self):
+        folder = QFileDialog.getExistingDirectory(
+            self, "选择 Live2D 模型文件夹（或其上级目录）"
+        )
+        if not folder:
+            return
+        src = Path(folder)
+        models_dir = self.project_root / "live2d-models"
+        models_dir.mkdir(parents=True, exist_ok=True)
+
+        # 选中的目录本身是模型 → 单个导入；否则把每个子目录当一个模型
+        if self._find_model_entry(src)[1]:
+            candidates = [src]
+        else:
+            subdirs = [
+                d for d in sorted(src.iterdir())
+                if d.is_dir() and self._find_model_entry(d)[1]
+            ]
+            if not subdirs:
+                QMessageBox.warning(
+                    self, "未找到模型",
+                    f"在 {src} 及其子目录中没有找到 .model3.json / .model.json 入口文件。"
+                )
+                return
+            candidates = subdirs
+
+        registered, skipped, failed = [], [], []
+        for d in candidates:
+            target = models_dir / d.name
+            if target.exists():
+                reply = QMessageBox.question(
+                    self, "已存在",
+                    f"live2d-models/ 中已存在「{d.name}」，覆盖吗？",
+                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+                )
+                if reply != QMessageBox.Yes:
+                    skipped.append(d.name)
+                    continue
+                shutil.rmtree(target, ignore_errors=True)
+            try:
+                shutil.copytree(d, target)
+            except Exception as e:
+                failed.append(f"{d.name}（{e}）")
+                continue
+            ok, reason = self._register_imported_model(target)
+            (registered if ok else failed).append(
+                target.name if ok else f"{target.name}（{reason}）"
+            )
+
+        self._finish_import(registered, skipped, failed, candidates)
+
+    def _import_live2d_zip(self):
+        files, _ = QFileDialog.getOpenFileNames(
+            self, "选择 Live2D 模型压缩包", "",
+            "压缩包 (*.zip);;所有文件 (*)"
+        )
+        if not files:
+            return
+        models_dir = self.project_root / "live2d-models"
+        models_dir.mkdir(parents=True, exist_ok=True)
+
+        registered, skipped, failed = [], [], []
+        for f in files:
+            z = Path(f)
+            name = z.stem
+            target = models_dir / name
+            if target.exists():
+                reply = QMessageBox.question(
+                    self, "已存在",
+                    f"live2d-models/ 中已存在「{name}」，覆盖吗？",
+                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+                )
+                if reply != QMessageBox.Yes:
+                    skipped.append(name)
+                    continue
+                shutil.rmtree(target, ignore_errors=True)
+            try:
+                target.mkdir(parents=True, exist_ok=True)
+                with zipfile.ZipFile(z) as zf:
+                    _safe_extract(zf, target)
+            except Exception as e:
+                failed.append(f"{name}（{e}）")
+                continue
+            ok, reason = self._register_imported_model(target)
+            (registered if ok else failed).append(
+                target.name if ok else f"{target.name}（{reason}）"
+            )
+
+        self._finish_import(registered, skipped, failed, [Path(f) for f in files])
+
+    def _register_imported_model(self, target: Path):
+        """登记刚导入的模型。返回 (是否登记, 原因)。"""
+        entry, kind = self._find_model_entry(target)
+        if kind is None:
+            return False, "未找到入口文件"
+        if kind == "model2":
+            return False, (
+                f"Cubism 2.1 格式（{entry.name}），"
+                "当前前端只支持 .model3.json，需用 Live2D Cubism Editor 转换"
+            )
+        self._model_dict_upsert(target.name, entry)
+        return True, ""
+
+    def _finish_import(self, registered, skipped, failed, sources):
+        n_src = len(sources)
+        if registered:
+            self._log(f"[启动器] ✔ 导入成功 {len(registered)} 个：{', '.join(registered)}")
+        for name in skipped:
+            self._log(f"[启动器] 已跳过（用户取消）：{name}")
+        for item in failed:
+            self._log(f"[启动器] ✘ 导入失败：{item}")
+
+        self._populate_live2d_combo()
+
+        lines = [f"共处理 {n_src} 项："]
+        if registered:
+            lines.append(f"✔ 成功 {len(registered)} 个：\n   " + "\n   ".join(registered))
+        if skipped:
+            lines.append(f"— 跳过 {len(skipped)} 个：\n   " + "\n   ".join(skipped))
+        if failed:
+            lines.append(f"✘ 失败 {len(failed)} 个：\n   " + "\n   ".join(failed))
+        if registered:
+            lines.append("\n已自动写入 model_dict.json，前端刷新后即可选择。")
+
+        box = QMessageBox(self)
+        box.setWindowTitle("导入 Live2D 模型")
+        box.setText("\n".join(lines))
+        box.setIcon(QMessageBox.Information if registered else QMessageBox.Warning)
+        box.exec()
 
     # ------------------------------------------------------------------
     # LLM / TTS 下拉

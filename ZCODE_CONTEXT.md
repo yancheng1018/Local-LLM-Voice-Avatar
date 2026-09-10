@@ -208,7 +208,7 @@ GUI 依赖：`PySide6-Essentials`、`ruamel.yaml`、`psutil`
 
 ---
 
-## GUI 启动器功能（v2.3）
+## GUI 启动器功能（v2.4）
 
 6 个标签页布局（服务 → 模型 → 角色 → LLM → TTS → ASR / VAD）：
 
@@ -223,25 +223,67 @@ GUI 依赖：`PySide6-Essentials`、`ruamel.yaml`、`psutil`
 
 始终可见：顶部状态条 + 项目目录 + 底部保存按钮
 
+### Live2D 前端格式要求（重要）
+
+前端（`frontend/assets/main-*.js`）用的是 **Cubism 4 SDK**
+（`CubismModelSettingJson` / `CubismMoc`），加载逻辑**硬编码 `.model3.json`**：
+
+```js
+fetch(modelHomeDir + name + ".model3.json")   // 路径来自 model_dict.json 的 url
+```
+
+因此：
+
+| 模型格式 | 入口文件 | 前端能否加载 |
+|----------|----------|--------------|
+| Cubism 3 / 4 | `*.model3.json` | ✅ 可以 |
+| Cubism 2.1 | `*.model.json` | ❌ **不行** |
+
+`frontend/libs/live2d.min.js`（Cubism 2.1 运行时）确实存在，但 `index.html` 并未引用，
+属于遗留文件，不要误以为前端支持 2.1。
+
+`model_dict.json` 的 `url` 必须以 `.model3.json` 结尾（前端会剥掉该后缀推导模型名与 baseUrl，
+所以模型嵌在多层子目录里也可以）。
+
+**已知不兼容**：`live2d-models/加藤惠live2d/` 是 Cubism 2.1
+（入口 `model/katou_01/katou_01.model.json`），前端无法加载。
+转换到 `.model3.json` 必须用 Live2D Cubism Editor，无法脚本化。
+启动器会在预览下方用黄色提示标出这种模型。
+
 ### 「角色」页布局
 
 左列自上而下：
 1. **角色列表** — 下拉选择 + 头像预览（96px）+ 新建/删除
-2. **Live2D 预览**（210px）— 跟随所选角色的 `live2d_model_name` **自动刷新**
+2. **Live2D 预览**（210px）— 跟随所选角色的 `live2d_model_name` **自动刷新**，
+   下方一行提示该模型的格式兼容性（✔ Cubism 3/4 / ⚠ Cubism 2.1 不支持）
 
 右列：角色编辑器（显示信息 / 形象 / 人设 / 内部标识 四组）
 
-Live2D 模型在右列「形象」分组里选择，自带 ↻ 刷新按钮。下拉内容 =
-`model_dict.json` 中的模型名 ∪ `live2d-models/` 下的实际文件夹名，
-所以**新增模型文件夹会自动出现在下拉里，无需手工登记**（v2.3 起移除了
-原先的「扫描新模型 / 删除条目 / 保存 model_dict.json」管理模块）。
+### Live2D 模型管理（「形象」分组）
+
+| 控件 | 行为 |
+|------|------|
+| 模型下拉 | `model_dict.json` 中的模型名 ∪ `live2d-models/` 下的文件夹名，可编辑 |
+| **↻** | 刷新下拉 |
+| **📂** | 在资源管理器中打开 `live2d-models/` 保存目录 |
+| **导入...** | 弹出菜单：导入文件夹 / 导入压缩包 |
+
+**导入功能**（`_import_live2d_menu`）：
+- **导入文件夹** — 选中的目录若本身含入口文件则按单个模型导入；
+  否则把其中每个含入口文件的子目录各当一个模型导入。因此
+  「单个文件夹」和「多个文件夹」用同一个入口即可。
+- **导入压缩包** — 可多选 `.zip`，各自解压为 `live2d-models/<zip名>/`
+- 重名会询问是否覆盖；解压带 zip slip 防护（`_safe_extract`）
+- 导入后**自动**查找入口文件（`.model3.json` 优先，取层级最浅的）并写入
+  `model_dict.json`（自动备份 `.bak`），前端刷新即可选用
+- Cubism 2.1 模型会被拒绝登记并说明原因
 
 ### 角色编辑器
 
 | 分组 | 字段 |
 |------|------|
 | 显示信息 | 角色名（character_name）、用户名（human_name） |
-| 形象 | Live2D 模型（下拉+刷新）、头像（下拉+刷新+**导入...**） |
+| 形象 | Live2D 模型（下拉+刷新+打开目录+导入）、头像（下拉+刷新+**导入...**） |
 | 人设 | persona_prompt |
 | 内部标识（一般无需修改） | conf_name、conf_uid |
 
@@ -271,7 +313,7 @@ Live2D 模型在右列「形象」分组里选择，自带 ↻ 刷新按钮。�
 ### 声音模型（voices/）
 
 GPT-SoVITS 每次请求都需要参考音频 + 提示文本，因此把「权重对 + 参考音频」打包成一个**声音模型**，
-它同时充当 TTS 的**预设**：
+它同时充当 TTS 的**预设**。**参考音频统一放在 `voices/` 下，不再使用 GPT-SoVITS 根目录的 ref.wav**：
 
 ```
 voices/
@@ -299,6 +341,9 @@ TTS 页「声音模型」区：
 
 **GPT / SoVITS 权重选择已移入「新建/编辑声音」对话框**，TTS 主面板不再有独立权重下拉，
 只保留只读的「当前权重」标签。
+
+注：`ref_audio_path` 必须是**绝对路径**，因为该值会通过 HTTP 传给 GPT-SoVITS 服务，
+由它按自己的 CWD 解析。
 
 试听实现：`.venv-gui` 只装了 PySide6-Essentials，`QtMultimedia` 仅有 `.pyi` 存根无二进制，
 因此用标准库 —— WAV 走 `winsound` 异步播放（`SND_PURGE` 停止），其他格式交给系统默认播放器。
@@ -332,11 +377,14 @@ TTS 页「声音模型」区：
 - GUI v2.0：「预设」改名「模型」并移到服务后；Live2D 模型管理；角色编辑器 Live2D/头像下拉
 - GUI v2.1：Live2D 独立标签页 + 贴图预览；角色编辑器四组字段 + 头像导入；权重扫描全部版本目录；voices/ 声音模型体系
 - GUI v2.2：参考音频试听；权重选择移入声音对话框 + 声音模型增删改查（即预设）；Live2D 页并入角色页；修复贴图预览误取 UI 图标与模型名回退
-- GUI v2.3：移除 Live2D 模型管理模块（下拉已自动列出全部模型，无需手工登记）；TTS 显示「当前使用」的声音；启动完成后自动用默认浏览器打开界面
+- GUI v2.3：移除 Live2D 模型管理模块；TTS 显示「当前使用」的声音；启动完成后自动打开浏览器
+- GUI v2.4：Live2D「打开保存目录」按钮 + 「导入...」（文件夹/多文件夹/zip，自动登记 model_dict.json）；预览下方提示模型格式兼容性；确认前端只支持 `.model3.json`
+- conf.yaml 的 `ref_audio_path` 已改为指向 `voices/加藤惠/ref.wav`，不再使用 GPT-SoVITS 根目录的 ref.wav
 
 ### 待处理
-- `model_dict.json` 被 v2.1~v2.2 期间的「扫描 + 保存」写入了全部 42 个模型，
-  其中少量条目的 `url` 是自动猜测的（如 `加藤惠live2d` 被猜成
-  `/live2d-models/加藤惠live2d/加藤惠live2d.model3.json`，实际入口是
-  `model/katou_01/katou_01.model.json`）。该文件是前端读取的模型清单，
-  需要人工核对这些 url 或回退到原来的 2 条。
+- **`live2d-models/加藤惠live2d/` 无法在前端加载**：它是 Cubism 2.1（`katou_01.model.json`），
+  而前端只读 `.model3.json`。转换为 3/4 格式必须用 Live2D Cubism Editor（手动操作，无法脚本化）。
+  当前 `model_dict.json` 中该条的 `url` 也是无效的（文件不存在）。可选处理：
+  ① 等有 Cubism 3/4 版本的加藤惠模型后重新导入；
+  ② 从 `model_dict.json` 删掉这一条（启动器下拉仍会列出该文件夹）。
+- `live2d-models/` 下其余 41 个模型的 `url` 均已核对，全部指向真实存在的文件。
