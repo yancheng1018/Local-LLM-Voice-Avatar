@@ -3,25 +3,38 @@ This class is responsible for handling asynchronous interaction with OpenAI API 
 endpoints for language generation.
 """
 
+import time
+import uuid
+import json
+import httpx
 from typing import AsyncIterator, List, Dict, Any
-from openai import (
-    AsyncStream,
-    AsyncOpenAI,
-    APIError,
-    APIConnectionError,
-    RateLimitError,
-    NotGiven,
-    NOT_GIVEN,
-)
+from openai import NotGiven, NOT_GIVEN
 from openai.types.chat import ChatCompletionChunk
-from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
 from loguru import logger
 
 from .stateless_llm_interface import StatelessLLMInterface
 from ...mcpp.types import ToolCallObject
 
 
+
 class AsyncLLM(StatelessLLMInterface):
+    """
+    Diagnostic transport for OpenAI-compatible LLM endpoints.
+
+    This version intentionally bypasses AsyncOpenAI and talks to the
+    /chat/completions endpoint directly with httpx.  It is designed to
+    determine whether the long delay seen in Open-LLM-VTuber is caused by
+    the OpenAI Python SDK transport/client layer.
+
+    Important:
+    - stream=True is preserved.
+    - reasoning_effort="none" is preserved.
+    - tools are preserved when supplied.
+    - No automatic SDK retries are used.
+    - trust_env=False prevents Windows HTTP(S)_PROXY environment variables
+      from affecting localhost Ollama requests.
+    """
+
     def __init__(
         self,
         model: str,
@@ -31,30 +44,30 @@ class AsyncLLM(StatelessLLMInterface):
         project_id: str = "z",
         temperature: float = 1.0,
     ):
-        """
-        Initializes an instance of the `AsyncLLM` class.
-
-        Parameters:
-        - model (str): The model to be used for language generation.
-        - base_url (str): The base URL for the OpenAI API.
-        - organization_id (str, optional): The organization ID for the OpenAI API. Defaults to "z".
-        - project_id (str, optional): The project ID for the OpenAI API. Defaults to "z".
-        - llm_api_key (str, optional): The API key for the OpenAI API. Defaults to "z".
-        - temperature (float, optional): What sampling temperature to use, between 0 and 2. Defaults to 1.0.
-        """
-        self.base_url = base_url
+        self.base_url = base_url.rstrip("/")
         self.model = model
         self.temperature = temperature
-        self.client = AsyncOpenAI(
-            base_url=base_url,
-            organization=organization_id,
-            project=project_id,
-            api_key=llm_api_key,
-        )
+        self.llm_api_key = llm_api_key
+        self.organization_id = organization_id
+        self.project_id = project_id
         self.support_tools = True
 
+        # Long read timeout is intentional: it prevents the diagnostic client
+        # from hiding a slow Ollama response, while connect/pool/write remain short.
+        self.timeout = httpx.Timeout(
+            connect=10.0,
+            read=600.0,
+            write=30.0,
+            pool=10.0,
+        )
+
         logger.info(
-            f"Initialized AsyncLLM with the parameters: {self.base_url}, {self.model}"
+            f"Initialized diagnostic AsyncLLM with parameters: "
+            f"{self.base_url}, {self.model}"
+        )
+        logger.debug(
+            "🧪 LLM HTTP transport: direct httpx | "
+            "trust_env=False | retries=0 | reasoning_effort=none"
         )
 
     async def chat_completion(
@@ -62,172 +75,351 @@ class AsyncLLM(StatelessLLMInterface):
         messages: List[Dict[str, Any]],
         system: str = None,
         tools: List[Dict[str, Any]] | NotGiven = NOT_GIVEN,
-    ) -> AsyncIterator[str | List[ChoiceDeltaToolCall]]:
+    ) -> AsyncIterator[str | List[Any]]:
         """
-        Generates a chat completion using the OpenAI API asynchronously.
+        Directly calls the OpenAI-compatible /chat/completions endpoint and
+        parses the Server-Sent Events stream.
 
-        Parameters:
-        - messages (List[Dict[str, Any]]): The list of messages to send to the API.
-        - system (str, optional): System prompt to use for this completion.
-        - tools (List[Dict[str, str]], optional): List of tools to use for this completion.
-
-        Yields:
-        - str: The content of each chunk from the API response.
-        - List[ChoiceDeltaToolCall]: The tool calls detected in the response.
-
-        Raises:
-        - APIConnectionError: When the server cannot be reached
-        - RateLimitError: When a 429 status code is received
-        - APIError: For other API-related errors
+        The yielded values remain strings for normal content and lists of
+        ToolCallObject for completed tool calls, matching the existing
+        Open-LLM-VTuber contract.
         """
-        stream = None
-        # Tool call related state variables
         accumulated_tool_calls = {}
         in_tool_call = False
 
         try:
-            # If system prompt is provided, add it to the messages
             messages_with_system = messages
             if system:
                 messages_with_system = [
                     {"role": "system", "content": system},
                     *messages,
                 ]
-            logger.debug(f"Messages: {messages_with_system}")
 
             available_tools = tools if self.support_tools else NOT_GIVEN
 
-            stream: AsyncStream[
-                ChatCompletionChunk
-            ] = await self.client.chat.completions.create(
-                messages=messages_with_system,
-                model=self.model,
-                stream=True,
-                temperature=self.temperature,
-                tools=available_tools,
+            request_id = str(uuid.uuid4())[:8]
+            request_start = time.perf_counter()
+            first_chunk_time = None
+            chunk_count = 0
+            content_chunk_count = 0
+            content_char_count = 0
+            tool_chunk_count = 0
+
+            message_count = len(messages_with_system)
+            system_char_count = 0
+            user_char_count = 0
+            assistant_char_count = 0
+
+            for diagnostic_message in messages_with_system:
+                diagnostic_content = diagnostic_message.get("content")
+                diagnostic_chars = (
+                    len(diagnostic_content)
+                    if isinstance(diagnostic_content, str)
+                    else 0
+                )
+                role = diagnostic_message.get("role")
+                if role == "system":
+                    system_char_count += diagnostic_chars
+                elif role == "user":
+                    user_char_count += diagnostic_chars
+                elif role == "assistant":
+                    assistant_char_count += diagnostic_chars
+
+            if available_tools is NOT_GIVEN:
+                tool_count = 0
+            elif isinstance(available_tools, list):
+                tool_count = len(available_tools)
+            else:
+                tool_count = -1
+
+            url = f"{self.base_url}/chat/completions"
+
+            payload = {
+                "model": self.model,
+                "messages": messages_with_system,
+                "stream": True,
+                "temperature": self.temperature,
+                "reasoning_effort": "none",
+            }
+            if available_tools is not NOT_GIVEN:
+                payload["tools"] = available_tools
+
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "text/event-stream",
+            }
+            if self.llm_api_key:
+                headers["Authorization"] = f"Bearer {self.llm_api_key}"
+
+            logger.debug(
+                f"🧪 HTTP-LLM[{request_id}] START | "
+                f"url={url} | model={self.model} | "
+                f"messages={message_count} | "
+                f"system_chars={system_char_count} | "
+                f"user_chars={user_char_count} | "
+                f"assistant_chars={assistant_char_count} | "
+                f"tools={tool_count} | "
+                f"temperature={self.temperature} | "
+                f"reasoning_effort=none"
             )
             logger.debug(
-                f"Tool Support: {self.support_tools}, Available tools: {available_tools}"
+                f"HTTP-LLM[{request_id}] payload: {json.dumps(payload, ensure_ascii=False)}"
             )
 
-            async for chunk in stream:
-                if self.support_tools:
-                    has_tool_calls = (
-                        hasattr(chunk.choices[0].delta, "tool_calls")
-                        and chunk.choices[0].delta.tool_calls
+            # trust_env=False is deliberate. If a system/user HTTP proxy is
+            # configured, localhost traffic should not be routed through it.
+            async with httpx.AsyncClient(
+                timeout=self.timeout,
+                trust_env=False,
+                follow_redirects=False,
+            ) as client:
+                connect_start = time.perf_counter()
+
+                async with client.stream(
+                    "POST",
+                    url,
+                    headers=headers,
+                    json=payload,
+                ) as response:
+                    header_elapsed = time.perf_counter() - connect_start
+
+                    logger.debug(
+                        f"🧪 HTTP-LLM[{request_id}] HTTP RESPONSE HEADERS | "
+                        f"status={response.status_code} | "
+                        f"headers_call={header_elapsed:.2f}s"
                     )
 
-                    if has_tool_calls:
-                        logger.debug(
-                            f"Tool calls detected in chunk: {chunk.choices[0].delta.tool_calls}"
+                    if response.status_code == 429:
+                        body = await response.aread()
+                        logger.error(
+                            f"HTTP-LLM[{request_id}] HTTP 429 | body={body[:2000]!r}"
                         )
-                        in_tool_call = True
-                        # Process tool calls in the current chunk
-                        for tool_call in chunk.choices[0].delta.tool_calls:
-                            index = (
-                                tool_call.index if hasattr(tool_call, "index") else 0
+                        yield "Error calling the chat endpoint: Rate limit exceeded. Please try again later. See the logs for details."
+                        return
+
+                    if response.status_code >= 400:
+                        body = await response.aread()
+                        logger.error(
+                            f"HTTP-LLM[{request_id}] HTTP ERROR {response.status_code} | "
+                            f"body={body[:4000]!r}"
+                        )
+                        if (
+                            response.status_code in (400, 404)
+                            and b"does not support tools" in body
+                        ):
+                            self.support_tools = False
+                            logger.warning(
+                                f"{self.model} does not support tools. "
+                                "Disabling tool support for subsequent requests."
+                            )
+                            yield "__API_NOT_SUPPORT_TOOLS__"
+                            return
+
+                        yield (
+                            "Error calling the chat endpoint: "
+                            f"HTTP {response.status_code}. See the logs for details."
+                        )
+                        return
+
+                    logger.info(
+                        f"🧪 HTTP-LLM[{request_id}] STREAM CONNECTED | "
+                        f"headers_elapsed={header_elapsed:.2f}s"
+                    )
+
+                    async for line in response.aiter_lines():
+                        if line == "":
+                            continue
+
+                        if not line.startswith("data:"):
+                            logger.debug(
+                                f"HTTP-LLM[{request_id}] non-data SSE line: {line[:500]}"
+                            )
+                            continue
+
+                        data = line[5:].strip()
+                        if not data:
+                            continue
+
+                        if data == "[DONE]":
+                            logger.debug(
+                                f"HTTP-LLM[{request_id}] received [DONE]"
+                            )
+                            break
+
+                        try:
+                            chunk_data = json.loads(data)
+                            chunk = ChatCompletionChunk.model_validate(chunk_data)
+                        except Exception as parse_error:
+                            logger.error(
+                                f"🧪 HTTP-LLM[{request_id}] SSE JSON/Pydantic parse error: "
+                                f"{parse_error} | data={data[:2000]}"
+                            )
+                            continue
+
+                        chunk_count += 1
+
+                        if first_chunk_time is None:
+                            first_chunk_time = time.perf_counter()
+                            logger.debug(
+                                f"🧪 HTTP-LLM[{request_id}] FIRST CHUNK | "
+                                f"TTFC={first_chunk_time - request_start:.2f}s"
                             )
 
-                            # Initialize tool call for this index if needed
-                            if index not in accumulated_tool_calls:
-                                accumulated_tool_calls[index] = {
-                                    "index": index,
-                                    "id": getattr(tool_call, "id", None),
-                                    "type": getattr(tool_call, "type", None),
-                                    "function": {"name": "", "arguments": ""},
-                                }
+                        if len(chunk.choices) == 0:
+                            logger.debug(
+                                f"HTTP-LLM[{request_id}] Empty chunk received"
+                            )
+                            continue
 
-                            # Update tool call information
-                            if hasattr(tool_call, "id") and tool_call.id:
-                                accumulated_tool_calls[index]["id"] = tool_call.id
-                            if hasattr(tool_call, "type") and tool_call.type:
-                                accumulated_tool_calls[index]["type"] = tool_call.type
+                        delta = chunk.choices[0].delta
+                        has_tool_calls = bool(
+                            getattr(delta, "tool_calls", None)
+                        )
 
-                            # Update function information
-                            if hasattr(tool_call, "function"):
+                        if self.support_tools and has_tool_calls:
+                            tool_chunk_count += 1
+                            in_tool_call = True
+
+                            for tool_call in delta.tool_calls:
+                                index = (
+                                    tool_call.index
+                                    if hasattr(tool_call, "index")
+                                    and tool_call.index is not None
+                                    else 0
+                                )
+
+                                if index not in accumulated_tool_calls:
+                                    accumulated_tool_calls[index] = {
+                                        "index": index,
+                                        "id": getattr(tool_call, "id", None),
+                                        "type": getattr(tool_call, "type", None),
+                                        "function": {
+                                            "name": "",
+                                            "arguments": "",
+                                        },
+                                    }
+
                                 if (
-                                    hasattr(tool_call.function, "name")
-                                    and tool_call.function.name
+                                    hasattr(tool_call, "id")
+                                    and tool_call.id
                                 ):
-                                    accumulated_tool_calls[index]["function"][
-                                        "name"
-                                    ] = tool_call.function.name
+                                    accumulated_tool_calls[index]["id"] = tool_call.id
+
                                 if (
-                                    hasattr(tool_call.function, "arguments")
-                                    and tool_call.function.arguments
+                                    hasattr(tool_call, "type")
+                                    and tool_call.type
                                 ):
-                                    accumulated_tool_calls[index]["function"][
-                                        "arguments"
-                                    ] += tool_call.function.arguments
+                                    accumulated_tool_calls[index]["type"] = tool_call.type
 
-                        continue
+                                if hasattr(tool_call, "function"):
+                                    function = tool_call.function
+                                    if (
+                                        hasattr(function, "name")
+                                        and function.name
+                                    ):
+                                        accumulated_tool_calls[index][
+                                            "function"
+                                        ]["name"] = function.name
 
-                    # If we were in a tool call but now we're not, yield the tool call result
-                    elif in_tool_call and not has_tool_calls:
-                        in_tool_call = False
-                        # Convert accumulated tool calls to the required format and output
-                        logger.info(f"Complete tool calls: {accumulated_tool_calls}")
+                                    if (
+                                        hasattr(function, "arguments")
+                                        and function.arguments
+                                    ):
+                                        accumulated_tool_calls[index][
+                                            "function"
+                                        ]["arguments"] += function.arguments
 
-                        # Use the from_dict method to create a ToolCallObject instance from a dictionary
-                        complete_tool_calls = [
-                            ToolCallObject.from_dict(tool_data)
-                            for tool_data in accumulated_tool_calls.values()
-                        ]
+                            logger.debug(
+                                f"HTTP-LLM[{request_id}] tool chunk: "
+                                f"{delta.tool_calls}"
+                            )
+                            continue
 
-                        yield complete_tool_calls
-                        accumulated_tool_calls = {}  # Reset for potential future tool calls
+                        if self.support_tools and in_tool_call and not has_tool_calls:
+                            in_tool_call = False
+                            logger.info(
+                                f"HTTP-LLM[{request_id}] Complete tool calls: "
+                                f"{accumulated_tool_calls}"
+                            )
+                            complete_tool_calls = [
+                                ToolCallObject.from_dict(tool_data)
+                                for tool_data in accumulated_tool_calls.values()
+                            ]
+                            yield complete_tool_calls
+                            accumulated_tool_calls = {}
 
-                # Process regular content chunks
-                if len(chunk.choices) == 0:
-                    logger.info("Empty chunk received")
-                    continue
-                elif chunk.choices[0].delta.content is None:
-                    chunk.choices[0].delta.content = ""
-                yield chunk.choices[0].delta.content
+                        content = delta.content
+                        if content is None:
+                            content = ""
 
-            # If stream ends while still in a tool call, make sure to yield the tool call
+                        content_chunk_count += 1
+                        content_char_count += len(content)
+                        yield content
+
+            total_elapsed = time.perf_counter() - request_start
+            first_chunk_elapsed = (
+                first_chunk_time - request_start
+                if first_chunk_time is not None
+                else None
+            )
+
+            if first_chunk_elapsed is not None:
+                logger.debug(
+                    f"🧪 HTTP-LLM[{request_id}] STREAM COMPLETE | "
+                    f"total={total_elapsed:.2f}s | "
+                    f"TTFC={first_chunk_elapsed:.2f}s"
+                )
+            else:
+                logger.debug(
+                    f"🧪 HTTP-LLM[{request_id}] STREAM COMPLETE | "
+                    f"total={total_elapsed:.2f}s | TTFC=NO_CHUNK"
+                )
+
+            logger.debug(
+                f"🧪 HTTP-LLM[{request_id}] STATS | "
+                f"chunks={chunk_count} | "
+                f"content_chunks={content_chunk_count} | "
+                f"content_chars={content_char_count} | "
+                f"tool_chunks={tool_chunk_count}"
+            )
+
             if in_tool_call and accumulated_tool_calls:
-                logger.info(f"Final tool call at stream end: {accumulated_tool_calls}")
-
-                # Create a ToolCallObject instance from a dictionary using the from_dict method.
+                logger.info(
+                    f"HTTP-LLM[{request_id}] Final tool call at stream end: "
+                    f"{accumulated_tool_calls}"
+                )
                 complete_tool_calls = [
                     ToolCallObject.from_dict(tool_data)
                     for tool_data in accumulated_tool_calls.values()
                 ]
-
                 yield complete_tool_calls
 
-        except APIConnectionError as e:
+        except httpx.ConnectTimeout as e:
             logger.error(
-                f"Error calling the chat endpoint: Connection error. Failed to connect to the LLM API. \nCheck the configurations and the reachability of the LLM backend. \nSee the logs for details. \nTroubleshooting with documentation: https://open-llm-vtuber.github.io/docs/faq#%E9%81%87%E5%88%B0-error-calling-the-chat-endpoint-%E9%94%99%E8%AF%AF%E6%80%8E%E4%B9%88%E5%8A%9E \n{e.__cause__}"
+                f"🧪 HTTP-LLM connection timeout: {e}"
             )
-            yield "Error calling the chat endpoint: Connection error. Failed to connect to the LLM API. Check the configurations and the reachability of the LLM backend. See the logs for details. Troubleshooting with documentation: [https://open-llm-vtuber.github.io/docs/faq#%E9%81%87%E5%88%B0-error-calling-the-chat-endpoint-%E9%94%99%E8%AF%AF%E6%80%8E%E4%B9%88%E5%8A%9E]"
+            yield "Error calling the chat endpoint: Connection timeout. See the logs for details."
 
-        except RateLimitError as e:
+        except httpx.ConnectError as e:
             logger.error(
-                f"Error calling the chat endpoint: Rate limit exceeded: {e.response}"
+                f"🧪 HTTP-LLM connection error: {e}"
             )
-            yield "Error calling the chat endpoint: Rate limit exceeded. Please try again later. See the logs for details."
+            yield "Error calling the chat endpoint: Connection error. See the logs for details."
 
-        except APIError as e:
-            if "does not support tools" in str(e):
-                self.support_tools = False
-                logger.warning(
-                    f"{self.model} does not support tools. Disabling tool support."
-                )
-                yield "__API_NOT_SUPPORT_TOOLS__"
-                return
-            logger.error(f"LLM API: Error occurred: {e}")
-            logger.info(f"Base URL: {self.base_url}")
-            logger.info(f"Model: {self.model}")
-            logger.info(f"Messages: {messages}")
-            logger.info(f"temperature: {self.temperature}")
+        except httpx.ReadTimeout as e:
+            logger.error(
+                f"🧪 HTTP-LLM read timeout: {e}"
+            )
+            yield "Error calling the chat endpoint: Read timeout. See the logs for details."
+
+        except httpx.HTTPError as e:
+            logger.error(
+                f"🧪 HTTP-LLM HTTP error: {e}"
+            )
+            yield "Error calling the chat endpoint: HTTP error. See the logs for details."
+
+        except Exception as e:
+            logger.exception(
+                f"🧪 HTTP-LLM unexpected error: {e}"
+            )
             yield "Error calling the chat endpoint: Error occurred while generating response. See the logs for details."
-
-        finally:
-            # make sure the stream is properly closed
-            # so when interrupted, no more tokens will being generated.
-            if stream:
-                logger.debug("Chat completion finished.")
-                await stream.close()
-                logger.debug("Stream closed.")

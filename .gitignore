@@ -76,3 +76,10 @@ private/
 mcp_servers.json
 
 .vscode/
+# 备份 / 临时文件
+备份*.zip
+*.zip.bak
+conf.yaml.bak
+model_dict.json.bak
+launcher/__pycache__/
+.zcode/

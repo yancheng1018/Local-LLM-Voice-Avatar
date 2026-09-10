@@ -1,6 +1,7 @@
 from typing import Union, List, Dict, Any, Optional
 import asyncio
 import json
+import requests
 from loguru import logger
 import numpy as np
 
@@ -18,10 +19,18 @@ from .tts_manager import TTSTaskManager
 from ..chat_history_manager import store_message
 from ..service_context import ServiceContext
 
-# Import necessary types from agent outputs
 from ..agent.output_types import SentenceOutput, AudioOutput
 
 
+# Partial-GPU coexistence strategy:
+#   1. Qwen is loaded with num_gpu=16 (about half the layers on GPU).
+#   2. Keep Qwen resident between turns; do NOT unload/reload it.
+#   3. GPT-SoVITS runs sequentially after the LLM stream is consumed.
+#   4. TTSTaskManager buffers TTS during LLM streaming, so TTS does not
+#      block consumption of the Ollama stream.
+#
+# This avoids the long reload/unload stalls seen when Qwen was fully removed
+# from GPU between turns.
 async def process_single_conversation(
     context: ServiceContext,
     websocket_send: WebSocketSend,
@@ -31,35 +40,21 @@ async def process_single_conversation(
     session_emoji: str = np.random.choice(EMOJI_LIST),
     metadata: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """Process a single-user conversation turn
+    """Process a single-user conversation turn."""
 
-    Args:
-        context: Service context containing all configurations and engines
-        websocket_send: WebSocket send function
-        client_uid: Client unique identifier
-        user_input: Text or audio input from user
-        images: Optional list of image data
-        session_emoji: Emoji identifier for the conversation
-        metadata: Optional metadata for special processing flags
-
-    Returns:
-        str: Complete response text
-    """
-    # Create TTSTaskManager for this conversation
     tts_manager = TTSTaskManager()
-    full_response = ""  # Initialize full_response here
+    full_response = ""
 
     try:
-        # Send initial signals
         await send_conversation_start_signals(websocket_send)
         logger.info(f"New Conversation Chain {session_emoji} started!")
 
-        # Process user input
         input_text = await process_user_input(
-            user_input, context.asr_engine, websocket_send
+            user_input,
+            context.asr_engine,
+            websocket_send,
         )
 
-        # Create batch input
         batch_input = create_batch_input(
             input_text=input_text,
             images=images,
@@ -67,8 +62,8 @@ async def process_single_conversation(
             metadata=metadata,
         )
 
-        # Store user message (check if we should skip storing to history)
         skip_history = metadata and metadata.get("skip_history", False)
+
         if context.history_uid and not skip_history:
             store_message(
                 conf_uid=context.character_config.conf_uid,
@@ -79,14 +74,20 @@ async def process_single_conversation(
             )
 
         if skip_history:
-            logger.debug("Skipping storing user input to history (proactive speak)")
+            logger.debug(
+                "Skipping storing user input to history (proactive speak)"
+            )
 
         logger.info(f"User input: {input_text}")
+
         if images:
             logger.info(f"With {len(images)} images")
 
         try:
-            # agent.chat yields Union[SentenceOutput, Dict[str, Any]]
+            # Start the LLM request directly. There is intentionally no
+            # background Ollama preload to wait for here.
+            # Keep consuming the LLM stream continuously.
+            # TTSTaskManager.speak() only buffers TTS requests.
             agent_output_stream = context.agent_engine.chat(batch_input)
 
             async for output_item in agent_output_stream:
@@ -94,53 +95,71 @@ async def process_single_conversation(
                     isinstance(output_item, dict)
                     and output_item.get("type") == "tool_call_status"
                 ):
-                    # Handle tool status event: send WebSocket message
-                    output_item["name"] = context.character_config.character_name
-                    logger.debug(f"Sending tool status update: {output_item}")
-
+                    output_item["name"] = (
+                        context.character_config.character_name
+                    )
+                    logger.debug(
+                        f"Sending tool status update: {output_item}"
+                    )
                     await websocket_send(json.dumps(output_item))
 
-                elif isinstance(output_item, (SentenceOutput, AudioOutput)):
-                    # Handle SentenceOutput or AudioOutput
+                elif isinstance(
+                    output_item,
+                    (SentenceOutput, AudioOutput),
+                ):
                     response_part = await process_agent_output(
                         output=output_item,
                         character_config=context.character_config,
                         live2d_model=context.live2d_model,
                         tts_engine=context.tts_engine,
-                        websocket_send=websocket_send,  # Pass websocket_send for audio/tts messages
+                        websocket_send=websocket_send,
                         tts_manager=tts_manager,
                         translate_engine=context.translate_engine,
                     )
-                    # Ensure response_part is treated as a string before concatenation
+
                     response_part_str = (
-                        str(response_part) if response_part is not None else ""
+                        str(response_part)
+                        if response_part is not None
+                        else ""
                     )
-                    full_response += response_part_str  # Accumulate text response
+                    full_response += response_part_str
+
                 else:
                     logger.warning(
-                        f"Received unexpected item type from agent chat stream: {type(output_item)}"
+                        "Received unexpected item type from agent chat "
+                        f"stream: {type(output_item)}"
                     )
-                    logger.debug(f"Unexpected item content: {output_item}")
+                    logger.debug(
+                        f"Unexpected item content: {output_item}"
+                    )
 
         except Exception as e:
             logger.exception(
                 f"Error processing agent response stream: {e}"
-            )  # Log with stack trace
+            )
+
             await websocket_send(
                 json.dumps(
                     {
                         "type": "error",
-                        "message": f"Error processing agent response: {str(e)}",
+                        "message": (
+                            f"Error processing agent response: {str(e)}"
+                        ),
                     }
                 )
             )
-            # full_response will contain partial response before error
-        # --- End processing agent response ---
 
-        # Wait for any pending TTS tasks
-        if tts_manager.task_list:
-            await asyncio.gather(*tts_manager.task_list)
-            await websocket_send(json.dumps({"type": "backend-synth-complete"}))
+        # The LLM stream is now completely consumed.
+        # IMPORTANT: do NOT unload Qwen here. Qwen is intentionally kept
+        # resident with partial GPU offload (num_gpu=16) so that the next
+        # turn does not need to reload the model. GPT-SoVITS can use the
+        # remaining GPU memory. TTS requests are still processed serially.
+        await tts_manager.process_pending()
+
+        if tts_manager._sequence_counter > 0:
+            await websocket_send(
+                json.dumps({"type": "backend-synth-complete"})
+            )
 
         await finalize_conversation_turn(
             tts_manager=tts_manager,
@@ -148,7 +167,7 @@ async def process_single_conversation(
             client_uid=client_uid,
         )
 
-        if context.history_uid and full_response:  # Check full_response before storing
+        if context.history_uid and full_response:
             store_message(
                 conf_uid=context.character_config.conf_uid,
                 history_uid=context.history_uid,
@@ -159,16 +178,26 @@ async def process_single_conversation(
             )
             logger.info(f"AI response: {full_response}")
 
-        return full_response  # Return accumulated full_response
+        return full_response
 
     except asyncio.CancelledError:
-        logger.info(f"🤡👍 Conversation {session_emoji} cancelled because interrupted.")
+        logger.info(
+            f"🤡👍 Conversation {session_emoji} cancelled because interrupted."
+        )
         raise
+
     except Exception as e:
         logger.error(f"Error in conversation chain: {e}")
         await websocket_send(
-            json.dumps({"type": "error", "message": f"Conversation error: {str(e)}"})
+            json.dumps(
+                {
+                    "type": "error",
+                    "message": f"Conversation error: {str(e)}",
+                }
+            )
         )
         raise
+
     finally:
+        # No background Ollama preload task is used in this version.
         cleanup_conversation(tts_manager, session_emoji)

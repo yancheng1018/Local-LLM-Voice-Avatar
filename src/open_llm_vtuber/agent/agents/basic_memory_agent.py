@@ -105,7 +105,7 @@ class BasicMemoryAgent(AgentInterface):
                 self._json_detector,
             ]
         ):
-            logger.warning(
+            logger.debug(
                 "use_mcpp is False, but some MCP components were passed to the agent."
             )
 

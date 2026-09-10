@@ -26,5 +26,20 @@
                 "": 1
             }
         }
-    }
+    },
+   {
+	    "name": "guandao_3",
+	    "url": "/live2d-models/guandao_3/guandao_3.model3.json",
+	    "kScale": 0.5,
+	    "initialXshift": 0,
+	    "initialYshift": 0,
+	    "kXOffset": 1150,
+	    "idleMotionGroupName": "Idle",
+	    "emotionMap": {
+	    },
+	    "tapMotions": {
+	      "touch_head": "1",
+	      "touch_body": "1"
+	    }
+   }
 ]
