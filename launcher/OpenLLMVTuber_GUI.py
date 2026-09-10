@@ -1,5 +1,5 @@
 """
-Open-LLM-VTuber 启动器 v2.2
+Open-LLM-VTuber 启动器 v2.3
 - 自动发现项目根目录
 - 读取/保存 conf.yaml
 - 切换默认角色 / 语言模型 / TTS 模型
@@ -16,10 +16,15 @@ Open-LLM-VTuber 启动器 v2.2
 
 标签页顺序：服务 → 模型 → 角色 → LLM → TTS → ASR / VAD
 
-v2.2 新增：
+v2.3 新增：
+- 移除 Live2D 模型管理模块（下拉已自动列出 model_dict.json ∪ live2d-models/ 全部模型）
+- TTS 显示「当前使用」的声音（由 conf.yaml 的 ref_audio_path 反查）
+- 启动完成后自动用默认浏览器打开 http://localhost:12393（可关闭，也可手动点击打开）
+
+v2.2：
 - 参考音频试听（winsound 播 WAV，其他格式交给系统播放器）
 - GPT/SoVITS 权重选择移入「新建/编辑声音」对话框；声音模型支持增删改查，即 TTS 预设
-- Live2D 并入「角色」页（左列：角色列表/头像 → Live2D 预览 → Live2D 模型管理）
+- Live2D 并入「角色」页（左列：角色列表/头像 → Live2D 预览）
 - 贴图预览修复：排除 images/ 等 UI 目录，支持 Cubism 2.1 的 zip 内贴图
 - 模型目录定位带回退（'shizuku-local' → live2d-models/shizuku）
 
@@ -52,6 +57,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import webbrowser
 import zipfile
 from pathlib import Path
 
@@ -90,6 +96,7 @@ GPT_SOVITS_PORT = 9880
 GPT_SOVITS_BASE = f"http://{GPT_SOVITS_HOST}:{GPT_SOVITS_PORT}"
 LLM_HOST = "127.0.0.1"
 LLM_PORT = 12393
+WEB_UI_URL = f"http://localhost:{LLM_PORT}"
 
 DEFAULT_GPT_BAT = "start_v4_dpo.bat"
 OLLAMA_PROVIDER_KEY = "ollama_llm"
@@ -543,10 +550,11 @@ class LauncherWindow(QMainWindow):
     model_info_signal = Signal(str)
     oneclick_progress_signal = Signal(str)
     oneclick_done_signal = Signal()
+    web_ready_signal = Signal()
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Open-LLM-VTuber 启动器 v2.2")
+        self.setWindowTitle("Open-LLM-VTuber 启动器 v2.3")
         self.resize(1220, 980)
 
         self.yaml = YAML()
@@ -564,7 +572,6 @@ class LauncherWindow(QMainWindow):
 
         self._character_entries = []
         self._loading_config = False
-        self._model_dict_entries = []
 
         # 通用编辑器状态
         #   {key: widget}  widget 是 QLineEdit 或 QCheckBox
@@ -586,6 +593,10 @@ class LauncherWindow(QMainWindow):
         self.model_info_signal.connect(self._on_model_info_update)
         self.oneclick_progress_signal.connect(self._log)
         self.oneclick_done_signal.connect(self._on_oneclick_done)
+        self.web_ready_signal.connect(self._on_web_ready)
+
+        # 避免重复打开浏览器的令牌（每次启动递增，旧轮询线程据此失效）
+        self._web_open_token = 0
 
         self._build_ui()
         self._discover_and_load()
@@ -656,6 +667,19 @@ class LauncherWindow(QMainWindow):
         svc_btn_row.addWidget(self.btn_stop_llm)
         svc_btn_row.addWidget(self.btn_stop_all)
         tab_service_layout.addLayout(svc_btn_row)
+
+        # 启动完成后的行为
+        svc_opt_row = QHBoxLayout()
+        self.chk_open_browser = QCheckBox("启动完成后自动打开浏览器")
+        self.chk_open_browser.setToolTip(f"服务就绪后自动访问 {WEB_UI_URL}")
+        self.chk_open_browser.setChecked(True)
+        self.chk_open_browser.toggled.connect(self._on_open_browser_toggled)
+        self.btn_open_browser = QPushButton("立即打开界面")
+        self.btn_open_browser.clicked.connect(self._open_web_ui)
+        svc_opt_row.addWidget(self.chk_open_browser)
+        svc_opt_row.addWidget(self.btn_open_browser)
+        svc_opt_row.addStretch(1)
+        tab_service_layout.addLayout(svc_opt_row)
 
         log_box = QGroupBox("运行日志")
         log_layout = QVBoxLayout(log_box)
@@ -756,28 +780,6 @@ class LauncherWindow(QMainWindow):
         preview_tip.setAlignment(Qt.AlignCenter)
         preview_layout.addWidget(preview_tip)
         char_left.addWidget(preview_box)
-
-        # Live2D 模型管理（model_dict.json）
-        l2d_box = QGroupBox("Live2D 模型管理")
-        l2d_inner = QVBoxLayout(l2d_box)
-        self.l2d_list = QListWidget()
-        self.l2d_list.setMaximumHeight(110)
-        self.l2d_list.currentRowChanged.connect(self._on_l2d_selected)
-        l2d_inner.addWidget(self.l2d_list)
-        l2d_btn_row = QHBoxLayout()
-        btn_l2d_scan = QPushButton("扫描新模型")
-        btn_l2d_scan.setToolTip("从 live2d-models/ 中找出 model_dict.json 里没有的模型")
-        btn_l2d_del = QPushButton("删除条目")
-        btn_l2d_save = QPushButton("保存")
-        btn_l2d_save.setToolTip("写入 model_dict.json（自动备份为 .bak）")
-        btn_l2d_scan.clicked.connect(self._scan_new_live2d_models)
-        btn_l2d_del.clicked.connect(self._delete_model_dict_entry)
-        btn_l2d_save.clicked.connect(self._save_model_dict)
-        l2d_btn_row.addWidget(btn_l2d_scan)
-        l2d_btn_row.addWidget(btn_l2d_del)
-        l2d_btn_row.addWidget(btn_l2d_save)
-        l2d_inner.addLayout(l2d_btn_row)
-        char_left.addWidget(l2d_box)
 
         char_left.addStretch(1)
         tab_char_layout.addLayout(char_left, stretch=1)
@@ -980,6 +982,12 @@ class LauncherWindow(QMainWindow):
         voice_row.addWidget(btn_refresh_voice)
         gsv_layout.addRow("声音模型：", voice_row)
 
+        # 当前实际生效的声音（由 conf.yaml 的 ref_audio_path 反查）
+        self.lbl_active_voice = QLabel("当前使用：（未知）")
+        self.lbl_active_voice.setWordWrap(True)
+        self.lbl_active_voice.setStyleSheet("color: #b8860b; font-weight: bold;")
+        gsv_layout.addRow("", self.lbl_active_voice)
+
         voice_btn_row = QHBoxLayout()
         self.btn_apply_voice = QPushButton("应用声音")
         self.btn_apply_voice.setToolTip("把该声音的参考音频写入 conf.yaml，并切换对应权重")
@@ -1136,6 +1144,12 @@ class LauncherWindow(QMainWindow):
             self.launcher_cfg = {}
         self.launcher_cfg.setdefault("presets", {})
         self.launcher_cfg.setdefault("gpt_sovits_model", {})
+        # 恢复「自动打开浏览器」勾选状态（默认开）
+        self.chk_open_browser.blockSignals(True)
+        self.chk_open_browser.setChecked(
+            bool(self.launcher_cfg.get("auto_open_browser", True))
+        )
+        self.chk_open_browser.blockSignals(False)
 
     def _save_launcher_config(self):
         try:
@@ -1203,7 +1217,6 @@ class LauncherWindow(QMainWindow):
         self._refresh_preset_list()
         self._populate_live2d_combo()
         self._populate_avatar_combo()
-        self._populate_model_dict_list()
         self._populate_voice_models()
 
         gsv_dir = self.launcher_cfg.get("gpt_sovits_root")
@@ -1548,17 +1561,6 @@ class LauncherWindow(QMainWindow):
             self._log(f"[启动器] ⚠ 读取 model_dict.json 失败：{e}")
             return []
 
-    def _populate_model_dict_list(self):
-        self._model_dict_entries = self._load_model_dict()
-        self._refresh_l2d_list()
-
-    def _refresh_l2d_list(self):
-        self.l2d_list.clear()
-        for item in self._model_dict_entries:
-            name = item.get("name", "（未命名）")
-            url = item.get("url", "")
-            self.l2d_list.addItem(f"{name}  →  {url}")
-
     def _resolve_model_dir(self, name: str, url: str = ""):
         """根据模型名/URL 定位模型文件夹。
 
@@ -1680,13 +1682,6 @@ class LauncherWindow(QMainWindow):
         )
         self.l2d_preview.setToolTip(f"{model_name}\n{model_dir}")
 
-    def _on_l2d_selected(self, row: int):
-        """在管理列表中选中条目时，刷新预览。"""
-        if row < 0 or row >= len(self._model_dict_entries):
-            return
-        entry = self._model_dict_entries[row]
-        self._show_l2d_preview(entry.get("name", ""), entry.get("url", ""))
-
     def _preview_current_character_l2d(self):
         """按当前角色的 live2d_model_name 刷新预览。"""
         if not self.project_root:
@@ -1698,90 +1693,6 @@ class LauncherWindow(QMainWindow):
         model_name = w.text().strip() if w is not None else ""
         if model_name:
             self._show_l2d_preview(model_name)
-
-    def _scan_new_live2d_models(self):
-        if not self.project_root:
-            QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
-            return
-        models_dir = self.project_root / "live2d-models"
-        if not models_dir.is_dir():
-            QMessageBox.warning(self, "未找到目录", f"未找到：{models_dir}")
-            return
-        known = {item.get("name") for item in self._model_dict_entries}
-        new_dirs = sorted(
-            d for d in models_dir.iterdir()
-            if d.is_dir() and not d.name.startswith(".") and d.name not in known
-        )
-        if not new_dirs:
-            QMessageBox.information(self, "扫描完成", "没有发现新模型。")
-            return
-
-        for d in new_dirs:
-            # 在模型目录中寻找 .model3.json 作为入口文件
-            model_file = next(iter(d.rglob("*.model3.json")), None)
-            if model_file is not None:
-                url = "/" + model_file.relative_to(self.project_root).as_posix()
-            else:
-                url = f"/live2d-models/{d.name}/{d.name}.model3.json"
-            self._model_dict_entries.append({
-                "name": d.name,
-                "description": "",
-                "url": url,
-                "kScale": 0.5,
-                "initialXshift": 0,
-                "initialYshift": 0,
-                "kXOffset": 1150,
-                "idleMotionGroupName": "Idle",
-                "emotionMap": {},
-                "tapMotions": {},
-            })
-        self._refresh_l2d_list()
-        names = "\n".join(d.name for d in new_dirs)
-        QMessageBox.information(
-            self, "扫描完成",
-            f"发现 {len(new_dirs)} 个新模型：\n{names}\n\n"
-            "点击「保存到 model_dict.json」生效。"
-        )
-        self._log(f"[启动器] ✔ 扫描到 {len(new_dirs)} 个新 Live2D 模型")
-
-    def _delete_model_dict_entry(self):
-        idx = self.l2d_list.currentRow()
-        if idx < 0 or idx >= len(self._model_dict_entries):
-            QMessageBox.warning(self, "未选择", "请先在列表中选择要删除的模型条目。")
-            return
-        name = self._model_dict_entries[idx].get("name", idx)
-        reply = QMessageBox.question(
-            self, "确认删除",
-            f"确定从 model_dict.json 中删除「{name}」吗？\n（不会删除 live2d-models/ 下的模型文件夹）",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if reply != QMessageBox.Yes:
-            return
-        del self._model_dict_entries[idx]
-        self.l2d_list.takeItem(idx)
-        self._log(f"[启动器] 已移除条目「{name}」，点击「保存到 model_dict.json」生效")
-
-    def _save_model_dict(self):
-        if not self.project_root:
-            QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
-            return
-        p = self._model_dict_path()
-        try:
-            if p.exists():
-                shutil.copy2(p, p.with_suffix(".json.bak"))
-            p.write_text(
-                json.dumps(self._model_dict_entries, ensure_ascii=False, indent=4),
-                encoding="utf-8",
-            )
-            self._log(
-                f"[启动器] ✔ 已保存 model_dict.json（{len(self._model_dict_entries)} 个条目）"
-            )
-        except Exception as e:
-            QMessageBox.critical(self, "保存失败", f"写入 model_dict.json 失败：\n{e}")
-            return
-        # 模型列表变化后，同步刷新角色编辑器的下拉
-        self._populate_live2d_combo()
 
     # ------------------------------------------------------------------
     # LLM / TTS 下拉
@@ -2288,7 +2199,7 @@ class LauncherWindow(QMainWindow):
         return name, voice_dir, meta, ref
 
     def _on_voice_changed(self):
-        """切换声音模型时更新参考音频提示。"""
+        """切换声音模型时更新参考音频提示与「当前使用」标签。"""
         _, _, _, ref = self._current_voice_meta()
         if ref is not None:
             size_kb = ref.stat().st_size / 1024
@@ -2297,6 +2208,44 @@ class LauncherWindow(QMainWindow):
         else:
             self.lbl_ref_audio.setText("（无参考音频）")
             self.lbl_ref_audio.setToolTip("")
+        self._update_active_voice_label()
+
+    def _update_active_voice_label(self):
+        """显示 conf.yaml 中实际生效的声音模型。"""
+        if not self.config:
+            self.lbl_active_voice.setText("当前使用：（未加载配置）")
+            return
+        gsv = (
+            self.config.get("character_config", {})
+            .get("tts_config", {})
+            .get("gpt_sovits_tts", {})
+        )
+        ref_path = gsv.get("ref_audio_path", "")
+        if not ref_path:
+            self.lbl_active_voice.setText("当前使用：（conf.yaml 未设置参考音频）")
+            return
+        matched = self._voice_from_conf()
+        if matched:
+            self.lbl_active_voice.setText(f"当前使用：{matched} ✓")
+            self.lbl_active_voice.setStyleSheet(
+                "color: #1a7f37; font-weight: bold;"
+            )
+            self.lbl_active_voice.setToolTip(
+                f"ref_audio_path = {ref_path}\n"
+                f"prompt_lang = {gsv.get('prompt_lang', '')} | "
+                f"text_lang = {gsv.get('text_lang', '')}"
+            )
+        else:
+            self.lbl_active_voice.setText(
+                f"当前使用：（不在 voices/ 中）{Path(str(ref_path)).name}"
+            )
+            self.lbl_active_voice.setStyleSheet(
+                "color: #b8860b; font-weight: bold;"
+            )
+            self.lbl_active_voice.setToolTip(
+                f"conf.yaml 指向：{ref_path}\n"
+                "该参考音频不属于 voices/ 下的任何声音模型。"
+            )
 
     def _audition_ref_audio(self):
         """试听当前所选声音的参考音频。"""
@@ -2343,6 +2292,7 @@ class LauncherWindow(QMainWindow):
         gsv["text_lang"] = meta.get("text_lang", "zh")
         gsv["streaming_mode"] = SingleQuotedScalarString("false")
         self._save_config()
+        self._update_active_voice_label()
         self._log(
             f"[启动器] ✔ 声音「{name}」已应用并写入 conf.yaml："
             f"ref={ref_audio.name}, prompt_lang={gsv['prompt_lang']}, "
@@ -2818,6 +2768,7 @@ class LauncherWindow(QMainWindow):
                     f"keep_alive={self._parse_keep_alive()}, "
                     f"temperature={round(self.spin_temperature.value(), 2)}"
                 )
+            self._update_active_voice_label()
         except Exception as e:
             QMessageBox.critical(self, "保存失败", f"写入 conf.yaml 时出错：\n{e}")
 
@@ -2870,6 +2821,50 @@ class LauncherWindow(QMainWindow):
         )
         self._llm_reader_thread.start()
 
+        self._schedule_open_web_ui()
+
+    # ------------------------------------------------------------------
+    # 自动打开 Web 界面
+    # ------------------------------------------------------------------
+
+    def _on_open_browser_toggled(self, checked: bool):
+        self.launcher_cfg["auto_open_browser"] = bool(checked)
+        self._save_launcher_config()
+
+    def _schedule_open_web_ui(self, timeout: int = 180):
+        """起一个守护线程等 12393 就绪，然后通知主线程打开浏览器。"""
+        if not self.chk_open_browser.isChecked():
+            self._log("[启动器] （未勾选自动打开浏览器，跳过）")
+            return
+        self._web_open_token += 1
+        token = self._web_open_token
+
+        def _wait():
+            for _ in range(timeout):
+                if is_port_open(LLM_HOST, LLM_PORT):
+                    if token == self._web_open_token:
+                        self.web_ready_signal.emit()
+                    return
+                if self.llm_process is not None and self.llm_process.poll() is not None:
+                    return  # 进程已退出，不再等待
+                time.sleep(1)
+
+        threading.Thread(target=_wait, daemon=True).start()
+
+    def _on_web_ready(self):
+        self._open_web_ui()
+
+    def _open_web_ui(self):
+        """用默认浏览器打开 Web 界面。"""
+        if not is_port_open(LLM_HOST, LLM_PORT):
+            self._log(f"[启动器] ⚠ 服务未在 {LLM_PORT} 端口运行，无法打开界面")
+            return
+        try:
+            webbrowser.open(WEB_UI_URL)
+            self._log(f"[启动器] ✔ 已用默认浏览器打开 {WEB_UI_URL}")
+        except Exception as e:
+            self._log(f"[启动器] ⚠ 打开浏览器失败：{e}（可手动访问 {WEB_UI_URL}）")
+
     def _read_llm_output(self):
         proc = self.llm_process
         if proc is None or proc.stdout is None:
@@ -2885,6 +2880,7 @@ class LauncherWindow(QMainWindow):
     def _stop_llm(self):
         if self.llm_process is None or self.llm_process.poll() is not None:
             return
+        self._web_open_token += 1   # 让等待中的自动打开线程失效
         self._log("[启动器] ⏹ 正在停止 Open-LLM-VTuber...")
         pid = self.llm_process.pid
         try:
@@ -3020,6 +3016,7 @@ class LauncherWindow(QMainWindow):
                 self.oneclick_progress_signal.emit(
                     "[启动器] ✔ Open-LLM-VTuber 已在运行"
                 )
+                self.web_ready_signal.emit()   # 已在运行也打开一次界面
             else:
                 self.oneclick_progress_signal.emit("[启动器] ★ 启动 Open-LLM-VTuber...")
                 self._start_llm_threadsafe()
@@ -3044,6 +3041,8 @@ class LauncherWindow(QMainWindow):
                     )
                     return
                 self.oneclick_progress_signal.emit("[启动器] ✔ Open-LLM-VTuber 就绪")
+                if self.chk_open_browser.isChecked():
+                    self.web_ready_signal.emit()
 
             self.oneclick_progress_signal.emit("[启动器] ✔ 一键启动流程完成")
         finally:
