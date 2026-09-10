@@ -11,7 +11,12 @@ from loguru import logger
 from upgrade_codes.upgrade_manager import UpgradeManager
 
 from src.open_llm_vtuber.server import WebSocketServer
-from src.open_llm_vtuber.config_manager import Config, read_yaml, validate_config
+from src.open_llm_vtuber.config_manager import (
+    Config,
+    read_yaml,
+    validate_config,
+    apply_default_character,
+)
 
 os.environ["HF_HOME"] = str(Path(__file__).parent / "models")
 os.environ["MODELSCOPE_CACHE"] = str(Path(__file__).parent / "models")
@@ -136,7 +141,8 @@ def run(console_log_level: str):
     atexit.register(WebSocketServer.clean_cache)
 
     # Load configurations from yaml file
-    config: Config = validate_config(read_yaml("conf.yaml"))
+    # conf.yaml 只存默认角色的"指针"，这里把它合并到基础 character_config 之上
+    config: Config = validate_config(apply_default_character(read_yaml("conf.yaml")))
     server_config = config.system_config
 
     if server_config.enable_proxy:

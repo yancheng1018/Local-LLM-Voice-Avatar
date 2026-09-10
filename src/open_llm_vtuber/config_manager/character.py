@@ -18,6 +18,7 @@ class CharacterConfig(I18nMixin):
     character_name: str = Field(..., alias="character_name")
     human_name: str = Field(default="Human", alias="human_name")
     avatar: str = Field(default="", alias="avatar")
+    language: str = Field(default="", alias="language")
     persona_prompt: str = Field(..., alias="persona_prompt")
     agent_config: AgentConfig = Field(..., alias="agent_config")
     asr_config: ASRConfig = Field(..., alias="asr_config")
@@ -64,6 +65,19 @@ class CharacterConfig(I18nMixin):
         "avatar": Description(
             en="Avatar image path for the character", zh="角色头像图片路径"
         ),
+        "language": Description(
+            en=(
+                "Reply language of this character. The character always answers in this "
+                "language regardless of the language the user writes in, and the TTS "
+                "output uses it too. One of: '' (no restriction), zh, ja, en, ko, yue, "
+                "auto. Select it in the launcher instead of typing."
+            ),
+            zh=(
+                "该角色的回答语言。无论用户说什么语言，角色都只用该语言回答，"
+                "TTS 也按该语言合成。可选值：''（不限制）/ zh / ja / en / ko / yue / auto。"
+                "请在启动器里下拉选择，不要手写。"
+            ),
+        ),
     }
 
     @field_validator("persona_prompt")
@@ -96,3 +110,17 @@ class CharacterConfig(I18nMixin):
                 f"({' '.join(sorted(invalid))}): {v!r}"
             )
         return v
+
+    @field_validator("language")
+    def check_language(cls, v):
+        # 白名单校验：该字段应由启动器下拉选择，手写错误在这里就被拦住
+        if v is None:
+            return ""
+        allowed = ("", "zh", "ja", "en", "ko", "yue", "auto")
+        value = str(v).strip().lower()
+        if value not in allowed:
+            raise ValueError(
+                f"language must be one of {allowed} (got {v!r}). "
+                "Pick it from the dropdown in the launcher instead of typing."
+            )
+        return value

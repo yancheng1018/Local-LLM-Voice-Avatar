@@ -5,6 +5,9 @@ system_config:
   port: 12393
   # New setting for alternative configurations
   config_alts_dir: 'characters'
+  # Character file (inside config_alts_dir) merged over the character_config below at startup.
+  # Set by the launcher's character dropdown. Leave empty to use the character_config below as-is.
+  default_character: ''
   # Tool prompts that will be appended to the persona prompt
   tool_prompts:
     # This will be appended to the end of system prompt to let LLM include keywords to control facial expressions.
@@ -31,6 +34,10 @@ character_config:
   live2d_model_name: 'mao_pro' # The name of Live2D model. Must be the same as the corresponding name in model_dict.json
   character_name: 'Mao' # Display name of the AI, also shown in the Web UI character list. Must be unique among characters.
   avatar: 'mao.png' # Suggest using a square image for the avatar. Save it in the avatars folder. Leave blank to use the first letter of the character name as the avatar.
+  # Reply language of this character. The character always answers in this language and the
+  # TTS output uses it too. Pick it from the dropdown in the launcher.
+  # One of: '' (no restriction), zh, ja, en, ko, yue, auto
+  language: ''
   human_name: 'Human' # Will be used in the group conversation and the display name of the human.
 
   # ============== Prompts ==============

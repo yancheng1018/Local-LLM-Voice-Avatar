@@ -200,12 +200,56 @@ GUI 依赖：`PySide6-Essentials`、`ruamel.yaml`、`psutil`
 2. `characters/*.yaml` — 角色配置（**部分配置**，只写要覆盖的字段，启动/切换时 merge 到主配置之上）
 3. `config_templates/` — 默认模板（参考用）
 
+### 默认角色：指针方案（v2.6 起）
+
+`conf.yaml` **只存一个指针**，不存角色内容：
+
+```yaml
+system_config:
+  default_character: 'zh_米粒.yaml'   # 空 = 直接用本文件的 character_config
+```
+
+启动时 `apply_default_character()` 读取该文件并 `deep_merge` 到基础
+`character_config` 之上再校验。`service_context.handle_config_switch` 的
+`conf.yaml` 分支同样套用，所以 Web UI 切回「基础配置」时也尊重该默认角色。
+
+**为什么用指针而不是把角色内容写进 conf.yaml**：运行时 merge 永远是以「当前配置」为底，
+就地合并会在反复切换角色时逐步累积上一个角色的残留，把 `conf.yaml` 污染掉。
+指针方案下 `conf.yaml` 永远保持干净，每次启动只 merge 一次。
+
+指针为空或指向不存在的文件 → 忽略该指针、原样使用 `conf.yaml` 自身配置（只告警，不阻断启动）。
+
+### 角色语言（v2.6 起）
+
+`character_config.language` 可选，取值 `''` / `zh` / `ja` / `en` / `ko` / `yue` / `auto`。
+**启动器里是纯下拉，不需要手写**；后端 pydantic 只放行白名单取值，手写错误会直接报错。
+
+它驱动两处：
+
+| 作用点 | 实现 |
+|--------|------|
+| LLM 回答语言 | `construct_system_prompt()` 在 persona 提示词**最前面**注入 `[Language Requirement]` 指令，要求无论用户说什么语言都只用该语言回答 |
+| TTS 语音语言 | `init_tts()` 用角色语言覆盖 TTS 引擎配置的 `text_lang`（仅当该引擎有此参数，如 `gpt_sovits_tts`） |
+
+- **不覆盖 `prompt_lang`**：那是参考音频的语言，属于声音模型的属性
+- 空值或 `auto` 均表示不限制
+- **参数必须显式传递**：`load_from_config` 里 `self.character_config` 是在**最后**才赋值的，
+  `init_tts` / `init_agent` 执行时它还是上一次的配置。所以这两个方法都加了
+  `language` 参数并由调用方传入（见 `init_tts`、`init_agent`、`construct_system_prompt`）
+- 语言变化会触发 TTS/Agent 重建（比较时纳入了 language），否则只改语言不会生效
+- `init_tts` 的重建判断用 `self._tts_language` 记录上次使用的语言
+
+**优先级**：角色语言 > 声音模型的 `text_lang`。
+在启动器点「应用声音」时，若该声音的语言与当前角色语言不一致（或角色语言为空），
+会弹窗询问是否把角色语言同步过去，确认后立即保存角色文件。
+
 ### 角色标识方案（v2.5 起：废弃 conf_name）
 
 | 字段 | 作用 | 约束 |
 |------|------|------|
 | `conf_uid` | **唯一标识**。同时用作 `chat_history/<conf_uid>/` 的目录名，并传给各 agent 做记忆隔离 | 必填、唯一、不可含 `\ / : * ? " < > \|` |
 | `character_name` | **角色自己的名字**。既是对话中的 AI 名称，也是**前端角色列表的显示名** | 必填、**必须唯一** |
+| `language` | 回答语言（见上） | 白名单取值，可空 |
 | ~~`conf_name`~~ | **已删除** | — |
 
 **为什么 `character_name` 必须唯一**：前端（打包产物，无法重新构建）把列表项的

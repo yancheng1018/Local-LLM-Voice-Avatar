@@ -11,6 +11,7 @@ class SystemConfig(I18nMixin):
     host: str = Field(..., alias="host")
     port: int = Field(..., alias="port")
     config_alts_dir: str = Field(..., alias="config_alts_dir")
+    default_character: str = Field("", alias="default_character")
     tool_prompts: Dict[str, str] = Field(..., alias="tool_prompts")
     enable_proxy: bool = Field(False, alias="enable_proxy")
 
@@ -20,6 +21,17 @@ class SystemConfig(I18nMixin):
         "port": Description(en="Server port number", zh="服务器端口号"),
         "config_alts_dir": Description(
             en="Directory for alternative configurations", zh="备用配置目录"
+        ),
+        "default_character": Description(
+            en=(
+                "Filename of the character to load by default (e.g. 'mao_pro.yaml'). "
+                "It is merged over this file's own character_config at startup. "
+                "Leave empty to use the character_config below as-is."
+            ),
+            zh=(
+                "默认加载的角色文件名（如 'mao_pro.yaml'），启动时会把它合并到本文件自身的 "
+                "character_config 之上。留空表示直接使用下面的 character_config。"
+            ),
         ),
         "tool_prompts": Description(
             en="Tool prompts to be inserted into persona prompt",

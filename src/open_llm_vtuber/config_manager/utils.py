@@ -52,6 +52,71 @@ def read_yaml(config_path: str) -> Dict[str, Any]:
         raise e
 
 
+def _deep_merge(base: dict, override: dict) -> dict:
+    """Recursively merge ``override`` into a copy of ``base``.
+
+    Values in ``override`` win; nested dicts are merged instead of replaced.
+    """
+    result = dict(base)
+    for key, value in (override or {}).items():
+        if isinstance(value, dict) and isinstance(result.get(key), dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def apply_default_character(raw_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Merge the character named by ``system_config.default_character`` over the base config.
+
+    ``conf.yaml`` only stores a *pointer* to the default character file so that it
+    stays pristine — repeatedly switching characters would otherwise accumulate
+    leftovers, because merging is always done against the current (already merged)
+    config.
+
+    The pointer file is resolved inside ``system_config.config_alts_dir``.
+    An empty pointer, a missing file, or malformed content leaves the config
+    untouched (a warning is logged) so a bad pointer can never block startup.
+
+    Args:
+        raw_config: The raw (not yet validated) configuration dict.
+
+    Returns:
+        A new config dict with the default character merged into ``character_config``.
+    """
+    system_cfg = raw_config.get("system_config") or {}
+    pointer = str(system_cfg.get("default_character") or "").strip()
+    if not pointer:
+        return raw_config
+
+    alts_dir = str(system_cfg.get("config_alts_dir") or "characters")
+    char_path = Path(alts_dir) / pointer
+    if not char_path.is_file():
+        logger.warning(
+            f"default_character points to a missing file, ignoring it: {char_path}"
+        )
+        return raw_config
+
+    try:
+        char_config = read_yaml(str(char_path))
+    except Exception as e:
+        logger.warning(f"Failed to read default character {char_path}: {e}")
+        return raw_config
+
+    alt_cc = (char_config or {}).get("character_config")
+    if not isinstance(alt_cc, dict) or not alt_cc:
+        logger.warning(
+            f"default character {char_path} has no usable character_config, ignoring it"
+        )
+        return raw_config
+
+    merged = dict(raw_config)
+    base_cc = merged.get("character_config") or {}
+    merged["character_config"] = _deep_merge(base_cc, alt_cc)
+    logger.info(f"Applied default character '{pointer}' from {alts_dir}/")
+    return merged
+
+
 def validate_config(config_data: dict) -> Config:
     """
     Validate configuration data against the Config model.

@@ -1,5 +1,5 @@
 """
-Open-LLM-VTuber 启动器 v2.5
+Open-LLM-VTuber 启动器 v2.6
 - 自动发现项目根目录
 - 读取/保存 conf.yaml
 - 切换默认角色 / 语言模型 / TTS 模型
@@ -16,7 +16,14 @@ Open-LLM-VTuber 启动器 v2.5
 
 标签页顺序：服务 → 模型 → 角色 → LLM → TTS → ASR / VAD
 
-v2.5 新增：
+v2.6 新增：
+- 角色下拉决定 Web UI 默认角色：写入 system_config.default_character 指针，
+  由后端启动时 merge（不再把角色内容写进 conf.yaml，避免切换角色累积残留）
+- 角色下拉首项「（使用 conf.yaml 基础配置）」= 不指定默认角色
+- 角色编辑器新增「语言」下拉（纯选择，不可手写），驱动 LLM 回答语言与 TTS 语音语言
+- 应用声音时若声音语言与角色语言不一致，提示同步
+
+v2.5：
 - 角色标识改用 conf_uid；删除 conf_name；角色名统一为 character_name
 - 启动器与 Web UI 显示同一个 character_name（Web UI 只能显示该字段，故以此统一）
 - 角色编辑器「内部标识」只剩 conf_uid；新建角色模板同步
@@ -130,6 +137,26 @@ ASR_ENGINES = [
 
 VAD_ENGINE_KEY = "vad_model"
 VAD_ENGINES = [None, "silero_vad"]
+
+# 角色回答语言：显示名 -> 后端白名单取值（见 CharacterConfig.check_language）
+LANGUAGE_CHOICES = [
+    ("（不限制）", ""),
+    ("中文", "zh"),
+    ("日本語", "ja"),
+    ("English", "en"),
+    ("한국어", "ko"),
+    ("粤语", "yue"),
+    ("自动检测", "auto"),
+]
+LANGUAGE_CODE_TO_LABEL = {code: label for label, code in LANGUAGE_CHOICES}
+# 后端语言代码 -> 该语言自称，用于提示文案
+LANGUAGE_NATIVE_NAMES = {
+    "zh": "中文", "ja": "日本語", "en": "English",
+    "ko": "한국어", "yue": "粤语",
+}
+
+# 角色下拉框首项：不指定默认角色，直接用 conf.yaml 自身的 character_config
+BASE_CONFIG_ENTRY = "（使用 conf.yaml 基础配置）"
 
 
 # ----------------------------------------------------------------------
@@ -390,6 +417,29 @@ class CharEntry(NamedTuple):
     uid: str        # conf_uid —— 唯一标识，聊天记录按它分目录
 
 
+class CodeCombo(QComboBox):
+    """固定选项下拉框：界面显示友好名称，text()/setText() 读写的是「代码」值。
+
+    这样它就能和 QLineEdit 走同一套读写逻辑（见 char_edit_fields 的遍历），
+    同时保证用户只能从下拉里选择、无法手写。
+    """
+
+    def __init__(self, choices, parent=None):
+        """choices: [(显示名, 代码值), ...]"""
+        super().__init__(parent)
+        for label, code in choices:
+            self.addItem(label, code)
+
+    def text(self) -> str:
+        data = self.currentData()
+        return "" if data is None else str(data)
+
+    def setText(self, value: str):
+        value = "" if value is None else str(value).strip()
+        idx = self.findData(value)
+        self.setCurrentIndex(idx if idx >= 0 else 0)
+
+
 class EditableCombo(QComboBox):
     """可编辑下拉框，提供 QLineEdit 风格的 text()/setText() 接口，
     使角色编辑器中下拉字段与普通输入框走同一套读写逻辑。"""
@@ -586,7 +636,7 @@ class LauncherWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Open-LLM-VTuber 启动器 v2.5")
+        self.setWindowTitle("Open-LLM-VTuber 启动器 v2.6")
         self.resize(1220, 980)
 
         self.yaml = YAML()
@@ -838,6 +888,15 @@ class LauncherWindow(QMainWindow):
             w.setToolTip(tip)
             info_form.addRow(f"{label}：", w)
             self.char_edit_fields[key] = w
+
+        # 语言：纯下拉，不接受手写（后端同样只放行白名单取值）
+        w_lang = CodeCombo(LANGUAGE_CHOICES)
+        w_lang.setToolTip(
+            "该角色的回答语言：无论用户说什么语言都只用该语言回答，TTS 也按该语言合成。\n"
+            "留空或选「自动」表示不限制。"
+        )
+        info_form.addRow("语言：", w_lang)
+        self.char_edit_fields["language"] = w_lang
         char_edit_vbox.addWidget(info_box)
 
         # ── 形象 ──
@@ -1314,30 +1373,31 @@ class LauncherWindow(QMainWindow):
         for entry in self._character_entries:
             self.combo_character.addItem(entry.display)
 
-        # 用 conf_uid 定位当前角色（它是唯一标识）
-        cc = self.config.get("character_config", {})
-        current_uid = cc.get("conf_uid", "")
-        current_name = cc.get("character_name", "")
-        matched = False
-        if current_uid:
-            for i, entry in enumerate(self._character_entries):
-                if entry.uid == current_uid:
-                    self.combo_character.setCurrentIndex(i)
-                    matched = True
-                    break
-        if not matched and current_name:
-            for i, entry in enumerate(self._character_entries):
-                if entry.name == current_name:
-                    self.combo_character.setCurrentIndex(i)
-                    matched = True
-                    break
+        # 首位固定为「使用 conf.yaml 基础配置」——此时不指定默认角色
+        self.combo_character.insertItem(0, BASE_CONFIG_ENTRY)
+        self._character_entries.insert(
+            0, CharEntry(BASE_CONFIG_ENTRY, "", "", "", "")
+        )
 
-        if not matched and (current_uid or current_name):
-            self._log(
-                f"[启动器] ⚠ 当前角色（conf_uid={current_uid!r}, "
-                f"character_name={current_name!r}）未在 {alts_dir}/ 中找到对应文件"
-            )
-        self._log(f"[启动器] 发现角色 {len(self._character_entries)} 个")
+        # default_character 指针是"应用了哪个角色文件"的唯一依据。
+        # 指针为空 → 基础配置项；指针缺失/指向不存在的文件 → 同样回落基础配置项，
+        # 而不是去匹配 conf.yaml 自身的角色身份（那会导致保存时把坏指针静默改写掉）。
+        pointer = str(
+            self.config.get("system_config", {}).get("default_character") or ""
+        ).strip()
+        self.combo_character.setCurrentIndex(0)
+        if pointer:
+            for i, entry in enumerate(self._character_entries):
+                if entry.stem and f"{entry.stem}.yaml" == pointer:
+                    self.combo_character.setCurrentIndex(i)
+                    break
+            else:
+                self._log(
+                    f"[启动器] ⚠ default_character='{pointer}' 未在 {alts_dir}/ 中找到对应文件，"
+                    f"已回落为「{BASE_CONFIG_ENTRY}」（后端启动时同样会忽略该指针）"
+                )
+
+        self._log(f"[启动器] 发现角色 {len(self._character_entries) - 1} 个")
 
         self._on_character_changed(self.combo_character.currentIndex())
 
@@ -1364,8 +1424,11 @@ class LauncherWindow(QMainWindow):
             self.avatar_label.setText("无头像")
 
         # 加载角色文件到右侧编辑器
-        chars_dir = self._get_alts_dir()
-        char_file = chars_dir / f"{stem}.yaml"
+        # 首项「使用 conf.yaml 基础配置」没有独立文件，直接编辑 conf.yaml 自身的角色
+        if stem:
+            char_file = self._get_alts_dir() / f"{stem}.yaml"
+        else:
+            char_file = self.project_root / "conf.yaml"
         cc = {}
         try:
             with open(char_file, "r", encoding="utf-8") as f:
@@ -1432,6 +1495,8 @@ class LauncherWindow(QMainWindow):
                 "character_name": name,
                 "human_name": "Human",
                 "avatar": "",
+                # 回答语言（可在启动器下拉里改）
+                "language": "",
                 "persona_prompt": f"You are {name}, a friendly AI assistant.",
             }
         }
@@ -1458,8 +1523,11 @@ class LauncherWindow(QMainWindow):
             return
 
         stem = self._character_entries[idx].stem
-        chars_dir = self._get_alts_dir()
-        char_file = chars_dir / f"{stem}.yaml"
+        # 首项「使用 conf.yaml 基础配置」没有独立文件，直接写回 conf.yaml
+        if stem:
+            char_file = self._get_alts_dir() / f"{stem}.yaml"
+        else:
+            char_file = self.project_root / "conf.yaml"
 
         try:
             with open(char_file, "r", encoding="utf-8") as f:
@@ -1488,7 +1556,9 @@ class LauncherWindow(QMainWindow):
         try:
             with open(char_file, "w", encoding="utf-8") as f:
                 self.yaml.dump(char_data, f)
-            self._log(f"[启动器] ✔ 已保存角色：{stem}")
+            self._log(
+                f"[启动器] ✔ 已保存角色：{stem}" if stem else "[启动器] ✔ 已保存基础配置角色"
+            )
             # 刷新列表但保持选中
             old_stem = stem
             self._populate_characters()
@@ -2612,6 +2682,54 @@ class LauncherWindow(QMainWindow):
         else:
             self._log("[启动器] ⚠ 该声音未指定权重对，只切换了参考音频")
 
+        # 声音的语言（text_lang）与当前角色语言不一致时，提示同步
+        self._prompt_language_sync(meta.get("text_lang", ""), name)
+
+    def _prompt_language_sync(self, voice_lang: str, voice_name: str):
+        """声音语言与角色语言不一致时询问是否同步到角色。"""
+        voice_lang = (voice_lang or "").strip().lower()
+        if voice_lang in ("", "auto") or voice_lang not in LANGUAGE_NATIVE_NAMES:
+            return
+
+        widget = self.char_edit_fields.get("language")
+        if not isinstance(widget, CodeCombo):
+            return
+        role_lang = widget.text().strip().lower()
+
+        if role_lang == voice_lang:
+            return
+
+        native = LANGUAGE_NATIVE_NAMES[voice_lang]
+        if role_lang:
+            question = (
+                f"声音「{voice_name}」是{native}语音，\n"
+                f"但当前角色语言是「{LANGUAGE_CODE_TO_LABEL.get(role_lang, role_lang)}」。\n\n"
+                f"要把角色语言也改成{native}吗？\n"
+                f"（角色语言决定它用什么语言回答，建议与语音保持一致）"
+            )
+        else:
+            question = (
+                f"声音「{voice_name}」是{native}语音，\n"
+                f"当前角色语言未设置（不限制）。\n\n"
+                f"要把角色语言设为{native}吗？\n"
+                f"（这样角色会只用{native}回答，与语音一致）"
+            )
+
+        reply = QMessageBox.question(
+            self, "同步角色语言", question,
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes,
+        )
+        if reply != QMessageBox.Yes:
+            self._log(
+                f"[启动器] 已跳过语言同步（声音={voice_lang}, 角色={role_lang or '未设置'}）"
+            )
+            return
+
+        widget.setText(voice_lang)
+        # 用户的确认就是明确动作，直接保存，避免留下未生效的半成品
+        self._save_character_inline()
+        self._log(f"[启动器] ✔ 已将角色语言同步为{native}（{voice_lang}）并保存角色")
+
     # ------------------------------------------------------------------
     # 声音模型 CRUD
     # ------------------------------------------------------------------
@@ -2959,16 +3077,23 @@ class LauncherWindow(QMainWindow):
             self._log(f"[启动器] ⚠ 备份失败：{e}")
 
         try:
-            # 角色：写入所选角色的显示名与唯一标识（不再有 conf_name）
+            # 角色：只写"默认角色指针"，不把角色内容写进 conf.yaml。
+            # 后端启动时读该文件 merge 到基础 character_config 之上，
+            # 这样反复切换角色不会在 conf.yaml 里累积残留。
             idx = self.combo_character.currentIndex()
             self.config.setdefault("character_config", {})
             cc = self.config["character_config"]
+            self.config.setdefault("system_config", {})
+            sc = self.config["system_config"]
             if 0 <= idx < len(self._character_entries):
                 entry = self._character_entries[idx]
-                cc["character_name"] = entry.name
-                cc["conf_uid"] = entry.uid
-                role_desc = f"{entry.name} ({entry.stem})"
+                # 首项是「使用 conf.yaml 基础配置」→ 指针留空
+                sc["default_character"] = f"{entry.stem}.yaml" if entry.stem else ""
+                role_desc = (
+                    f"{entry.name} ({entry.stem})" if entry.stem else BASE_CONFIG_ENTRY
+                )
             else:
+                sc.setdefault("default_character", "")
                 role_desc = self.combo_character.currentText()
 
             # LLM provider

@@ -35,7 +35,18 @@ from .config_manager import (
     TranslatorConfig,
     read_yaml,
     validate_config,
+    apply_default_character,
 )
+
+# 角色语言代码 -> (英文名, 该语言自称)，用于生成 system prompt 里的语言指令。
+# 键与 CharacterConfig.language 的白名单保持一致。
+LANGUAGE_DISPLAY_NAMES = {
+    "zh": ("Chinese", "中文"),
+    "ja": ("Japanese", "日本語"),
+    "en": ("English", "English"),
+    "ko": ("Korean", "한국어"),
+    "yue": ("Cantonese", "粤语"),
+}
 
 
 class ServiceContext:
@@ -50,6 +61,8 @@ class ServiceContext:
         self.live2d_model: Live2dModel = None
         self.asr_engine: ASRInterface = None
         self.tts_engine: TTSInterface = None
+        # 上次构建 TTS 引擎时使用的角色语言，用于检测语言变化并重建引擎
+        self._tts_language: str = ""
         self.agent_engine: AgentInterface = None
         # translate_engine can be none if translation is disabled
         self.vad_engine: VADInterface | None = None
@@ -272,7 +285,10 @@ class ServiceContext:
         self.init_asr(config.character_config.asr_config)
 
         # init tts from character config
-        self.init_tts(config.character_config.tts_config)
+        self.init_tts(
+            config.character_config.tts_config,
+            config.character_config.language,
+        )
 
         # init vad from character config
         self.init_vad(config.character_config.vad_config)
@@ -300,6 +316,7 @@ class ServiceContext:
         await self.init_agent(
             config.character_config.agent_config,
             config.character_config.persona_prompt,
+            config.character_config.language,
         )
 
         self.init_translate(
@@ -332,15 +349,41 @@ class ServiceContext:
         else:
             logger.info("ASR already initialized with the same config.")
 
-    def init_tts(self, tts_config: TTSConfig) -> None:
-        if not self.tts_engine or (self.character_config.tts_config != tts_config):
+    def init_tts(self, tts_config: TTSConfig, language: str = "") -> None:
+        """(Re)initialize TTS.
+
+        ``language`` 必须显式传入：load_from_config 里 self.character_config 是在
+        最后才赋值的，本方法执行时它还是上一次的配置。
+        角色语言会覆盖引擎配置里的 text_lang（若该引擎有此参数），
+        但不覆盖 prompt_lang —— 那是参考音频的语言，属于声音模型的属性。
+        """
+        engine_cfg = getattr(tts_config, tts_config.tts_model.lower()).model_dump()
+        role_lang = (language or "").strip().lower()
+        if role_lang in ("", "auto"):
+            role_lang = ""
+        if role_lang and "text_lang" in engine_cfg:
+            if engine_cfg.get("text_lang") != role_lang:
+                logger.info(
+                    f"Overriding TTS text_lang with the character language: "
+                    f"{engine_cfg.get('text_lang')!r} -> {role_lang!r}"
+                )
+            engine_cfg["text_lang"] = role_lang
+
+        # language 变化也要触发重建，否则只改语言不会生效
+        changed = (
+            not self.tts_engine
+            or self.character_config.tts_config != tts_config
+            or self._tts_language != role_lang
+        )
+        if changed:
             logger.info(f"Initializing TTS: {tts_config.tts_model}")
             self.tts_engine = TTSFactory.get_tts_engine(
                 tts_config.tts_model,
-                **getattr(tts_config, tts_config.tts_model.lower()).model_dump(),
+                **engine_cfg,
             )
             # saving config should be done after successful initialization
             self.character_config.tts_config = tts_config
+            self._tts_language = role_lang
         else:
             logger.info("TTS already initialized with the same config.")
 
@@ -361,19 +404,29 @@ class ServiceContext:
         else:
             logger.info("VAD already initialized with the same config.")
 
-    async def init_agent(self, agent_config: AgentConfig, persona_prompt: str) -> None:
-        """Initialize or update the LLM engine based on agent configuration."""
+    async def init_agent(
+        self,
+        agent_config: AgentConfig,
+        persona_prompt: str,
+        language: str = "",
+    ) -> None:
+        """Initialize or update the LLM engine based on agent configuration.
+
+        ``language`` 需显式传入：本方法在 load_from_config 里执行时，
+        self.character_config 还是上一次的配置（它在最后才被替换）。
+        """
         logger.info(f"Initializing Agent: {agent_config.conversation_agent_choice}")
 
         if (
             self.agent_engine is not None
             and agent_config == self.character_config.agent_config
             and persona_prompt == self.character_config.persona_prompt
+            and (language or "") == (self.character_config.language or "")
         ):
             logger.debug("Agent already initialized with the same config.")
             return
 
-        system_prompt = await self.construct_system_prompt(persona_prompt)
+        system_prompt = await self.construct_system_prompt(persona_prompt, language)
 
         # Pass avatar to agent factory
         avatar = self.character_config.avatar or ""  # Get avatar from config
@@ -433,17 +486,26 @@ class ServiceContext:
 
     # ==== utils
 
-    async def construct_system_prompt(self, persona_prompt: str) -> str:
+    async def construct_system_prompt(
+        self, persona_prompt: str, language: str = ""
+    ) -> str:
         """
         Append tool prompts to persona prompt.
 
         Parameters:
         - persona_prompt (str): The persona prompt.
+        - language (str): 角色语言代码；显式传入以保证在 load_from_config
+          执行期间拿到的是**新**配置的语言（此时 self.character_config 尚未替换）。
 
         Returns:
         - str: The system prompt with all tool prompts appended.
         """
         logger.debug(f"constructing persona_prompt: '''{persona_prompt}'''")
+
+        # 角色语言限制放在最前面，指令优先级最高
+        language_directive = self._language_directive(language)
+        if language_directive:
+            persona_prompt = language_directive + "\n\n" + persona_prompt
 
         for prompt_name, prompt_file in self.system_config.tool_prompts.items():
             if (
@@ -469,6 +531,27 @@ class ServiceContext:
 
         return persona_prompt
 
+    def _language_directive(self, language: str = "") -> str:
+        """Build the "always reply in <language>" instruction.
+
+        Returns an empty string when there is no language restriction.
+        语言来源优先级：显式传入的 language > self.character_config.language。
+        """
+        lang = (language or "").strip().lower()
+        if not lang:
+            lang = (self.character_config.language or "").strip().lower()
+        if not lang or lang == "auto":
+            return ""
+        name = LANGUAGE_DISPLAY_NAMES.get(lang)
+        if not name:
+            return ""
+        return (
+            "[Language Requirement]\n"
+            f"Always reply in {name[0]} ({name[1]}), regardless of the language "
+            "the user writes in.\n"
+            "Do not use any other language in your replies."
+        )
+
     async def handle_config_switch(
         self,
         websocket: WebSocket,
@@ -486,10 +569,12 @@ class ServiceContext:
             new_character_config_data = None
 
             if config_file_name == "conf.yaml":
-                # Load base config
-                new_character_config_data = read_yaml("conf.yaml").get(
-                    "character_config"
-                )
+                # Load base config。
+                # 同样套用 default_character 指针，这样 Web UI 切回「基础配置」时
+                # 得到的仍是启动器设定的默认角色，而不是 conf.yaml 自带的那个。
+                new_character_config_data = apply_default_character(
+                    read_yaml("conf.yaml")
+                ).get("character_config")
             else:
                 # Load alternative config and merge with base config
                 characters_dir = self.system_config.config_alts_dir

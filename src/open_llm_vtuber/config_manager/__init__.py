@@ -62,6 +62,7 @@ from .utils import (
     save_config,
     scan_config_alts_directory,
     scan_bg_directory,
+    apply_default_character,
 )
 
 __all__ = [
@@ -121,5 +122,6 @@ __all__ = [
     "validate_config",
     "save_config",
     "scan_config_alts_directory",
+    "apply_default_character",
     "scan_bg_directory",
 ]
