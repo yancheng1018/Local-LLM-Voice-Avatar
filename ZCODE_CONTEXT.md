@@ -243,6 +243,47 @@ system_config:
 在启动器点「应用声音」时，若该声音的语言与当前角色语言不一致（或角色语言为空），
 会弹窗询问是否把角色语言同步过去，确认后立即保存角色文件。
 
+### ⚠️ 关键事实：角色的「自我认知名」来自 persona_prompt，不是 character_name
+
+**`character_name` 从未进入 system prompt。** `construct_system_prompt()` 只拼接
+`persona_prompt` + `[User]` 段 + `[Language Requirement]` 段 + 工具提示词，
+**没有任何一处注入 `character_name`**。它的用途全是"显示"：
+
+1. Web UI 角色列表的标签，以及前端反查配置文件的键
+2. AI 回复气泡上的名字（`conversation_utils.py` → `display_text.name`）
+3. 聊天记录 JSON 的 `name` 字段
+4. 群聊里的参与者名单（且只传"别人"的名字，AI 学不到自己叫什么）
+
+**LLM 只从 `persona_prompt` 里手写的文本认识自己。** 所以在启动器里改「角色名」
+**不会**让人设里的自称跟着变 —— 两者是独立字段，没有任何同步机制。
+
+本项目采用**手动同步文本**的方案：改「角色名」后需自行把人设里的自称改成一致。
+排查该问题时先检查 `persona_prompt` 开头写的是谁。
+
+> 若以后想根治"改名即生效"，需要在 `construct_system_prompt()` 里新增身份注入
+> （类似 `[Language Requirement]` 的做法），或提供 `[<insert_character_name>]` 占位符。
+> 本次**没有**这么做，是刻意的取舍。
+
+### 用户名（human_name）的现状
+
+`human_name` 曾长期**完全无效**（设为任意值对 LLM 都没有影响），现已修复：
+
+| 场景 | 修复前 | 修复后 |
+|------|--------|--------|
+| 单聊 | 赋给 `input_types.TextData.from_name`，但 `_to_text_prompt()` 只读 `content`，该字段**全仓库无读取方**，等于丢弃 | `construct_system_prompt()` 注入 `[User]` 段告知 LLM 用户的名字 |
+| 群聊 | `init_group_conversation_contexts()` 把 `human_name` **硬编码成 `"Human"`**，而同一次群聊的历史行用配置值 → 自相矛盾 | 该函数新增 `human_name` 参数，由调用方传入配置值，提示词与历史行一致 |
+| 前端 | 从未发送（前端 0 次引用） | 同左，仍不发前端（属于后端内部字段） |
+
+`[User]` 段的注入规则：`human_name` 为空、或等于默认占位值 `"Human"`（大小写、
+首尾空格均忽略）时**不注入**，避免默认配置下往提示词里塞噪音。
+常量 `service_context.DEFAULT_HUMAN_NAME = "Human"`。
+
+`human_name` 与 `language` 一样**必须显式传参**给 `init_agent` /
+`construct_system_prompt`：`load_from_config` 里 `self.character_config` 最后才赋值。
+
+**已知无效字段（保留未动）**：`input_types.TextData.from_name` —— 设置了但没有任何读取方。
+它是上游内部管道而非用户可见参数，故未清理，仅在此记录。
+
 ### 角色标识方案（v2.5 起：废弃 conf_name）
 
 | 字段 | 作用 | 约束 |
@@ -335,8 +376,10 @@ WebSocket 消息 {"type":"audio", ..., "actions":{"expressions":[...]}}
 Live2D 模型切到对应表情
 ```
 
-关键词还会被 `live2d_model.remove_emotion_keywords()` 从显示文本和 TTS 文本里剔除，
-所以它们不会念出来、也不会显示在字幕里。
+关键词不会念出来也不会显示在字幕里：TTS 文本由 `tts_filter` 的 `ignore_brackets`
+剔除所有括号内容（`utils/tts_preprocessor.py`）；显示文本由 `display_processor`
+调用 `live2d_model.remove_emotion_keywords()` 剔除（2026-09-10 修复，此前该方法
+从未被调用，字幕会原样显示 `[joy]`）。
 
 ### 各文件的职责
 
@@ -345,10 +388,10 @@ Live2D 模型切到对应表情
 | `model_dict.json` | 每个模型的配置（emotionMap / tapMotions / 缩放位移等） |
 | `src/open_llm_vtuber/live2d_model.py` | 只在后端**准备数据**，不发送任何东西。`set_model` 构造 `emo_map`/`emo_str`；`extract_emotion` 把 `[key]` 映射成值；`remove_emotion_keywords` 剔除关键词 |
 | `prompts/utils/live2d_expression_prompt.txt` | 指示 LLM 用 `[关键词]` 表达表情。其中 `[<insert_emomap_keys>]` 会在运行时被替换为该模型 emotionMap 的键列表 |
-| `src/open_llm_vtuber/agent/transformers.py` | `actions_extractor` 装饰器，**逐句**提取表情，只对非标签文本提取（`<think>` 内的不提取） |
+| `src/open_llm_vtuber/agent/transformers.py` | `actions_extractor` 装饰器，**逐句**提取表情；带任意 `think` 标签的句子一律跳过（与 TTS 静音条件对齐）。`display_processor(live2d_model=...)` 负责剔除显示文本中的关键词 |
 | `src/open_llm_vtuber/agent/output_types.py` | `Actions` 数据类：`expressions` / `pictures` / `sounds` |
 | `src/open_llm_vtuber/utils/stream_audio.py` | `prepare_audio_payload()` 组装 WS 的 `audio` 消息 |
-| `src/open_llm_vtuber/service_context.py` | `init_live2d()`；`construct_system_prompt()` 里替换 `[<insert_emomap_keys>]` |
+| `src/open_llm_vtuber/service_context.py` | `init_live2d()`；`construct_system_prompt()` 里替换 `[<insert_emomap_keys>]`（**emo_map 为空时跳过该提示词**，避免诱导 LLM 编造关键词） |
 | `src/open_llm_vtuber/live2d_model.py` | `_lookup_model_info()` 按 `name` 在 model_dict.json 里查表 |
 
 ### 硬性契约（改了会崩 / 不生效）
@@ -378,15 +421,57 @@ Live2D 模型切到对应表情
 | `url` | ✅ | 必须以 `.model3.json` 结尾 |
 | `emotionMap` | ✅ | 后端必需；关键词→表情值 |
 | `tapMotions` | ✅ | 点击热区→动作，配合模型自身的 hit areas |
-| `kScale` | ✅ | 前端会 **×2**（`Number(kScale\|\|.5)*2`） |
+| `kScale` | ✅ | 前端会 **×2**（`Number(kScale\|\|.5)*2`）；已由 `fit_live2d_scale.py` 按各模型画布尺寸自动计算（见下） |
 | `initialXshift` / `initialYshift` | ✅ | 初始位移 |
 | `pointerInteractive` | ✅ | 默认开启（`pointerInteractive !== false`） |
 | `scrollToResize` | ✅ | 出现在前端默认值里 |
-| `idleMotionGroupName` | ❌ **前端 0 次引用** | 死字段，改它无效（空闲动作由模型自身的 idle motion 决定） |
+| `idleMotionGroupName` | ❌ **前端 0 次引用** | 死字段，改它无效（前端硬编码 `Idle` 组名，见下节） |
 | `kXOffset` | ❌ **前端 0 次引用** | 死字段 |
+| `defaultEmotion` | ✅ | 回 IDLE 时 `resetExpression` 优先用它（表情名或索引），不配则回退表情 0；model_dict.json 目前无模型配置 |
 
 > 「前端是否使用」的依据是在 `frontend/assets/main-*.js` 里 grep 字段名。
 > 升级前端后需要重新核对，尤其是 `idleMotionGroupName` 这类可能被重新启用的字段。
+
+### 前端动作（motion）触发约定（2026-09-10 实测）
+
+前端只认两个**硬编码动作组名**，与 model3.json 的组名**大小写完全一致**才会播放：
+
+- `Idle`：空闲循环 `startRandomMotion("Idle", 1)`。组名缺失或大小写不匹配 → 空闲时模型静止。
+- `Talk`：每播放一个音频分片时 `startRandomMotion("Talk", 2)`。缺失 → 说话无伴随动作。
+- 点击：读 model_dict.json 的 `tapMotions`，值格式 `{"热区名": {"动作组": 权重}}`，
+  优先级 Force(3)。模型无 HitAreas 或热区未命中时走「合并所有权重随机选组」分支。
+  注意 HitAreas 是 model3.json 的**顶层键**（不在 FileReferences 里）。
+- **修复方式**：给 model3.json 加 `"Idle"` / `"Talk"` 别名组（引用原有动作文件）即可，
+  纯数据改动。xinnong_6、mao_pro 已于 2026-09-10 完成。
+- 回 IDLE 状态时前端 `resetExpression` 优先用 `defaultEmotion`，否则表情 0。
+- WS `set-model-and-conf` 里的 `model_info` 是 model_dict.json 条目的**原样透传**
+  （`websocket_handler.py` 两处），条目新增字段零后端改动直达前端。
+- 后端**无法**主动触发 motion：前端不消费 `actions.pictures` / `actions.sounds`，
+  也没有 motion 类 WS 消息类型；`window.Live2DDebug.playMotion` 仅控制台可用。
+- `volumes` / `slice_length` 前端收下后不用（口型同步走 `_wavFileHandler` 直解 wav），
+  属死数据通路。
+
+### 模型显示尺寸（kScale）自适应（2026-09-11）
+
+- 前端渲染缩放 = moc3 **逻辑画布**尺寸 × `CurrentKScale`（= kScale×2）。
+  逻辑画布 = CanvasInfo 像素尺寸 / PixelsPerUnit，解析方法：u32@0x44 → CanvasInfo
+  文件偏移，该处 5 个 float = PixelsPerUnit, OriginX, OriginY, CanvasWidth(px),
+  CanvasHeight(px)（moc3 v3~v5 通用，依据 OpenL2D/moc3ingbird 的格式逆向）。
+- 各模型逻辑画布差异巨大（mao_pro 高 1.45 单位、xinnong_6 高 20、碧蓝航线系列
+  12~32），共用 kScale=0.5 时大画布模型必然溢出屏幕、只能看到局部。
+- **`fit_live2d_scale.py`** 自动计算并写回 model_dict.json（自动备份 .bak）：
+  `kScale = 0.724 / 逻辑高`（0.724 = 0.5 × mao_pro 逻辑高 1.448，以其显示正常标定），
+  宽度兜底 `kScale ≤ 1.0 / 逻辑宽`，夹在 [0.01, 3]。启动器导入新模型后可再跑一次。
+- **游戏系倍率修正**：游戏模型画布含大量动画余量，人物主体只占画布一部分，
+  按整画布适配会偏小。逻辑画布高 > 5 的模型额外 ×1.8（2026-09-11 用户目测
+  校准）；小画布标准模型（mao_pro 1.45 / shizuku 1.08 / oppai_bunny 0.38）与
+  游戏系（12~32）之间有清晰断层。倍率不对时改脚本顶部 `GAME_FACTOR` 或单独
+  改某模型 kScale。
+- 曾尝试解析 moc3 顶点数据自动求人物包围盒（用户需求「全自动」），因 keyform
+  多层间接索引（artMeshKeyforms 数 ≠ artMeshes 数、需经 keyformSourcesBeginIndices
+  间接定位）且无可靠格式文档而放弃；如要重试，可考虑在 Node 里加载 Cubism Core
+  官方 WASM 用 `drawables.vertexPositions` API——卡点是本地拿不到 core 的 wasm
+  二进制（官方 CDN/npm 只发加载器）。
 
 ### 后端与前端各自能改什么
 
@@ -581,5 +666,37 @@ TTS 页「声音模型」区：
 - 加藤惠live2d（Cubism 2.1，前端不支持）已弃用，其 `model_dict.json` 条目已移除；
   其余 41 条 url 全部核对有效
 
+### 已完成记录（2026-09-10，ZCode 会话 · Live2D 动作表现优化）
+- xinnong_6.model3.json 新增 `Idle`（15 个 idle 动作）/`Talk`（main_1~5）别名组，
+  model_dict.json 补 tapMotions —— 默认角色（ja_test.yaml 指向它）从完全静止变为有
+  待机/说话/点击反应；该模型无表情文件，情绪关键词对它天然无效
+- mao_pro.model3.json 新增 `Talk`（mtn_02/03/04）组；emotionMap 修正三处错误映射
+  （fear/sadness 原指开心笑脸、anger 原指闭眼）并扩充至 50 键（含中文同义词），
+  启用闲置的悲伤(4)/害羞(5)/不安(6)/愤怒(7)表情
+- transformers.py：`<think>` 内句子不再提取表情（原只跳过边界句，思考内容会误触发
+  表情）；display_processor 接收 live2d_model 并剔除显示文本中的 `[关键词]`
+  （remove_emotion_keywords 由死代码转正，字幕/聊天记录不再显示）
+- 重写 live2d_expression_prompt.txt（每句最多一个关键词且放句首、自然使用）
+- 新增只读扫描脚本 `scan_live2d_models.py` 与报告 `live2d_scan_report.md`：
+  41 个模型中 37 个存在 Idle/Talk 组大小写不匹配，mao_pro 是唯一有 HitAreas 的模型
+
+### 已完成记录（2026-09-11，ZCode 会话 · 尺寸自适应与关键词显示）
+- 新增 `fit_live2d_scale.py`：解析 moc3 CanvasInfo（u32@0x44 → 5 个 float）计算
+  kScale，41 个模型全部重算写回；mao_pro 保持 0.5（标定自洽）
+- 画布适配对游戏系模型偏小（画布含动画余量），追加游戏系 ×1.5 目测倍率
+  （逻辑画布高 > 5 触发），现值如 xinnong_6=0.0543、shizuku=0.67
+- 尝试过解析 moc3 顶点自动求人物包围盒（全自动方案），因 keyform 间接索引无果
+  放弃，结论已存档于尺寸自适应一节
+- `construct_system_prompt`：模型 emotionMap 为空时跳过 live2d_expression_prompt，
+  杜绝「空关键词列表 + 示例」诱导 LLM 编造 `[curiosity]` 之类关键词
+- `display_processor` 在 remove_emotion_keywords 后用正则兜底剔除显示文本中
+  所有剩余方括号 token（与 TTS 侧 ignore_brackets 一致），自创关键词不再漏进字幕
+- 顺带修复：construct_system_prompt 在 Live2D 初始化失败时不再因 None 崩溃
+- TTS 卡顿排查结论（用户选择先不改）：后端改动未影响 TTS 速度，异常为重启后
+  首次合成 65.34s（GPT-SoVITS 冷启动/权重装载）；每句 3~8s 合成与历史一致，
+  首音频延迟高还与 `faster_first_response=false`（整段回复完才开始合成）有关。
+  若复现可加 GPT-SoVITS 启动预热 + 将 faster_first_response 改 true
+
 ### 待处理
-- 无（原「加藤惠live2d 格式不兼容」一项已通过弃用该模型解决）
+- 其余模型按需处理：37 个 Idle/Talk 组大小写不匹配（见 live2d_scan_report.md），
+  40 个 emotionMap 为空；两者都只影响对应模型被使用时的表现，用哪个补哪个

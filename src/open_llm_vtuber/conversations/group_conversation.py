@@ -66,9 +66,6 @@ async def process_group_conversation(
             },  # Initialize memory index for each member
         )
 
-        # Initialize group conversation context for each AI
-        init_group_conversation_contexts(client_contexts)
-
         # Get human name from initiator context
         initiator_context = client_contexts.get(initiator_client_uid)
         human_name = (
@@ -76,6 +73,11 @@ async def process_group_conversation(
             if initiator_context
             else "Human"
         )
+
+        # Initialize group conversation context for each AI
+        # 必须传入上面算好的 human_name：此前这里硬编码 "Human"，导致群聊提示词里的
+        # 人类名与同一次群聊历史行里的（配置的）名字自相矛盾
+        init_group_conversation_contexts(client_contexts, human_name)
 
         # Process initial input
         input_text = await process_group_input(
@@ -167,15 +169,22 @@ def init_group_conversation_state(
 
 def init_group_conversation_contexts(
     client_contexts: Dict[str, ServiceContext],
+    human_name: str = "Human",
 ) -> None:
-    """Initialize group conversation context for each AI participant"""
+    """Initialize group conversation context for each AI participant
+
+    Parameters:
+    - client_contexts: 参与群聊的各 AI 上下文
+    - human_name: 用户的名字，会填进 group_conversation_prompt.txt 的 {human_name}。
+      由调用方从配置读取后传入，不要在此硬编码。
+    """
     ai_names = [ctx.character_config.character_name for ctx in client_contexts.values()]
 
     for context in client_contexts.values():
         agent = context.agent_engine
         if hasattr(agent, "start_group_conversation"):
             agent.start_group_conversation(
-                human_name="Human",
+                human_name=human_name,
                 ai_participants=[
                     name
                     for name in ai_names

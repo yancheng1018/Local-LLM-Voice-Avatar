@@ -48,6 +48,9 @@ LANGUAGE_DISPLAY_NAMES = {
     "yue": ("Cantonese", "粤语"),
 }
 
+# CharacterConfig.human_name 的默认占位值；等于它时视为"未设置用户名"，不注入提示词
+DEFAULT_HUMAN_NAME = "Human"
+
 
 class ServiceContext:
     """Initializes, stores, and updates the asr, tts, and llm instances and other
@@ -317,6 +320,7 @@ class ServiceContext:
             config.character_config.agent_config,
             config.character_config.persona_prompt,
             config.character_config.language,
+            config.character_config.human_name,
         )
 
         self.init_translate(
@@ -409,10 +413,11 @@ class ServiceContext:
         agent_config: AgentConfig,
         persona_prompt: str,
         language: str = "",
+        human_name: str = "",
     ) -> None:
         """Initialize or update the LLM engine based on agent configuration.
 
-        ``language`` 需显式传入：本方法在 load_from_config 里执行时，
+        ``language`` / ``human_name`` 需显式传入：本方法在 load_from_config 里执行时，
         self.character_config 还是上一次的配置（它在最后才被替换）。
         """
         logger.info(f"Initializing Agent: {agent_config.conversation_agent_choice}")
@@ -422,11 +427,14 @@ class ServiceContext:
             and agent_config == self.character_config.agent_config
             and persona_prompt == self.character_config.persona_prompt
             and (language or "") == (self.character_config.language or "")
+            and (human_name or "") == (self.character_config.human_name or "")
         ):
             logger.debug("Agent already initialized with the same config.")
             return
 
-        system_prompt = await self.construct_system_prompt(persona_prompt, language)
+        system_prompt = await self.construct_system_prompt(
+            persona_prompt, language, human_name
+        )
 
         # Pass avatar to agent factory
         avatar = self.character_config.avatar or ""  # Get avatar from config
@@ -487,7 +495,7 @@ class ServiceContext:
     # ==== utils
 
     async def construct_system_prompt(
-        self, persona_prompt: str, language: str = ""
+        self, persona_prompt: str, language: str = "", human_name: str = ""
     ) -> str:
         """
         Append tool prompts to persona prompt.
@@ -496,16 +504,24 @@ class ServiceContext:
         - persona_prompt (str): The persona prompt.
         - language (str): 角色语言代码；显式传入以保证在 load_from_config
           执行期间拿到的是**新**配置的语言（此时 self.character_config 尚未替换）。
+        - human_name (str): 用户的名字，同样需显式传入（理由同上）。用于在提示词里
+          告诉 LLM 该怎么称呼用户 —— 否则该配置项完全不起作用。
 
         Returns:
         - str: The system prompt with all tool prompts appended.
         """
         logger.debug(f"constructing persona_prompt: '''{persona_prompt}'''")
 
-        # 角色语言限制放在最前面，指令优先级最高
+        # 放最前面的都是"身份/硬约束"类指令，优先级高于人设正文
+        directives = []
+        user_directive = self._user_directive(human_name)
+        if user_directive:
+            directives.append(user_directive)
         language_directive = self._language_directive(language)
         if language_directive:
-            persona_prompt = language_directive + "\n\n" + persona_prompt
+            directives.append(language_directive)
+        if directives:
+            persona_prompt = "\n\n".join(directives) + "\n\n" + persona_prompt
 
         for prompt_name, prompt_file in self.system_config.tool_prompts.items():
             if (
@@ -530,6 +546,23 @@ class ServiceContext:
         logger.debug(persona_prompt)
 
         return persona_prompt
+
+    def _user_directive(self, human_name: str = "") -> str:
+        """Build the "the user is called X" instruction.
+
+        返回空串表示不注入：human_name 为空、或仍是默认占位值 "Human" 时都没必要
+        往提示词里塞噪音。语言来源优先级：显式传入 > self.character_config.human_name。
+        """
+        name = (human_name or "").strip()
+        if not name:
+            name = (self.character_config.human_name or "").strip()
+        if not name or name.lower() == DEFAULT_HUMAN_NAME.lower():
+            return ""
+        return (
+            "[User]\n"
+            f'You are talking with a user named "{name}". '
+            "Address them by this name when appropriate."
+        )
 
     def _language_directive(self, language: str = "") -> str:
         """Build the "always reply in <language>" instruction.
