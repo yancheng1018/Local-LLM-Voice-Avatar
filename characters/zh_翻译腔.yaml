@@ -1,7 +1,5 @@
 
-
 character_config:
-  conf_name: "翻译腔-神经大人"
   conf_uid: "zh_translate_tone_01"
   # live2d_model_name: "mashiro"
   persona_prompt: |
@@ -27,3 +25,4 @@ character_config:
 # you may add more custom settings
 # refer to the main conf.yaml for available settings
 # Options unset will remain unchanged when switching character
+  character_name: "翻译腔-神经大人"

@@ -197,8 +197,49 @@ GUI 依赖：`PySide6-Essentials`、`ruamel.yaml`、`psutil`
 
 ### 配置层级
 1. `conf.yaml` — 主配置（用户自定义）
-2. `characters/*.yaml` — 角色配置（可覆盖主配置的任意字段）
+2. `characters/*.yaml` — 角色配置（**部分配置**，只写要覆盖的字段，启动/切换时 merge 到主配置之上）
 3. `config_templates/` — 默认模板（参考用）
+
+### 角色标识方案（v2.5 起：废弃 conf_name）
+
+| 字段 | 作用 | 约束 |
+|------|------|------|
+| `conf_uid` | **唯一标识**。同时用作 `chat_history/<conf_uid>/` 的目录名，并传给各 agent 做记忆隔离 | 必填、唯一、不可含 `\ / : * ? " < > \|` |
+| `character_name` | **角色自己的名字**。既是对话中的 AI 名称，也是**前端角色列表的显示名** | 必填、**必须唯一** |
+| ~~`conf_name`~~ | **已删除** | — |
+
+**为什么 `character_name` 必须唯一**：前端（打包产物，无法重新构建）把列表项的
+「显示标签」与「身份标识」绑成同一个字段，并用它反查配置文件：
+
+```js
+label: $.name, value: $.filename          // 下拉显示 name，值用 filename
+getFilenameByName(confName)               // 用 conf_name 反查当前角色的 filename
+```
+
+其中 `name` 由后端 `scan_config_alts_directory` 提供，取值 `character_name`
+（回退 `conf_uid` → 文件名）。前端按名字反查时**取首个匹配**，所以重名会导致切错角色。
+
+**WS 协议里的 `conf_name` 键名必须保留**：前端硬编码读取这个键名，但后端发送的
+**值已是 `character_name`**（见 `websocket_handler.py`、`service_context.py` 三处，
+均附有注释）。YAML 里已经没有这个字段了。
+
+**`scan_config_alts_directory` 的去重规则**：先扫描 `characters/*.yaml`，只有当
+`conf.yaml` 的角色没有被任何角色文件代表时，才额外插入 `conf.yaml` 条目。
+否则列表会出现两个同名条目（例如 conf.yaml 与 mao_pro.yaml 同为 `Mao`），
+导致前端反查到错误配置。
+
+**启动器与 Web UI 的一致性**：两边都显示 `character_name`，数据同源。启动器
+「形象」等分组用 `conf_uid` 定位当前角色。
+
+### 启动器里「选择角色」的实际效果（重要）
+
+后端**不会**用角色名去加载对应的角色文件 —— 真正切换角色是 Web UI 通过
+WebSocket 发 `switch-config` 完成的（见 `service_context._handle_config_switch`）。
+启动器写进 `conf.yaml` 的只有 `character_name` 与 `conf_uid`，
+**不会改变实际运行的人设**（人设来自 `conf.yaml` 自己的 `character_config`）。
+
+若希望「在启动器里选角色」能真正生效，需要额外把所选角色文件 merge 进
+`conf.yaml` 的 `character_config`——这是可选的后续改进。
 
 ### 配置加载逻辑
 角色配置会合并到主配置中。角色 YAML 中的字段会覆盖 `conf.yaml` 中的同路径字段。
@@ -215,6 +256,7 @@ GUI 依赖：`PySide6-Essentials`、`ruamel.yaml`、`psutil`
 - 必须同时更新 `config_templates/conf.default.yaml` 和 `conf.ZH.default.yaml`
 - `streaming_mode` 等字段必须保持为字符串类型
 - 使用 `ruamel.yaml` 的 `SingleQuotedScalarString` 保证格式
+- 新增角色时**不要**再写 `conf_name`；`character_name` 与 `conf_uid` 必填且各自唯一
 
 ### 添加新引擎
 1. 在对应目录创建接口文件（如 `asr_interface.py`）

@@ -124,10 +124,26 @@ def save_config(config: BaseModel, config_path: Union[str, Path]):
         raise yaml.YAMLError(f"Error writing YAML file: {e}")
 
 
+def _character_display_name(config: dict | None, fallback: str) -> str:
+    """取角色的显示名。
+
+    前端把列表项的 label 与"身份标识"绑成一个字段，并靠它反查配置文件，
+    所以这里必须返回稳定且唯一的值：优先 character_name，其次 conf_uid，最后文件名。
+    """
+    if not config:
+        return fallback
+    cc = config.get("character_config", config)
+    return str(cc.get("character_name") or cc.get("conf_uid") or fallback)
+
+
 def scan_config_alts_directory(config_alts_dir: str) -> list[dict]:
     """
     Scan the config_alts directory and return a list of config information.
     Each config info contains the filename and its display name from the config.
+
+    The display name is the character's ``character_name`` (falling back to
+    ``conf_uid`` then the filename). The Web UI renders this value *and* uses it
+    to map back to a filename, so it must be unique across all entries.
 
     Parameters:
     - config_alts_dir (str): The path to the config_alts directory.
@@ -135,38 +151,27 @@ def scan_config_alts_directory(config_alts_dir: str) -> list[dict]:
     Returns:
     - list[dict]: A list of dicts containing config info:
         - filename: The actual config file name
-        - name: Display name from config, falls back to filename if not specified
+        - name: Display name from config, falls back to the filename
     """
     config_files = []
+    seen_names = set()
 
-    # Add default config first
-    default_config = read_yaml("conf.yaml")
-    config_files.append(
-        {
-            "filename": "conf.yaml",
-            "name": default_config.get("character_config", {}).get(
-                "conf_name", "conf.yaml"
-            )
-            if default_config
-            else "conf.yaml",
-        }
-    )
-
-    # Scan other configs
+    # 先扫描角色文件，让它们的名字优先于 conf.yaml 的基础条目
     for root, _, files in os.walk(config_alts_dir):
         for file in files:
             if file.endswith(".yaml"):
                 config: dict = read_yaml(os.path.join(root, file))
-                config_files.append(
-                    {
-                        "filename": file,
-                        "name": config.get("character_config", {}).get(
-                            "conf_name", file
-                        )
-                        if config
-                        else file,
-                    }
-                )
+                name = _character_display_name(config, file)
+                seen_names.add(name)
+                config_files.append({"filename": file, "name": name})
+
+    # 只有当 conf.yaml 的角色没有被任何角色文件代表时才插入它。
+    # 否则列表里会出现两个同名条目，而前端按名字反查文件名时取首个匹配，
+    # 会解析到错误的配置。
+    default_config = read_yaml("conf.yaml")
+    default_name = _character_display_name(default_config, "conf.yaml")
+    if default_name not in seen_names:
+        config_files.insert(0, {"filename": "conf.yaml", "name": default_name})
     logger.debug(f"Found config files: {config_files}")
     return config_files
 

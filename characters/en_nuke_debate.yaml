@@ -1,6 +1,5 @@
 # Alternative Configuration Example
 character_config:
-  conf_name: "en_nuke_debator"
   conf_uid: "en_nuke_debator-001"
   live2d_model_name: "shizuku-local"
   persona_prompt: |
@@ -17,3 +16,4 @@ character_config:
 # you may add more custom settings
 # refer to the main conf.yaml for available settings
 # Options unset will remain unchanged when switching character
+  character_name: "en_nuke_debator"

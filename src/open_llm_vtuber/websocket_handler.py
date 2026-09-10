@@ -162,7 +162,9 @@ class WebSocketHandler:
                 {
                     "type": "set-model-and-conf",
                     "model_info": session_service_context.live2d_model.model_info,
-                    "conf_name": session_service_context.character_config.conf_name,
+                    # 键名 conf_name 是前端的历史包袱（打包产物里硬编码读取它），
+                    # 值即角色显示名 character_name —— 前端用它反查配置文件
+                    "conf_name": session_service_context.character_config.character_name,
                     "conf_uid": session_service_context.character_config.conf_uid,
                     "client_uid": client_uid,
                 }
@@ -595,7 +597,8 @@ class WebSocketHandler:
                 {
                     "type": "set-model-and-conf",
                     "model_info": context.live2d_model.model_info,
-                    "conf_name": context.character_config.conf_name,
+                    # 见 _send_initial_messages：键名保留，值为角色显示名
+                    "conf_name": context.character_config.character_name,
                     "conf_uid": context.character_config.conf_uid,
                     "client_uid": client_uid,
                 }

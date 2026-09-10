@@ -25,10 +25,9 @@ If you just want to quickly create a new character with a different personality,
 ```yaml
 # my_character.yaml
 character_config:
-  conf_name: 'My New Character'      # The name displayed in the UI
   conf_uid: 'my_new_character_001' # MUST be a unique ID
-  character_name: 'Hoshino'          # The AI's name in conversation
-  avatar: 'hoshino.png'              # (Optional) Avatar file, place it in the /avatars folder
+  character_name: 'Hoshino'        # REQUIRED. The name displayed in the UI, must be unique
+  avatar: 'hoshino.png'            # (Optional) Avatar file, place it in the /avatars folder
   persona_prompt: |
     You are a gentle and caring girl next door named Hoshino. You are a great listener and always provide warmth and encouragement.
 ````
@@ -40,7 +39,6 @@ This example shows how to create a character that not only has a unique persona 
 ```yaml
 # my_advanced_character.yaml
 character_config:
-  conf_name: 'Advanced - Cyber Hacker'
   conf_uid: 'cyber_hacker_001' # MUST be a unique ID
   character_name: 'Zero'
   live2d_model_name: 'mao_pro' # Ensure this model exists in model_dict.json
@@ -72,14 +70,9 @@ character_config:
 
 Here is a breakdown of the core fields under `character_config`:
 
-  - `conf_name` (string):
-
-      - **Purpose**: The display name for the character in the front-end UI's selection list.
-      - **Example**: `'My AI Girlfriend'`
-
   - `conf_uid` (string):
 
-      - **Purpose**: The **Unique Identifier (UID)** for the character. It is used internally to distinguish between different character configs and manage chat histories. **It is highly recommended to keep this unique\!**
+      - **Purpose**: The **Unique Identifier (UID)** for the character. It is used internally to distinguish between different character configs, manage chat histories, and locate the currently active character. **It is highly recommended to keep this unique\!** It is also used as the `chat_history/<conf_uid>/` folder name, so avoid path separators and reserved characters (`\ / : * ? " < > |`).
       - **Example**: `'my_ai_girlfriend_001'`
 
   - `live2d_model_name` (string):
@@ -89,9 +82,9 @@ Here is a breakdown of the core fields under `character_config`:
         1.  Place your Live2D model folder into the `/live2d-models` directory.
         2.  Add a new entry for your model in `model_dict.json`.
 
-  - `character_name` (string):
+  - `character_name` (string, **required**):
 
-      - **Purpose**: The name the AI uses in conversations. This affects group chats and UI display.
+      - **Purpose**: The character's own name. This is both the name the AI uses in conversations **and** the label shown in the front-end UI's character selection list, so **it must be unique among all characters** — the UI maps this value back to a config file, and a duplicate would resolve to the wrong character.
       - **Example**: `'Mao'`
 
   - `avatar` (string, optional):

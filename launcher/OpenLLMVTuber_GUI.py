@@ -1,5 +1,5 @@
 """
-Open-LLM-VTuber 启动器 v2.4
+Open-LLM-VTuber 启动器 v2.5
 - 自动发现项目根目录
 - 读取/保存 conf.yaml
 - 切换默认角色 / 语言模型 / TTS 模型
@@ -16,7 +16,12 @@ Open-LLM-VTuber 启动器 v2.4
 
 标签页顺序：服务 → 模型 → 角色 → LLM → TTS → ASR / VAD
 
-v2.4 新增：
+v2.5 新增：
+- 角色标识改用 conf_uid；删除 conf_name；角色名统一为 character_name
+- 启动器与 Web UI 显示同一个 character_name（Web UI 只能显示该字段，故以此统一）
+- 角色编辑器「内部标识」只剩 conf_uid；新建角色模板同步
+
+v2.4：
 - 「形象」分组加「📂 打开保存目录」与「导入...」按钮
 - 导入 Live2D 模型：支持单个文件夹、包含多模型的总目录、多选 zip 压缩包；
   自动查找入口文件（.model3.json 优先取最浅层）并写入 model_dict.json（自动备份）
@@ -67,6 +72,7 @@ import urllib.request
 import webbrowser
 import zipfile
 from pathlib import Path
+from typing import NamedTuple
 
 try:
     import winsound
@@ -375,6 +381,15 @@ def coerce_back(original, text: str):
 # 主窗口
 # ----------------------------------------------------------------------
 
+class CharEntry(NamedTuple):
+    """角色列表中的一项。"""
+    display: str    # 下拉框显示文本："{角色名} ({文件名})"
+    stem: str       # 角色 YAML 的文件名（不含扩展名）
+    name: str       # character_name —— 与 Web UI 显示的一致
+    avatar: str     # 头像文件名
+    uid: str        # conf_uid —— 唯一标识，聊天记录按它分目录
+
+
 class EditableCombo(QComboBox):
     """可编辑下拉框，提供 QLineEdit 风格的 text()/setText() 接口，
     使角色编辑器中下拉字段与普通输入框走同一套读写逻辑。"""
@@ -571,7 +586,7 @@ class LauncherWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Open-LLM-VTuber 启动器 v2.4")
+        self.setWindowTitle("Open-LLM-VTuber 启动器 v2.5")
         self.resize(1220, 980)
 
         self.yaml = YAML()
@@ -815,7 +830,7 @@ class LauncherWindow(QMainWindow):
         info_box = QGroupBox("显示信息")
         info_form = QFormLayout(info_box)
         for key, label, tip in [
-            ("character_name", "角色名", "界面上显示的 AI 名称"),
+            ("character_name", "角色名", "界面（含 Web UI 角色列表）显示的名字，需保持唯一"),
             ("human_name", "用户名", "界面上显示的你的称呼"),
         ]:
             w = QLineEdit()
@@ -882,8 +897,7 @@ class LauncherWindow(QMainWindow):
         id_box = QGroupBox("内部标识（一般无需修改）")
         id_form = QFormLayout(id_box)
         for key, label, tip in [
-            ("conf_name", "conf_name", "角色配置文件名（不带 .yaml），启动器选中的就是它"),
-            ("conf_uid", "conf_uid", "角色唯一标识，留空保存时自动填为 名称_001"),
+            ("conf_uid", "conf_uid", "角色唯一标识；同时用作 chat_history/<conf_uid>/ 的目录名，需唯一"),
         ]:
             w = QLineEdit()
             w.setMinimumWidth(200)
@@ -1281,29 +1295,48 @@ class LauncherWindow(QMainWindow):
                 stem = f.stem
                 char_name = stem
                 avatar = ""
+                conf_uid = ""
                 try:
                     with open(f, "r", encoding="utf-8") as fp:
                         c = self.yaml.load(fp) or {}
-                    char_name = c.get("character_name") or stem
-                    avatar = c.get("avatar") or ""
+                    cc = c.get("character_config", c)
+                    # 显示名与 Web UI 保持一致：character_name（回退 conf_uid/文件名）
+                    char_name = cc.get("character_name") or cc.get("conf_uid") or stem
+                    conf_uid = cc.get("conf_uid") or ""
+                    avatar = cc.get("avatar") or ""
                 except Exception:
                     pass
                 display = f"{char_name} ({stem})"
-                self._character_entries.append((display, stem, char_name, avatar))
+                self._character_entries.append(
+                    CharEntry(display, stem, char_name, avatar, conf_uid)
+                )
 
-        for display, _, _, _ in self._character_entries:
-            self.combo_character.addItem(display)
+        for entry in self._character_entries:
+            self.combo_character.addItem(entry.display)
 
-        current = self.config.get("character_config", {}).get("conf_name", "")
+        # 用 conf_uid 定位当前角色（它是唯一标识）
+        cc = self.config.get("character_config", {})
+        current_uid = cc.get("conf_uid", "")
+        current_name = cc.get("character_name", "")
         matched = False
-        for i, (_, stem, _, _) in enumerate(self._character_entries):
-            if stem == current:
-                self.combo_character.setCurrentIndex(i)
-                matched = True
-                break
+        if current_uid:
+            for i, entry in enumerate(self._character_entries):
+                if entry.uid == current_uid:
+                    self.combo_character.setCurrentIndex(i)
+                    matched = True
+                    break
+        if not matched and current_name:
+            for i, entry in enumerate(self._character_entries):
+                if entry.name == current_name:
+                    self.combo_character.setCurrentIndex(i)
+                    matched = True
+                    break
 
-        if not matched and current:
-            self._log(f"[启动器] ⚠ 当前角色 conf_name='{current}' 未在 {alts_dir}/ 目录中找到对应文件")
+        if not matched and (current_uid or current_name):
+            self._log(
+                f"[启动器] ⚠ 当前角色（conf_uid={current_uid!r}, "
+                f"character_name={current_name!r}）未在 {alts_dir}/ 中找到对应文件"
+            )
         self._log(f"[启动器] 发现角色 {len(self._character_entries)} 个")
 
         self._on_character_changed(self.combo_character.currentIndex())
@@ -1317,7 +1350,8 @@ class LauncherWindow(QMainWindow):
             self.char_edit_persona.setPlainText("")
             return
 
-        _, stem, char_name, avatar = self._character_entries[idx]
+        entry = self._character_entries[idx]
+        stem, avatar = entry.stem, entry.avatar
 
         pix = self._find_avatar_pixmap(avatar)
         if pix is not None and not pix.isNull():
@@ -1373,10 +1407,16 @@ class LauncherWindow(QMainWindow):
         if not self.project_root:
             QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
             return
-        name, ok = QInputDialog.getText(self, "新建角色", "角色 conf_name（英文标识）：")
+        name, ok = QInputDialog.getText(
+            self, "新建角色",
+            "角色文件名（英文标识，将生成 <名称>.yaml）："
+        )
         if not ok or not name.strip():
             return
         name = name.strip()
+        if re.search(r'[\\/:*?"<>|]', name):
+            QMessageBox.warning(self, "名称无效", "文件名不能包含 \\ / : * ? \" < > |")
+            return
         chars_dir = self._get_alts_dir()
         target = chars_dir / f"{name}.yaml"
         if target.exists():
@@ -1385,9 +1425,10 @@ class LauncherWindow(QMainWindow):
 
         template = {
             "character_config": {
-                "conf_name": name,
+                # 唯一标识：同时用作 chat_history/<conf_uid>/ 目录名
                 "conf_uid": f"{name}_001",
                 "live2d_model_name": "",
+                # 角色名 = 界面（含 Web UI 角色列表）显示的名字，需唯一
                 "character_name": name,
                 "human_name": "Human",
                 "avatar": "",
@@ -1401,8 +1442,8 @@ class LauncherWindow(QMainWindow):
             self._log(f"[启动器] ✔ 已创建角色文件：{target.name}")
             self._populate_characters()
             # 选中新角色
-            for i, (_, stem, _, _) in enumerate(self._character_entries):
-                if stem == name:
+            for i, entry in enumerate(self._character_entries):
+                if entry.stem == name:
                     self.combo_character.setCurrentIndex(i)
                     break
         except Exception as e:
@@ -1416,7 +1457,7 @@ class LauncherWindow(QMainWindow):
             QMessageBox.warning(self, "未选择角色", "请先在左侧选择一个角色。")
             return
 
-        _, stem, _, _ = self._character_entries[idx]
+        stem = self._character_entries[idx].stem
         chars_dir = self._get_alts_dir()
         char_file = chars_dir / f"{stem}.yaml"
 
@@ -1435,13 +1476,11 @@ class LauncherWindow(QMainWindow):
                 continue
             cc[key] = value
 
-        # 内部标识留空时自动补全，避免写出空值导致启动失败。
+        # 唯一标识留空时自动补全，避免写出空值导致启动失败。
         # character_name 不补：应用层已有「缺失时回退为文件名」的处理，
         # 补写只会往老角色文件里添加冗余字段。
-        if not cc.get("conf_name"):
-            cc["conf_name"] = stem
         if not cc.get("conf_uid"):
-            cc["conf_uid"] = f"{cc['conf_name']}_001"
+            cc["conf_uid"] = f"{cc.get('character_name') or stem}_001"
 
         cc["persona_prompt"] = self.char_edit_persona.toPlainText()
         char_data["character_config"] = cc
@@ -1453,8 +1492,8 @@ class LauncherWindow(QMainWindow):
             # 刷新列表但保持选中
             old_stem = stem
             self._populate_characters()
-            for i, (_, s, _, _) in enumerate(self._character_entries):
-                if s == old_stem:
+            for i, entry in enumerate(self._character_entries):
+                if entry.stem == old_stem:
                     self.combo_character.setCurrentIndex(i)
                     break
         except Exception as e:
@@ -1467,7 +1506,8 @@ class LauncherWindow(QMainWindow):
         if idx < 0 or idx >= len(self._character_entries):
             return
 
-        _, stem, char_name, _ = self._character_entries[idx]
+        entry = self._character_entries[idx]
+        stem, char_name = entry.stem, entry.name
         reply = QMessageBox.question(
             self, "确认删除",
             f"确定要删除角色「{char_name}」（{stem}.yaml）吗？\n\n此操作不可撤销。",
@@ -2919,18 +2959,19 @@ class LauncherWindow(QMainWindow):
             self._log(f"[启动器] ⚠ 备份失败：{e}")
 
         try:
-            # 角色
+            # 角色：写入所选角色的显示名与唯一标识（不再有 conf_name）
             idx = self.combo_character.currentIndex()
-            if 0 <= idx < len(self._character_entries):
-                conf_name = self._character_entries[idx][1]
-            else:
-                conf_name = self.combo_character.currentText()
-
             self.config.setdefault("character_config", {})
-            self.config["character_config"]["conf_name"] = conf_name
+            cc = self.config["character_config"]
+            if 0 <= idx < len(self._character_entries):
+                entry = self._character_entries[idx]
+                cc["character_name"] = entry.name
+                cc["conf_uid"] = entry.uid
+                role_desc = f"{entry.name} ({entry.stem})"
+            else:
+                role_desc = self.combo_character.currentText()
 
             # LLM provider
-            cc = self.config["character_config"]
             cc.setdefault("agent_config", {})
             cc["agent_config"].setdefault("agent_settings", {})
             cc["agent_config"]["agent_settings"].setdefault("basic_memory_agent", {})
@@ -3024,7 +3065,7 @@ class LauncherWindow(QMainWindow):
 
             self._log(
                 f"[启动器] ✔ 已保存 conf.yaml  "
-                f"(角色={conf_name}, LLM={current_llm}, TTS={current_tts}, "
+                f"(角色={role_desc}, LLM={current_llm}, TTS={current_tts}, "
                 f"ASR={asr_text}, VAD={vad_text})"
             )
             if current_llm == OLLAMA_PROVIDER_KEY:

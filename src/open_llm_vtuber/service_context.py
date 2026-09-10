@@ -524,7 +524,8 @@ class ServiceContext:
                         {
                             "type": "set-model-and-conf",
                             "model_info": self.live2d_model.model_info,
-                            "conf_name": self.character_config.conf_name,
+                            # 键名 conf_name 是前端的历史包袱，值即角色显示名
+                            "conf_name": self.character_config.character_name,
                             "conf_uid": self.character_config.conf_uid,
                         }
                     )

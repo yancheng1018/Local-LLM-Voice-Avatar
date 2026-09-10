@@ -13,10 +13,9 @@ from .agent import AgentConfig
 class CharacterConfig(I18nMixin):
     """Character configuration settings."""
 
-    conf_name: str = Field(..., alias="conf_name")
     conf_uid: str = Field(..., alias="conf_uid")
     live2d_model_name: str = Field(..., alias="live2d_model_name")
-    character_name: str = Field(default="", alias="character_name")
+    character_name: str = Field(..., alias="character_name")
     human_name: str = Field(default="Human", alias="human_name")
     avatar: str = Field(default="", alias="avatar")
     persona_prompt: str = Field(..., alias="persona_prompt")
@@ -29,18 +28,16 @@ class CharacterConfig(I18nMixin):
     )
 
     DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
-        "conf_name": Description(
-            en="Name of the character configuration", zh="角色配置名称"
-        ),
         "conf_uid": Description(
             en="Unique identifier for the character configuration",
-            zh="角色配置唯一标识符",
+            zh="角色配置唯一标识符（同时用作聊天记录的存储目录名）",
         ),
         "live2d_model_name": Description(
             en="Name of the Live2D model to use", zh="使用的Live2D模型名称"
         ),
         "character_name": Description(
-            en="Name of the AI character in conversation", zh="对话中AI角色的名字"
+            en="Name of the AI character in conversation",
+            zh="角色名。界面（含 Web UI 的角色列表）显示的就是它，需保持唯一",
         ),
         "persona_prompt": Description(
             en="Persona prompt. The persona of your character.", zh="角色人设提示词"
@@ -78,7 +75,24 @@ class CharacterConfig(I18nMixin):
         return v
 
     @field_validator("character_name")
-    def set_default_character_name(cls, v, values):
-        if not v and "conf_name" in values:
-            return values["conf_name"]
+    def check_character_name(cls, v):
+        # 角色名是界面上的唯一显示名，前端用它反查配置，不能为空
+        if not v or not str(v).strip():
+            raise ValueError(
+                "character_name cannot be empty. It is the display name shown in "
+                "the UI and must be unique among characters."
+            )
+        return v
+
+    @field_validator("conf_uid")
+    def check_conf_uid(cls, v):
+        # conf_uid 会被用作 chat_history/<conf_uid>/ 的目录名
+        if not v or not str(v).strip():
+            raise ValueError("conf_uid cannot be empty.")
+        invalid = set('\\/:*?"<>|')
+        if any(ch in invalid for ch in str(v)):
+            raise ValueError(
+                f"conf_uid cannot contain path separators or reserved characters "
+                f"({' '.join(sorted(invalid))}): {v!r}"
+            )
         return v
