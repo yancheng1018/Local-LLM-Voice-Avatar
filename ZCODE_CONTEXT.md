@@ -254,15 +254,21 @@ system_config:
 3. 聊天记录 JSON 的 `name` 字段
 4. 群聊里的参与者名单（且只传"别人"的名字，AI 学不到自己叫什么）
 
-**LLM 只从 `persona_prompt` 里手写的文本认识自己。** 所以在启动器里改「角色名」
-**不会**让人设里的自称跟着变 —— 两者是独立字段，没有任何同步机制。
+**LLM 只从 `persona_prompt` 里手写的文本认识自己。**
 
-本项目采用**手动同步文本**的方案：改「角色名」后需自行把人设里的自称改成一致。
-排查该问题时先检查 `persona_prompt` 开头写的是谁。
+**设计取舍（v2.7 决定）：两者互相独立，不做同步。**
+`persona_prompt` 决定角色自称什么，`character_name` 只是界面显示名，
+**允许不一致**（这是上游的原始行为）。例如 `mao_pro.yaml` 的
+`character_name: 'Mao'` 配人设里自称 `Mili`，属**正常状态**，不是 bug。
 
-> 若以后想根治"改名即生效"，需要在 `construct_system_prompt()` 里新增身份注入
-> （类似 `[Language Requirement]` 的做法），或提供 `[<insert_character_name>]` 占位符。
-> 本次**没有**这么做，是刻意的取舍。
+排查"角色自称不对"这类问题时，**改 `persona_prompt` 里的文本**，
+不要去改 `character_name`（改了也不会影响 LLM，只会改界面标签）。
+
+> 历史：v2.6 曾把各角色人设里的自称统一成 `character_name`（如 `Mili` → `Mao`），
+> v2.7 已全部还原。若以后想根治"改名即生效"，可在 `construct_system_prompt()`
+> 里新增身份注入（类似 `[Language Requirement]` 的做法），或提供
+> `[<insert_character_name>]` 占位符 —— 但那样会让 `character_name` 覆盖人设文本，
+> 与当前"以文本人设为主"的取舍相反，需要先想清楚再动。
 
 ### 用户名（human_name）的现状
 
