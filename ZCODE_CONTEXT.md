@@ -316,6 +316,95 @@ WebSocket 发 `switch-config` 完成的（见 `service_context._handle_config_sw
 
 ---
 
+## Live2D 动作 / 表情实现约定
+
+> 改 Live2D 动作实现前**必读**。前端是**已构建产物**（`frontend/assets/main-*.js`，无源码），
+> 只能顺应它的既有契约，改不了它。
+
+### 完整链路（一次表情是怎么发生的）
+
+```
+model_dict.json 的 emotionMap（关键词 -> 表情索引/名字）
+        ↓  service_context.construct_system_prompt() 注入 emo_str 到 live2d_expression_prompt
+LLM 在回复里输出 [joy] 这样的关键词
+        ↓  agent/transformers.py 的 actions_extractor 装饰器
+   live2d_model.extract_emotion(句子) -> [表情值列表] 填入 Actions.expressions
+        ↓  conversations/conversation_utils.py -> utils/stream_audio.prepare_audio_payload()
+WebSocket 消息 {"type":"audio", ..., "actions":{"expressions":[...]}}
+        ↓  前端取 actions.expressions[0] -> setExpression()
+Live2D 模型切到对应表情
+```
+
+关键词还会被 `live2d_model.remove_emotion_keywords()` 从显示文本和 TTS 文本里剔除，
+所以它们不会念出来、也不会显示在字幕里。
+
+### 各文件的职责
+
+| 文件 | 职责 |
+|------|------|
+| `model_dict.json` | 每个模型的配置（emotionMap / tapMotions / 缩放位移等） |
+| `src/open_llm_vtuber/live2d_model.py` | 只在后端**准备数据**，不发送任何东西。`set_model` 构造 `emo_map`/`emo_str`；`extract_emotion` 把 `[key]` 映射成值；`remove_emotion_keywords` 剔除关键词 |
+| `prompts/utils/live2d_expression_prompt.txt` | 指示 LLM 用 `[关键词]` 表达表情。其中 `[<insert_emomap_keys>]` 会在运行时被替换为该模型 emotionMap 的键列表 |
+| `src/open_llm_vtuber/agent/transformers.py` | `actions_extractor` 装饰器，**逐句**提取表情，只对非标签文本提取（`<think>` 内的不提取） |
+| `src/open_llm_vtuber/agent/output_types.py` | `Actions` 数据类：`expressions` / `pictures` / `sounds` |
+| `src/open_llm_vtuber/utils/stream_audio.py` | `prepare_audio_payload()` 组装 WS 的 `audio` 消息 |
+| `src/open_llm_vtuber/service_context.py` | `init_live2d()`；`construct_system_prompt()` 里替换 `[<insert_emomap_keys>]` |
+| `src/open_llm_vtuber/live2d_model.py` | `_lookup_model_info()` 按 `name` 在 model_dict.json 里查表 |
+
+### 硬性契约（改了会崩 / 不生效）
+
+1. **模型必须登记在 `model_dict.json`**，且 `name` 与 `live2d-models/` 下的文件夹名一致。
+   查不到时 `_lookup_model_info` 抛 `KeyError`，`init_live2d` 捕获后只记 critical 并继续，
+   结果就是**没有 Live2D**（不容易发现，注意看日志 `Unable to find ... in model_dict.json`）。
+2. **`emotionMap` 键必须存在**（可以是空对象 `{}`）。`live2d_model.set_model` 直接做
+   `self.model_info["emotionMap"].items()`，缺这个键会 `KeyError`。
+3. **`url` 必须以 `.model3.json` 结尾**。前端会 `new URL(url)` 后剥掉该后缀推导模型名与
+   baseUrl，再拼回 `.model3.json` 去 fetch。嵌套子目录可以（见 `mao_pro` 的例子）。
+4. **只支持 Cubism 3/4**（`.model3.json`）。前端用的是 Cubism 4 SDK
+   （`CubismModelSettingJson` / `CubismMoc`），**不支持 Cubism 2.1 的 `.model.json`**。
+   `frontend/libs/live2d.min.js` 是遗留文件，`index.html` 并未引用，别被它误导。
+5. **emotionMap 的键会被转成小写**（`{k.lower(): v}`），`extract_emotion` 也先
+   `str.lower()` 再匹配，所以关键词大小写不敏感。
+6. **emotionMap 的值**：数字 = 表情**索引**（前端 `getExpressionName(n)` 转名字），
+   字符串 = 表情**名字**（直接 `setExpression(name)`）。两种前端都支持。
+7. `Actions.expressions` 是**列表**，但前端只取 **`expressions[0]`**。
+   想一次触发多个表情需要改前端（做不到，见开头的说明）。
+
+### model_dict.json 字段实测情况
+
+| 字段 | 前端是否使用 | 说明 |
+|------|--------------|------|
+| `name` | ✅ | 后端查表键 + 启动器下拉显示 |
+| `url` | ✅ | 必须以 `.model3.json` 结尾 |
+| `emotionMap` | ✅ | 后端必需；关键词→表情值 |
+| `tapMotions` | ✅ | 点击热区→动作，配合模型自身的 hit areas |
+| `kScale` | ✅ | 前端会 **×2**（`Number(kScale\|\|.5)*2`） |
+| `initialXshift` / `initialYshift` | ✅ | 初始位移 |
+| `pointerInteractive` | ✅ | 默认开启（`pointerInteractive !== false`） |
+| `scrollToResize` | ✅ | 出现在前端默认值里 |
+| `idleMotionGroupName` | ❌ **前端 0 次引用** | 死字段，改它无效（空闲动作由模型自身的 idle motion 决定） |
+| `kXOffset` | ❌ **前端 0 次引用** | 死字段 |
+
+> 「前端是否使用」的依据是在 `frontend/assets/main-*.js` 里 grep 字段名。
+> 升级前端后需要重新核对，尤其是 `idleMotionGroupName` 这类可能被重新启用的字段。
+
+### 后端与前端各自能改什么
+
+- **后端可改**：emotionMap 的关键词表、提示词措辞、提取逻辑（`extract_emotion`）、
+  `Actions` 里加新字段（但前端不认就不会生效）、发送时机与消息结构。
+- **前端不可改**（没有源码）：表情如何被应用、只取 `expressions[0]`、
+  模型加载方式（`.model3.json`）、`kScale ×2` 等。
+
+### 调试建议
+
+- 表情不生效时按链路逐段查：`model_dict.json` 是否登记且 `emotionMap` 有该键 →
+  提示词里 `[<insert_emomap_keys>]` 是否被替换（`construct_system_prompt` 的 debug 日志有完整
+  系统提示词）→ LLM 是否真的输出了 `[key]` → `extract_emotion` 的返回值 →
+  WS `audio` 消息里有没有 `actions.expressions` → 浏览器控制台。
+- `logs/debug_*.log` 里有完整系统提示词和 agent 初始化过程，是排查的第一现场。
+
+---
+
 ## GUI 启动器功能（v2.4）
 
 6 个标签页布局（服务 → 模型 → 角色 → LLM → TTS → ASR / VAD）：
