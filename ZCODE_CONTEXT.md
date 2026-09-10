@@ -208,25 +208,31 @@ GUI 依赖：`PySide6-Essentials`、`ruamel.yaml`、`psutil`
 
 ---
 
-## GUI 启动器功能（v2.1）
+## GUI 启动器功能（v2.2）
 
-7 个标签页布局（服务 → 模型 → 角色 → Live2D → LLM → TTS → ASR / VAD）：
+6 个标签页布局（服务 → 模型 → 角色 → LLM → TTS → ASR / VAD）：
 
 | 标签 | 内容 |
 |------|------|
 | **服务** | 一键启动/停止 + 运行日志 |
 | **模型** | 模型选择（LLM/TTS/ASR/VAD）+ 配置预设 |
-| **角色** | 角色列表 + 内嵌编辑器（新建/删除） |
-| **Live2D** | Live2D 模型管理（model_dict.json）+ 贴图静态预览 |
+| **角色** | 角色列表 + 头像 + Live2D 预览 + Live2D 模型管理 + 角色编辑器 |
 | **LLM** | Ollama 专用参数 + 模型信息 / 通用 LLM 参数 |
-| **TTS** | 声音模型（voices/）+ GPT-SoVITS 权重切换 / 通用 TTS 参数 |
+| **TTS** | 声音模型（voices/）增删改查 + 试听 + GPT-SoVITS 启停 / 通用 TTS 参数 |
 | **ASR/VAD** | ASR 参数 + VAD 参数 |
 
 始终可见：顶部状态条 + 项目目录 + 底部保存按钮
 
-### 角色编辑器
+### 「角色」页布局
 
-字段按用途分为四组，不再平铺：
+左列自上而下：
+1. **角色列表** — 下拉选择 + 头像预览（96px）+ 新建/删除
+2. **Live2D 预览**（210px）— 跟随所选角色的 `live2d_model_name` **自动刷新**
+3. **Live2D 模型管理** — model_dict.json 条目列表 + 扫描新模型 / 删除条目 / 保存
+
+右列：角色编辑器（显示信息 / 形象 / 人设 / 内部标识 四组）
+
+### 角色编辑器
 
 | 分组 | 字段 |
 |------|------|
@@ -239,9 +245,29 @@ GUI 依赖：`PySide6-Essentials`、`ruamel.yaml`、`psutil`
 - 「导入...」会复制所选图片到 `avatars/` 并自动选中
 - `conf_uid` 留空保存时自动补为 `{conf_name}_001`；空的可选字段不会写入 YAML
 
+### Live2D 贴图预览的实现与限制
+
+**不做骨骼渲染**：真正的 Live2D 渲染需要 Cubism Core 专有原生 DLL + `live2d-py` + OpenGL 上下文；
+本项目只有 Web 版 `frontend/libs/live2dcubismcore.js`（供前端用），Python 侧无原生运行时，
+因此启动器只显示**模型贴图**作为静态预览（零依赖、无 GPU 开销）。
+
+贴图查找顺序（`_find_model_texture`）：
+1. `texture_*.png`（Cubism 3/4）
+2. 模型主目录下的 `*.png`
+3. `.zip` 内的贴图（Cubism 2.1 打包格式）
+4. 兜底：子目录 `*.png`
+
+三种情况都**排除** `images/`、`css/`、`js/`、`sounds/`、`voice/`、`motions/`，
+避免把 `info.png` 这类 UI 按钮图标误当模型贴图。
+
+模型目录定位（`_resolve_model_dir`）带逐级回退，因为角色配置里的 `live2d_model_name`
+未必等于文件夹名（例：`shizuku-local` → `live2d-models/shizuku/`）：
+精确匹配 → 去 `-local`/`_zh` 等后缀 → 忽略大小写与分隔符 → 前缀匹配。
+
 ### 声音模型（voices/）
 
-GPT-SoVITS 每次请求都需要参考音频 + 提示文本，因此把「权重对 + 参考音频」打包成一个**声音模型**，与模型一一对应：
+GPT-SoVITS 每次请求都需要参考音频 + 提示文本，因此把「权重对 + 参考音频」打包成一个**声音模型**，
+它同时充当 TTS 的**预设**：
 
 ```
 voices/
@@ -256,9 +282,21 @@ voices/
                       # }
 ```
 
-TTS 页「声音模型」区：
-- 下拉选择 + **应用声音**：写 conf.yaml（ref_audio_path / prompt_text / prompt_lang / text_lang）并调 API 切换权重；GPT-SoVITS 未运行时只写配置，启动后再切
-- **新建声音...**：选权重对 + 参考音频 + 提示文本，自动建目录并复制音频
+TTS 页「声音模型」区按钮：
+
+| 按钮 | 行为 |
+|------|------|
+| **应用声音** | 写 conf.yaml（ref_audio_path / prompt_text / prompt_lang / text_lang）并在 GPT-SoVITS 运行时切权重；未运行时只写配置，启动时自动切换 |
+| **新建...** | 选权重对 + 参考音频 + 提示文本，建目录、复制音频、写 voice.json |
+| **编辑...** | 复用同一对话框并预填 voice.json；改名会重命名 `voices/` 子目录 |
+| **删除** | 确认后移除 `voices/<名称>/`（不影响 GPT-SoVITS 权重文件） |
+| **▶ 试听参考音频** | 播放该声音的 ref.* |
+
+**GPT / SoVITS 权重选择已移入「新建/编辑声音」对话框**，TTS 主面板不再有独立权重下拉，
+只保留只读的「当前权重」标签。
+
+试听实现：`.venv-gui` 只装了 PySide6-Essentials，`QtMultimedia` 仅有 `.pyi` 存根无二进制，
+因此用标准库 —— WAV 走 `winsound` 异步播放（`SND_PURGE` 停止），其他格式交给系统默认播放器。
 
 `gpt_weight` / `sovits_weight` 支持两种写法，`find_weight_path` 均可解析：
 - 路径式 `GPT_weights_v4/xxx.ckpt`（相对 GPT-SoVITS 根目录）
@@ -277,5 +315,6 @@ TTS 页「声音模型」区：
 
 ### 已完成记录（2026-09-10，ZCode 会话）
 - 遗留修复：`gpt_sovits_tts.py` 的 `streaming_mode` 注解改为 `str = "false"`；MCP 无害警告与诊断版 `openai_compatible_llm.py` 的 🧪 埋点日志降为 debug 级
-- GUI 启动器 v2.0：「预设」改名「模型」并移到服务后；Live2D 模型管理；角色编辑器 Live2D/头像下拉
-- GUI 启动器 v2.1：Live2D 独立标签页 + 贴图预览；角色编辑器四组字段 + 头像导入；权重扫描全部版本目录；voices/ 声音模型体系（加藤惠已迁移）
+- GUI v2.0：「预设」改名「模型」并移到服务后；Live2D 模型管理；角色编辑器 Live2D/头像下拉
+- GUI v2.1：Live2D 独立标签页 + 贴图预览；角色编辑器四组字段 + 头像导入；权重扫描全部版本目录；voices/ 声音模型体系
+- GUI v2.2：参考音频试听；权重选择移入声音对话框 + 声音模型增删改查（即预设）；Live2D 页并入角色页；修复贴图预览误取 UI 图标与模型名回退
