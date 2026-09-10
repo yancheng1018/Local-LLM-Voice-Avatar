@@ -1,5 +1,5 @@
 """
-Open-LLM-VTuber 启动器 v2.0
+Open-LLM-VTuber 启动器 v2.1
 - 自动发现项目根目录
 - 读取/保存 conf.yaml
 - 切换默认角色 / 语言模型 / TTS 模型
@@ -14,7 +14,15 @@ Open-LLM-VTuber 启动器 v2.0
 - 启动 / 停止 / 一键启动 / 一键停止
 - 关闭窗口安全检查 + 窗口强制前置
 
-v2.0 新增：
+标签页顺序：服务 → 模型 → 角色 → Live2D → LLM → TTS → ASR / VAD
+
+v2.1 新增：
+- Live2D 独立标签页（放在「角色」之后）+ 模型贴图静态预览
+- 角色编辑器字段分组（显示信息 / 形象 / 人设 / 内部标识），头像支持「导入...」
+- GPT-SoVITS 权重扫描全部 GPT_weights* / SoVITS_weights* 目录，带版本标签与跨版本警告
+- voices/ 声音模型体系：权重对 + 参考音频一一对应，「应用声音」一键写配置并切权重
+
+v2.0：
 - 「预设」标签页改名「模型」并移到「服务」之后
 - 「模型」页新增 Live2D 模型管理（model_dict.json 浏览 / 扫描补录 / 删除 / 保存）
 - 角色编辑器中 Live2D 模型、头像改为下拉选择（自动扫描，无需手填）
@@ -74,8 +82,10 @@ DEFAULT_GPT_BAT = "start_v4_dpo.bat"
 OLLAMA_PROVIDER_KEY = "ollama_llm"
 GPT_SOVITS_TTS_KEY = "gpt_sovits_tts"
 
-GPT_WEIGHTS_DIRS = ["GPT_weights_v4", "GPT_weights"]
-SOVITS_WEIGHTS_DIRS = ["SoVITS_weights_v4", "SoVITS_weights"]
+GPT_WEIGHTS_PREFIX = "GPT_weights"
+SOVITS_WEIGHTS_PREFIX = "SoVITS_weights"
+# API 以 v4 DPO 启动（start_v4_dpo.py），应用非 v4 权重时给出警告
+CURRENT_GSV_VERSION_DIR = "GPT_weights_v4"
 
 AVATAR_DIR_CANDIDATES = ["avatars", "avatar"]
 
@@ -178,23 +188,59 @@ def query_gpu_info() -> str:
         return "N/A"
 
 
-def list_weight_files(root: Path, subdir_candidates, suffix: str):
+def discover_weight_dirs(root: Path, prefix: str):
+    """发现 root 下所有权重目录（如 GPT_weights / GPT_weights_v2 / v4 ...）。"""
     if not root:
         return []
-    for sub in subdir_candidates:
-        d = root / sub
-        if d.is_dir():
-            files = sorted([f.name for f in d.glob(f"*{suffix}")])
-            if files:
-                return files
-    return []
+    dirs = [d for d in root.iterdir() if d.is_dir() and d.name.startswith(prefix)]
+    # 空（无后缀）目录排最前，其余按版本名排序
+    dirs.sort(key=lambda d: (d.name == prefix, d.name))
+    return dirs
 
 
-def find_weight_path(root: Path, subdir_candidates, filename: str):
-    if not root or not filename:
+def list_weight_files(root: Path, prefix: str, suffix: str):
+    """扫描所有版本目录，返回 '文件名 [目录名]' 形式的列表。"""
+    if not root:
+        return []
+    entries = []
+    for d in discover_weight_dirs(root, prefix):
+        for f in sorted(d.glob(f"*{suffix}")):
+            if f.is_file():
+                entries.append(f"{f.name}  [{d.name}]")
+    return entries
+
+
+def split_weight_text(text: str):
+    """把 '文件名  [目录名]' 拆回 (文件名, 目录名)。"""
+    m = re.match(r"^(.*?)\s+\[(.+)\]$", text.strip())
+    if m:
+        return m.group(1), m.group(2)
+    return text.strip(), None
+
+
+def find_weight_path(root: Path, prefix: str, weight_text: str):
+    """根据权重标识定位文件实际路径。
+
+    支持两种写法：
+      · 显示式：'xxx.ckpt  [GPT_weights_v4]'
+      · 路径式：'GPT_weights_v4/xxx.ckpt'（voices/voice.json 里手写的形式）
+    """
+    if not root or not weight_text:
         return None
-    for sub in subdir_candidates:
-        d = root / sub
+    weight_text = weight_text.strip()
+    # 路径式：相对于 GPT-SoVITS 根目录
+    if "/" in weight_text or "\\" in weight_text:
+        p = root / weight_text.replace("\\", "/")
+        if p.exists():
+            return p
+    filename, subdir = split_weight_text(weight_text)
+    if not filename:
+        return None
+    if subdir:
+        p = root / subdir / filename
+        if p.exists():
+            return p
+    for d in discover_weight_dirs(root, prefix):
         p = d / filename
         if p.exists():
             return p
@@ -278,6 +324,100 @@ class EditableCombo(QComboBox):
             self.setEditText(value)
 
 
+class VoiceDialog(QDialog):
+    """新建声音模型：选权重对 + 参考音频 + 提示文本。"""
+
+    def __init__(self, parent, gpt_items: list, sovits_items: list):
+        super().__init__(parent)
+        self.setWindowTitle("新建声音模型")
+        self.resize(620, 340)
+
+        form = QFormLayout(self)
+
+        self.edit_name = QLineEdit()
+        self.edit_name.setPlaceholderText("如 加藤惠（将作为 voices/ 下的文件夹名）")
+        form.addRow("名称：", self.edit_name)
+
+        self.combo_gpt = QComboBox()
+        self.combo_gpt.addItems(gpt_items)
+        form.addRow("GPT 权重：", self.combo_gpt)
+
+        self.combo_sovits = QComboBox()
+        self.combo_sovits.addItems(sovits_items)
+        form.addRow("SoVITS 权重：", self.combo_sovits)
+
+        audio_row = QHBoxLayout()
+        self.edit_audio = QLineEdit()
+        self.edit_audio.setPlaceholderText("参考音频文件路径")
+        btn_pick = QPushButton("选择...")
+        btn_pick.clicked.connect(self._pick_audio)
+        audio_row.addWidget(self.edit_audio, stretch=1)
+        audio_row.addWidget(btn_pick)
+        form.addRow("参考音频：", audio_row)
+
+        self.edit_prompt = QPlainTextEdit()
+        self.edit_prompt.setPlaceholderText("参考音频中说的原话（GPT-SoVITS 需要它来对齐音色）")
+        self.edit_prompt.setMaximumHeight(80)
+        form.addRow("参考文本：", self.edit_prompt)
+
+        self.combo_prompt_lang = QComboBox()
+        self.combo_prompt_lang.addItems(["zh", "ja", "en", "ko", "yue", "auto"])
+        self.combo_text_lang = QComboBox()
+        self.combo_text_lang.addItems(["zh", "ja", "en", "ko", "yue", "auto"])
+        lang_row = QHBoxLayout()
+        lang_row.addWidget(QLabel("参考音频语言:"))
+        lang_row.addWidget(self.combo_prompt_lang)
+        lang_row.addSpacing(20)
+        lang_row.addWidget(QLabel("合成语言:"))
+        lang_row.addWidget(self.combo_text_lang)
+        lang_row.addStretch(1)
+        form.addRow("语言：", lang_row)
+
+        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        btns.accepted.connect(self._on_ok)
+        btns.rejected.connect(self.reject)
+        form.addRow(btns)
+
+    def _pick_audio(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "选择参考音频", "",
+            "音频文件 (*.wav *.mp3 *.flac *.ogg *.m4a);;所有文件 (*)"
+        )
+        if path:
+            self.edit_audio.setText(path)
+
+    def _on_ok(self):
+        if not self.edit_name.text().strip():
+            QMessageBox.warning(self, "缺少名称", "请填写声音模型名称。")
+            return
+        if not self.edit_audio.text().strip():
+            QMessageBox.warning(self, "缺少参考音频", "请选择参考音频文件。")
+            return
+        if not Path(self.edit_audio.text().strip()).exists():
+            QMessageBox.warning(self, "文件不存在", "参考音频文件不存在。")
+            return
+        if not self.edit_prompt.toPlainText().strip():
+            reply = QMessageBox.question(
+                self, "参考文本为空",
+                "参考文本为空会导致音色对齐效果变差，仍要继续吗？",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
+                return
+        self.accept()
+
+    def result_data(self) -> dict:
+        return {
+            "name": self.edit_name.text().strip(),
+            "gpt_weight": self.combo_gpt.currentText().strip(),
+            "sovits_weight": self.combo_sovits.currentText().strip(),
+            "ref_audio": self.edit_audio.text().strip(),
+            "prompt_text": self.edit_prompt.toPlainText().strip(),
+            "prompt_lang": self.combo_prompt_lang.currentText(),
+            "text_lang": self.combo_text_lang.currentText(),
+        }
+
+
 class LauncherWindow(QMainWindow):
     log_signal = Signal(str)
     llm_finished_signal = Signal(int)
@@ -290,7 +430,7 @@ class LauncherWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Open-LLM-VTuber 启动器 v2.0")
+        self.setWindowTitle("Open-LLM-VTuber 启动器 v2.1")
         self.resize(1220, 980)
 
         self.yaml = YAML()
@@ -430,25 +570,6 @@ class LauncherWindow(QMainWindow):
         sel_form.addRow("VAD 引擎：", self.combo_vad_model)
         tab_preset_layout.addWidget(sel_box)
 
-        # Live2D 模型管理区
-        l2d_box = QGroupBox("Live2D 模型")
-        l2d_inner = QVBoxLayout(l2d_box)
-        self.l2d_list = QListWidget()
-        self.l2d_list.setMaximumHeight(180)
-        l2d_inner.addWidget(self.l2d_list)
-        l2d_btn_row = QHBoxLayout()
-        btn_l2d_scan = QPushButton("从 live2d-models/ 扫描新模型")
-        btn_l2d_del = QPushButton("删除条目")
-        btn_l2d_save = QPushButton("保存到 model_dict.json")
-        btn_l2d_scan.clicked.connect(self._scan_new_live2d_models)
-        btn_l2d_del.clicked.connect(self._delete_model_dict_entry)
-        btn_l2d_save.clicked.connect(self._save_model_dict)
-        l2d_btn_row.addWidget(btn_l2d_scan)
-        l2d_btn_row.addWidget(btn_l2d_del)
-        l2d_btn_row.addWidget(btn_l2d_save)
-        l2d_inner.addLayout(l2d_btn_row)
-        tab_preset_layout.addWidget(l2d_box)
-
         # 预设区
         preset_box = QGroupBox("配置预设")
         preset_inner = QVBoxLayout(preset_box)
@@ -510,51 +631,131 @@ class LauncherWindow(QMainWindow):
         char_edit_scroll.setWidgetResizable(True)
         char_edit_scroll.setFrameShape(QScrollArea.NoFrame)
         char_edit_inner = QWidget()
-        char_edit_form = QFormLayout(char_edit_inner)
+        char_edit_vbox = QVBoxLayout(char_edit_inner)
 
         self.char_edit_fields = {}
-        for key, label in [
-            ("conf_name", "conf_name"),
-            ("conf_uid", "conf_uid"),
-            ("live2d_model_name", "Live2D 模型"),
-            ("character_name", "角色名"),
-            ("human_name", "用户名"),
-            ("avatar", "头像文件名"),
-        ]:
-            if key in ("live2d_model_name", "avatar"):
-                # 从项目目录自动扫描，下拉选择，无需手填
-                w = EditableCombo()
-                row = QHBoxLayout()
-                row.addWidget(w, stretch=1)
-                btn_refresh = QPushButton("↻")
-                btn_refresh.setFixedWidth(32)
-                if key == "live2d_model_name":
-                    btn_refresh.setToolTip("刷新 Live2D 模型列表")
-                    btn_refresh.clicked.connect(self._populate_live2d_combo)
-                else:
-                    btn_refresh.setToolTip("刷新头像列表")
-                    btn_refresh.clicked.connect(self._populate_avatar_combo)
-                row.addWidget(btn_refresh)
-                char_edit_form.addRow(f"{label}：", row)
-            else:
-                w = QLineEdit()
-                w.setMinimumWidth(200)
-                char_edit_form.addRow(f"{label}：", w)
-            self.char_edit_fields[key] = w
 
+        # ── 显示信息 ──
+        info_box = QGroupBox("显示信息")
+        info_form = QFormLayout(info_box)
+        for key, label, tip in [
+            ("character_name", "角色名", "界面上显示的 AI 名称"),
+            ("human_name", "用户名", "界面上显示的你的称呼"),
+        ]:
+            w = QLineEdit()
+            w.setMinimumWidth(200)
+            w.setToolTip(tip)
+            info_form.addRow(f"{label}：", w)
+            self.char_edit_fields[key] = w
+        char_edit_vbox.addWidget(info_box)
+
+        # ── 形象 ──
+        look_box = QGroupBox("形象")
+        look_form = QFormLayout(look_box)
+
+        # Live2D 模型：下拉 + 刷新
+        w_l2d = EditableCombo()
+        w_l2d.setToolTip("从 live2d-models/ 与 model_dict.json 自动扫描")
+        row_l2d = QHBoxLayout()
+        row_l2d.addWidget(w_l2d, stretch=1)
+        btn_refresh_l2d = QPushButton("↻")
+        btn_refresh_l2d.setFixedWidth(32)
+        btn_refresh_l2d.setToolTip("刷新 Live2D 模型列表")
+        btn_refresh_l2d.clicked.connect(self._populate_live2d_combo)
+        row_l2d.addWidget(btn_refresh_l2d)
+        look_form.addRow("Live2D 模型：", row_l2d)
+        self.char_edit_fields["live2d_model_name"] = w_l2d
+
+        # 头像：下拉 + 刷新 + 导入
+        w_avatar = EditableCombo()
+        w_avatar.setToolTip("从 avatars/ 目录自动扫描，或点「导入」添加图片")
+        row_avatar = QHBoxLayout()
+        row_avatar.addWidget(w_avatar, stretch=1)
+        btn_refresh_avatar = QPushButton("↻")
+        btn_refresh_avatar.setFixedWidth(32)
+        btn_refresh_avatar.setToolTip("刷新头像列表")
+        btn_refresh_avatar.clicked.connect(self._populate_avatar_combo)
+        btn_import_avatar = QPushButton("导入...")
+        btn_import_avatar.setToolTip("从本地选择图片并复制到 avatars/ 目录")
+        btn_import_avatar.clicked.connect(self._import_avatar)
+        row_avatar.addWidget(btn_refresh_avatar)
+        row_avatar.addWidget(btn_import_avatar)
+        look_form.addRow("头像：", row_avatar)
+        self.char_edit_fields["avatar"] = w_avatar
+        char_edit_vbox.addWidget(look_box)
+
+        # ── 人设 ──
+        persona_box = QGroupBox("人设")
+        persona_form = QFormLayout(persona_box)
         self.char_edit_persona = QPlainTextEdit()
-        self.char_edit_persona.setMinimumHeight(100)
+        self.char_edit_persona.setMinimumHeight(110)
         self.char_edit_persona.setPlaceholderText("角色的人设提示词...")
-        char_edit_form.addRow("persona_prompt：", self.char_edit_persona)
+        persona_form.addRow(self.char_edit_persona)
+        char_edit_vbox.addWidget(persona_box)
+
+        # ── 内部标识（一般无需修改）──
+        id_box = QGroupBox("内部标识（一般无需修改）")
+        id_form = QFormLayout(id_box)
+        for key, label, tip in [
+            ("conf_name", "conf_name", "角色配置文件名（不带 .yaml），启动器选中的就是它"),
+            ("conf_uid", "conf_uid", "角色唯一标识，留空保存时自动填为 名称_001"),
+        ]:
+            w = QLineEdit()
+            w.setMinimumWidth(200)
+            w.setToolTip(tip)
+            id_form.addRow(f"{label}：", w)
+            self.char_edit_fields[key] = w
+        char_edit_vbox.addWidget(id_box)
 
         btn_save_char = QPushButton("保存角色")
         btn_save_char.clicked.connect(self._save_character_inline)
-        char_edit_form.addRow("", btn_save_char)
+        char_edit_vbox.addWidget(btn_save_char)
+        char_edit_vbox.addStretch(1)
 
         char_edit_scroll.setWidget(char_edit_inner)
         tab_char_layout.addWidget(char_edit_scroll, stretch=2)
 
         self.tabs.addTab(tab_char, "角色")
+
+        # ── Tab 4: Live2D（模型管理 + 静态预览）──
+        tab_l2d = QWidget()
+        tab_l2d_layout = QHBoxLayout(tab_l2d)
+
+        # 左：模型条目管理
+        l2d_box = QGroupBox("Live2D 模型（model_dict.json）")
+        l2d_inner = QVBoxLayout(l2d_box)
+        self.l2d_list = QListWidget()
+        self.l2d_list.currentRowChanged.connect(self._on_l2d_selected)
+        l2d_inner.addWidget(self.l2d_list)
+        l2d_btn_row = QHBoxLayout()
+        btn_l2d_scan = QPushButton("从 live2d-models/ 扫描新模型")
+        btn_l2d_del = QPushButton("删除条目")
+        btn_l2d_save = QPushButton("保存到 model_dict.json")
+        btn_l2d_scan.clicked.connect(self._scan_new_live2d_models)
+        btn_l2d_del.clicked.connect(self._delete_model_dict_entry)
+        btn_l2d_save.clicked.connect(self._save_model_dict)
+        l2d_btn_row.addWidget(btn_l2d_scan)
+        l2d_btn_row.addWidget(btn_l2d_del)
+        l2d_btn_row.addWidget(btn_l2d_save)
+        l2d_inner.addLayout(l2d_btn_row)
+        tab_l2d_layout.addWidget(l2d_box, stretch=1)
+
+        # 右：静态预览（显示模型自带贴图，无渲染开销）
+        preview_box = QGroupBox("预览（模型贴图静态预览）")
+        preview_layout = QVBoxLayout(preview_box)
+        self.l2d_preview = QLabel("（选择左侧模型查看）")
+        self.l2d_preview.setFixedSize(340, 340)
+        self.l2d_preview.setAlignment(Qt.AlignCenter)
+        self.l2d_preview.setStyleSheet("border: 1px solid #ccc; background: #fafafa;")
+        preview_layout.addWidget(self.l2d_preview, alignment=Qt.AlignCenter)
+        l2d_tip = QLabel("提示：Live2D 为骨骼动画，此处显示的是模型自带贴图；\n"
+                         "实际效果以前端页面渲染为准。")
+        l2d_tip.setStyleSheet("color: #888;")
+        preview_layout.addWidget(l2d_tip)
+        preview_layout.addStretch(1)
+        tab_l2d_layout.addWidget(preview_box, stretch=0)
+
+        self.tabs.addTab(tab_l2d, "Live2D")
 
         # ── Tab 3: LLM ──
         tab_llm = QWidget()
@@ -650,6 +851,28 @@ class LauncherWindow(QMainWindow):
         # GPT-SoVITS 面板
         self.gsv_box = QGroupBox("GPT-SoVITS")
         gsv_layout = QFormLayout(self.gsv_box)
+
+        # 声音模型 = 权重对 + 参考音频，一一对应（voices/ 目录）
+        voice_row = QHBoxLayout()
+        self.combo_voice = QComboBox()
+        self.combo_voice.setMinimumWidth(220)
+        btn_refresh_voice = QPushButton("↻")
+        btn_refresh_voice.setFixedWidth(32)
+        btn_refresh_voice.setToolTip("刷新 voices/ 目录中的声音模型")
+        btn_refresh_voice.clicked.connect(self._populate_voice_models)
+        voice_row.addWidget(self.combo_voice, stretch=1)
+        voice_row.addWidget(btn_refresh_voice)
+        gsv_layout.addRow("声音模型：", voice_row)
+
+        voice_btn_row = QHBoxLayout()
+        self.btn_apply_voice = QPushButton("应用声音（切权重 + 写配置）")
+        self.btn_apply_voice.clicked.connect(self._apply_voice_model)
+        btn_new_voice = QPushButton("新建声音...")
+        btn_new_voice.setToolTip("选择权重对 + 参考音频，创建新的声音模型")
+        btn_new_voice.clicked.connect(self._new_voice_model)
+        voice_btn_row.addWidget(self.btn_apply_voice)
+        voice_btn_row.addWidget(btn_new_voice)
+        gsv_layout.addRow("", voice_btn_row)
 
         gsv_dir_row = QHBoxLayout()
         self.gsv_dir_label = QLabel("（未设置）")
@@ -836,9 +1059,16 @@ class LauncherWindow(QMainWindow):
         if not ref:
             return None
         try:
-            return Path(ref).parent
+            ref_path = Path(str(ref))
         except Exception:
             return None
+        # 参考音频若放在项目内的 voices/ 下，它不指示 GPT-SoVITS 安装位置
+        try:
+            ref_path.resolve().relative_to(self._voices_dir().resolve())
+            return None
+        except (ValueError, OSError):
+            pass
+        return ref_path.parent
 
     def _load_config(self):
         conf_path = self.project_root / "conf.yaml"
@@ -861,6 +1091,7 @@ class LauncherWindow(QMainWindow):
         self._populate_live2d_combo()
         self._populate_avatar_combo()
         self._populate_model_dict_list()
+        self._populate_voice_models()
 
         gsv_dir = self.launcher_cfg.get("gpt_sovits_root")
         if gsv_dir and Path(gsv_dir).is_dir():
@@ -1041,7 +1272,21 @@ class LauncherWindow(QMainWindow):
 
         cc = char_data.get("character_config", char_data)
         for key, w in self.char_edit_fields.items():
-            cc[key] = w.text().strip()
+            value = w.text().strip()
+            # 原本没有的空可选字段不写，避免往角色 YAML 里添加空行噪声；
+            # 但字段已存在时按当前值写回（这样清空操作才能真正生效）
+            if not value and key not in cc:
+                continue
+            cc[key] = value
+
+        # 内部标识留空时自动补全，避免写出空值导致启动失败。
+        # character_name 不补：应用层已有「缺失时回退为文件名」的处理，
+        # 补写只会往老角色文件里添加冗余字段。
+        if not cc.get("conf_name"):
+            cc["conf_name"] = stem
+        if not cc.get("conf_uid"):
+            cc["conf_uid"] = f"{cc['conf_name']}_001"
+
         cc["persona_prompt"] = self.char_edit_persona.toPlainText()
         char_data["character_config"] = cc
 
@@ -1116,6 +1361,43 @@ class LauncherWindow(QMainWindow):
         if current:
             w.setText(current)
 
+    def _import_avatar(self):
+        """从本地选择图片，复制到 avatars/ 并选中。"""
+        if not self.project_root:
+            QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
+            return
+        path, _ = QFileDialog.getOpenFileName(
+            self, "选择头像图片", "",
+            "图片文件 (*.png *.jpg *.jpeg *.webp *.gif);;所有文件 (*)"
+        )
+        if not path:
+            return
+        path = Path(path)
+        # 优先 avatars/，不存在则创建
+        target_dir = self.project_root / AVATAR_DIR_CANDIDATES[0]
+        try:
+            target_dir.mkdir(parents=True, exist_ok=True)
+            target = target_dir / path.name
+            if target.exists() and target.resolve() != path.resolve():
+                reply = QMessageBox.question(
+                    self, "文件已存在",
+                    f"avatars/ 中已存在「{path.name}」，覆盖吗？",
+                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+                )
+                if reply != QMessageBox.Yes:
+                    return
+            if target.resolve() != path.resolve():
+                shutil.copy2(path, target)
+            self._log(f"[启动器] ✔ 头像已导入：{target.name}")
+        except Exception as e:
+            QMessageBox.critical(self, "导入失败", f"复制图片时出错：\n{e}")
+            return
+
+        self._populate_avatar_combo()
+        w = self.char_edit_fields.get("avatar")
+        if isinstance(w, EditableCombo):
+            w.setText(path.name)
+
     def _populate_avatar_combo(self):
         w = self.char_edit_fields.get("avatar")
         if not isinstance(w, EditableCombo):
@@ -1160,6 +1442,45 @@ class LauncherWindow(QMainWindow):
             name = item.get("name", "（未命名）")
             url = item.get("url", "")
             self.l2d_list.addItem(f"{name}  →  {url}")
+
+    def _on_l2d_selected(self, row: int):
+        """选中 Live2D 条目时，从模型文件夹找贴图做静态预览。"""
+        if row < 0 or row >= len(self._model_dict_entries):
+            self.l2d_preview.setPixmap(QPixmap())
+            self.l2d_preview.setText("（选择左侧模型查看）")
+            return
+        entry = self._model_dict_entries[row]
+        url = entry.get("url", "")
+        name = entry.get("name", "")
+        model_dir = None
+        if url:
+            rel = url.lstrip("/")
+            p = self.project_root / rel
+            model_dir = p.parent if p.exists() else None
+        if model_dir is None:
+            cand = self.project_root / "live2d-models" / name
+            if cand.is_dir():
+                model_dir = cand
+        if model_dir is None or not model_dir.is_dir():
+            self.l2d_preview.setPixmap(QPixmap())
+            self.l2d_preview.setText("（未找到模型文件夹）")
+            return
+
+        texture = next(iter(sorted(model_dir.rglob("texture_*.png"))), None)
+        if texture is None:
+            texture = next(iter(sorted(model_dir.rglob("*.png"))), None)
+        if texture is None:
+            self.l2d_preview.setPixmap(QPixmap())
+            self.l2d_preview.setText("（无贴图文件）")
+            return
+        pix = QPixmap(str(texture))
+        if pix.isNull():
+            self.l2d_preview.setText("（贴图无法读取）")
+            return
+        self.l2d_preview.setText("")
+        self.l2d_preview.setPixmap(
+            pix.scaled(340, 340, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        )
 
     def _scan_new_live2d_models(self):
         if not self.project_root:
@@ -1665,6 +1986,188 @@ class LauncherWindow(QMainWindow):
             self.tts_generic_box.setVisible(True)
 
     # ------------------------------------------------------------------
+    # 声音模型（voices/ 目录：权重对 + 参考音频 一一对应）
+    # ------------------------------------------------------------------
+
+    def _voices_dir(self) -> Path:
+        return self.project_root / "voices"
+
+    def _list_voice_models(self) -> list:
+        d = self._voices_dir()
+        if not d.is_dir():
+            return []
+        return sorted(p.name for p in d.iterdir() if p.is_dir())
+
+    def _load_voice(self, name: str) -> dict:
+        p = self._voices_dir() / name / "voice.json"
+        if not p.exists():
+            return {}
+        try:
+            return json.loads(p.read_text(encoding="utf-8"))
+        except Exception as e:
+            self._log(f"[启动器] ⚠ 读取 {name}/voice.json 失败：{e}")
+            return {}
+
+    def _populate_voice_models(self):
+        names = self._list_voice_models()
+        current = self.combo_voice.currentText()
+        self.combo_voice.blockSignals(True)
+        self.combo_voice.clear()
+        self.combo_voice.addItems(names)
+        # 优先恢复当前选中，其次匹配 conf.yaml 里的参考音频
+        if current and current in names:
+            self.combo_voice.setCurrentText(current)
+        else:
+            matched = self._voice_from_conf()
+            if matched:
+                self.combo_voice.setCurrentText(matched)
+        self.combo_voice.blockSignals(False)
+        if names:
+            self._log(f"[启动器] 发现声音模型 {len(names)} 个：{', '.join(names)}")
+        else:
+            self._log("[启动器] ⚠ voices/ 目录中没有声音模型")
+
+    def _voice_from_conf(self):
+        """根据 conf.yaml 的 ref_audio_path 反查属于哪个声音模型。"""
+        if not self.config:
+            return None
+        ref = (
+            self.config.get("character_config", {})
+            .get("tts_config", {})
+            .get("gpt_sovits_tts", {})
+            .get("ref_audio_path")
+        )
+        if not ref:
+            return None
+        try:
+            ref_path = Path(str(ref)).resolve()
+        except Exception:
+            return None
+        for name in self._list_voice_models():
+            d = self._voices_dir() / name
+            for audio in d.glob("ref.*"):
+                try:
+                    if audio.resolve() == ref_path:
+                        return name
+                except Exception:
+                    continue
+        return None
+
+    def _apply_voice_model(self):
+        if not self.project_root:
+            QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
+            return
+        name = self.combo_voice.currentText().strip()
+        if not name:
+            QMessageBox.warning(self, "未选择声音", "请先选择一个声音模型。")
+            return
+        voice_dir = self._voices_dir() / name
+        meta = self._load_voice(name)
+        if not meta:
+            QMessageBox.warning(self, "元数据缺失",
+                                f"未找到 {voice_dir / 'voice.json'}\n无法应用该声音模型。")
+            return
+
+        # 1) 找到参考音频
+        ref_audio = next(iter(sorted(voice_dir.glob("ref.*"))), None)
+        if ref_audio is None:
+            QMessageBox.warning(self, "缺少参考音频",
+                                f"{voice_dir} 中没有 ref.* 音频文件。")
+            return
+
+        # 2) 权重（可选：voices 里没写就当纯参考音频切换）
+        root = self._current_gsv_root()
+        gpt_text = meta.get("gpt_weight", "")
+        sovits_text = meta.get("sovits_weight", "")
+        gpt_path = sovits_path = None
+        if gpt_text and sovits_text and root:
+            gpt_path = find_weight_path(root, GPT_WEIGHTS_PREFIX, gpt_text)
+            sovits_path = find_weight_path(root, SOVITS_WEIGHTS_PREFIX, sovits_text)
+
+        # 3) 写回 conf.yaml
+        cc = self.config.setdefault("character_config", {})
+        gsv = cc.setdefault("tts_config", {}).setdefault("gpt_sovits_tts", {})
+        gsv["ref_audio_path"] = str(ref_audio)
+        gsv["prompt_text"] = meta.get("prompt_text", "")
+        gsv["prompt_lang"] = meta.get("prompt_lang", "zh")
+        gsv["text_lang"] = meta.get("text_lang", "zh")
+        gsv["streaming_mode"] = SingleQuotedScalarString("false")
+        self._save_config()
+        self._log(
+            f"[启动器] ✔ 声音「{name}」已应用并写入 conf.yaml："
+            f"ref={ref_audio.name}, prompt_lang={gsv['prompt_lang']}, "
+            f"text_lang={gsv['text_lang']}"
+        )
+
+        # 4) 切换权重（需要 GPT-SoVITS 在运行）
+        if gpt_path and sovits_path:
+            if not is_port_open(GPT_SOVITS_HOST, GPT_SOVITS_PORT):
+                self._log("[启动器] ⚠ GPT-SoVITS 未运行，已写入配置但未切换权重；"
+                          "启动后可点「应用模型到 GPT-SoVITS」或一键启动时自动切换")
+            else:
+                self.launcher_cfg["gpt_sovits_model"] = {
+                    "gpt": gpt_path.name,
+                    "sovits": sovits_path.name,
+                }
+                self._save_launcher_config()
+                threading.Thread(
+                    target=self._apply_weights_worker,
+                    args=(gpt_path, sovits_path),
+                    daemon=True,
+                ).start()
+        else:
+            self._log("[启动器] ⚠ 该声音模型未指定权重对（或 GPT-SoVITS 根目录未设置），"
+                      "只切换了参考音频")
+
+    def _new_voice_model(self):
+        if not self.project_root:
+            QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
+            return
+        root = self._current_gsv_root()
+        if not root:
+            QMessageBox.warning(self, "未设置 GPT-SoVITS 目录",
+                                "请先在 TTS 页选择 GPT-SoVITS 根目录。")
+            return
+        self._refresh_gpt_weights(silent=True)
+        self._refresh_sovits_weights(silent=True)
+        gpt_items = [self.combo_gpt_weight.itemText(i)
+                     for i in range(self.combo_gpt_weight.count())]
+        sovits_items = [self.combo_sovits_weight.itemText(i)
+                        for i in range(self.combo_sovits_weight.count())]
+        dlg = VoiceDialog(self, gpt_items, sovits_items)
+        if dlg.exec() != QDialog.Accepted:
+            return
+
+        data = dlg.result_data()
+        name = data["name"]
+        voice_dir = self._voices_dir() / name
+        try:
+            voice_dir.mkdir(parents=True, exist_ok=True)
+            # 复制参考音频
+            src = Path(data["ref_audio"])
+            ext = src.suffix or ".wav"
+            target_audio = voice_dir / f"ref{ext}"
+            if src.resolve() != target_audio.resolve():
+                shutil.copy2(src, target_audio)
+            meta = {
+                "prompt_text": data["prompt_text"],
+                "prompt_lang": data["prompt_lang"],
+                "text_lang": data["text_lang"],
+                "gpt_weight": data["gpt_weight"],
+                "sovits_weight": data["sovits_weight"],
+            }
+            (voice_dir / "voice.json").write_text(
+                json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            self._log(f"[启动器] ✔ 已创建声音模型「{name}」：{voice_dir}")
+        except Exception as e:
+            QMessageBox.critical(self, "创建失败", f"写入声音模型时出错：\n{e}")
+            return
+
+        self._populate_voice_models()
+        self.combo_voice.setCurrentText(name)
+
+    # ------------------------------------------------------------------
     # GPT-SoVITS 权重列表
     # ------------------------------------------------------------------
 
@@ -1681,7 +2184,7 @@ class LauncherWindow(QMainWindow):
             if not silent:
                 self._log("[启动器] ⚠ 未设置 GPT-SoVITS 根目录")
             return
-        files = list_weight_files(root, GPT_WEIGHTS_DIRS, ".ckpt")
+        files = list_weight_files(root, GPT_WEIGHTS_PREFIX, ".ckpt")
         current = self.combo_gpt_weight.currentText()
         self.combo_gpt_weight.blockSignals(True)
         self.combo_gpt_weight.clear()
@@ -1699,7 +2202,7 @@ class LauncherWindow(QMainWindow):
             if not silent:
                 self._log("[启动器] ⚠ 未设置 GPT-SoVITS 根目录")
             return
-        files = list_weight_files(root, SOVITS_WEIGHTS_DIRS, ".pth")
+        files = list_weight_files(root, SOVITS_WEIGHTS_PREFIX, ".pth")
         current = self.combo_sovits_weight.currentText()
         self.combo_sovits_weight.blockSignals(True)
         self.combo_sovits_weight.clear()
@@ -1710,16 +2213,27 @@ class LauncherWindow(QMainWindow):
         if not silent:
             self._log(f"[启动器] ✔ 发现 SoVITS 权重 {len(files)} 个")
 
+    @staticmethod
+    def _find_weight_item(combo: QComboBox, name: str):
+        """在权重下拉中找条目：精确匹配，或匹配 '文件名 [目录]' 的文件名部分。"""
+        idx = combo.findText(name)
+        if idx >= 0:
+            return idx
+        for i in range(combo.count()):
+            if split_weight_text(combo.itemText(i))[0] == name:
+                return i
+        return -1
+
     def _restore_saved_weights_selection(self):
         saved = self.launcher_cfg.get("gpt_sovits_model", {})
         gpt_name = saved.get("gpt", "")
         sovits_name = saved.get("sovits", "")
         if gpt_name:
-            idx = self.combo_gpt_weight.findText(gpt_name)
+            idx = self._find_weight_item(self.combo_gpt_weight, gpt_name)
             if idx >= 0:
                 self.combo_gpt_weight.setCurrentIndex(idx)
         if sovits_name:
-            idx = self.combo_sovits_weight.findText(sovits_name)
+            idx = self._find_weight_item(self.combo_sovits_weight, sovits_name)
             if idx >= 0:
                 self.combo_sovits_weight.setCurrentIndex(idx)
         self._update_current_weights_label()
@@ -1743,12 +2257,26 @@ class LauncherWindow(QMainWindow):
             QMessageBox.warning(self, "未选择模型", "请先选择 GPT 和 SoVITS 权重文件。")
             return
 
-        gpt_path = find_weight_path(root, GPT_WEIGHTS_DIRS, gpt_name)
-        sovits_path = find_weight_path(root, SOVITS_WEIGHTS_DIRS, sovits_name)
+        gpt_path = find_weight_path(root, GPT_WEIGHTS_PREFIX, gpt_name)
+        sovits_path = find_weight_path(root, SOVITS_WEIGHTS_PREFIX, sovits_name)
         if not gpt_path or not sovits_path:
             QMessageBox.critical(self, "文件不存在",
                                  f"找不到权重文件：\nGPT: {gpt_path}\nSoVITS: {sovits_path}")
             return
+
+        # API 以 v4 启动，应用其他版本权重时警告
+        for name, path in (("GPT", gpt_path), ("SoVITS", sovits_path)):
+            if path.parent.name not in ("GPT_weights_v4", "SoVITS_weights_v4"):
+                reply = QMessageBox.warning(
+                    self, "版本不匹配",
+                    f"{name} 权重「{path.name}」属于 {path.parent.name}，"
+                    f"但当前 API 以 v4 模式启动，混用可能导致合成失败或音质异常。\n"
+                    f"仍要应用吗？",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No,
+                )
+                if reply != QMessageBox.Yes:
+                    return
 
         if not is_port_open(GPT_SOVITS_HOST, GPT_SOVITS_PORT):
             QMessageBox.warning(self, "GPT-SoVITS 未运行",
@@ -2255,8 +2783,8 @@ class LauncherWindow(QMainWindow):
         if not root:
             return
 
-        gpt_path = find_weight_path(root, GPT_WEIGHTS_DIRS, gpt_name)
-        sovits_path = find_weight_path(root, SOVITS_WEIGHTS_DIRS, sovits_name)
+        gpt_path = find_weight_path(root, GPT_WEIGHTS_PREFIX, gpt_name)
+        sovits_path = find_weight_path(root, SOVITS_WEIGHTS_PREFIX, sovits_name)
         if not gpt_path or not sovits_path:
             self.oneclick_progress_signal.emit(
                 "[启动器] ⚠ 上次记录的权重文件找不到，跳过自动切换"

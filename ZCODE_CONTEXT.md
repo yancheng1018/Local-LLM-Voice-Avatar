@@ -208,25 +208,66 @@ GUI 依赖：`PySide6-Essentials`、`ruamel.yaml`、`psutil`
 
 ---
 
-## GUI 启动器功能（v2.0）
+## GUI 启动器功能（v2.1）
 
-6 个标签页布局（服务 → 模型 → 角色 → LLM → TTS → ASR / VAD）：
+7 个标签页布局（服务 → 模型 → 角色 → Live2D → LLM → TTS → ASR / VAD）：
 
 | 标签 | 内容 |
 |------|------|
 | **服务** | 一键启动/停止 + 运行日志 |
-| **模型** | 模型选择（LLM/TTS/ASR/VAD）+ Live2D 模型管理 + 配置预设 |
-| **角色** | 角色列表 + 内嵌编辑器（新建/删除；Live2D 模型和头像为下拉选择） |
+| **模型** | 模型选择（LLM/TTS/ASR/VAD）+ 配置预设 |
+| **角色** | 角色列表 + 内嵌编辑器（新建/删除） |
+| **Live2D** | Live2D 模型管理（model_dict.json）+ 贴图静态预览 |
 | **LLM** | Ollama 专用参数 + 模型信息 / 通用 LLM 参数 |
-| **TTS** | GPT-SoVITS 面板（权重切换）/ 通用 TTS 参数 |
+| **TTS** | 声音模型（voices/）+ GPT-SoVITS 权重切换 / 通用 TTS 参数 |
 | **ASR/VAD** | ASR 参数 + VAD 参数 |
 
 始终可见：顶部状态条 + 项目目录 + 底部保存按钮
 
-v2.0 新增：
-- 「预设」改名「模型」并移到「服务」之后
-- 「模型」页 Live2D 模型管理：浏览 model_dict.json、从 `live2d-models/` 扫描补录新模型、删除条目、保存（自动备份 `model_dict.json.bak`）
-- 角色编辑器中 Live2D 模型、头像改为可编辑下拉（自动扫描 `model_dict.json` ∪ `live2d-models/`、`avatars/`）
+### 角色编辑器
+
+字段按用途分为四组，不再平铺：
+
+| 分组 | 字段 |
+|------|------|
+| 显示信息 | 角色名（character_name）、用户名（human_name） |
+| 形象 | Live2D 模型（下拉+刷新）、头像（下拉+刷新+**导入...**） |
+| 人设 | persona_prompt |
+| 内部标识（一般无需修改） | conf_name、conf_uid |
+
+- Live2D 模型与头像均为可编辑下拉，自动扫描 `model_dict.json` ∪ `live2d-models/`、`avatars/`，支持手输
+- 「导入...」会复制所选图片到 `avatars/` 并自动选中
+- `conf_uid` 留空保存时自动补为 `{conf_name}_001`；空的可选字段不会写入 YAML
+
+### 声音模型（voices/）
+
+GPT-SoVITS 每次请求都需要参考音频 + 提示文本，因此把「权重对 + 参考音频」打包成一个**声音模型**，与模型一一对应：
+
+```
+voices/
+└── 加藤惠/
+    ├── ref.wav       # 参考音频
+    └── voice.json    # {
+                      #   "prompt_text": "参考音频中说的原话",
+                      #   "prompt_lang": "ja",   # 参考音频语言
+                      #   "text_lang":   "ja",   # 合成语言
+                      #   "gpt_weight":    "GPT_weights_v4/xxx.ckpt",
+                      #   "sovits_weight": "SoVITS_weights_v4/xxx.pth"
+                      # }
+```
+
+TTS 页「声音模型」区：
+- 下拉选择 + **应用声音**：写 conf.yaml（ref_audio_path / prompt_text / prompt_lang / text_lang）并调 API 切换权重；GPT-SoVITS 未运行时只写配置，启动后再切
+- **新建声音...**：选权重对 + 参考音频 + 提示文本，自动建目录并复制音频
+
+`gpt_weight` / `sovits_weight` 支持两种写法，`find_weight_path` 均可解析：
+- 路径式 `GPT_weights_v4/xxx.ckpt`（相对 GPT-SoVITS 根目录）
+- 显示式 `xxx.ckpt  [GPT_weights_v4]`
+
+### GPT-SoVITS 权重扫描
+
+扫描**所有** `GPT_weights*` / `SoVITS_weights*` 版本目录，下拉条目带 `[目录名]` 版本标签。
+当前 API 以 v4 DPO 启动（`start_v4_dpo.py`），应用非 v4 权重时会弹窗警告。
 
 ---
 
@@ -236,4 +277,5 @@ v2.0 新增：
 
 ### 已完成记录（2026-09-10，ZCode 会话）
 - 遗留修复：`gpt_sovits_tts.py` 的 `streaming_mode` 注解改为 `str = "false"`；MCP 无害警告与诊断版 `openai_compatible_llm.py` 的 🧪 埋点日志降为 debug 级
-- GUI 启动器升级到 v2.0（见上）
+- GUI 启动器 v2.0：「预设」改名「模型」并移到服务后；Live2D 模型管理；角色编辑器 Live2D/头像下拉
+- GUI 启动器 v2.1：Live2D 独立标签页 + 贴图预览；角色编辑器四组字段 + 头像导入；权重扫描全部版本目录；voices/ 声音模型体系（加藤惠已迁移）
