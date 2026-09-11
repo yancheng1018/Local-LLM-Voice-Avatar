@@ -111,6 +111,7 @@ OLLAMA_HOST = "127.0.0.1"
 OLLAMA_PORT = 11434
 OLLAMA_API_TAGS = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}/api/tags"
 OLLAMA_API_SHOW = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}/api/show"
+OLLAMA_API_GENERATE = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}/api/generate"
 GPT_SOVITS_HOST = "127.0.0.1"
 GPT_SOVITS_PORT = 9880
 GPT_SOVITS_BASE = f"http://{GPT_SOVITS_HOST}:{GPT_SOVITS_PORT}"
@@ -203,6 +204,37 @@ def query_ollama_show(model_name: str, timeout: float = 4.0):
             return json.loads(r.read().decode("utf-8"))
     except Exception:
         return None
+
+
+def unload_ollama_model(model_name: str, timeout: float = 20.0):
+    """卸载 Ollama 中驻留的模型。返回 (是否成功, 说明)。
+
+    用 Ollama 官方做法：POST /api/generate，prompt 为空且 keep_alive=0。
+    与后端 ollama_llm.cleanup() 用的是同一接口，行为一致。
+    内部吞掉所有异常，调用方不需要 try。
+    """
+    if not model_name:
+        return False, "模型名为空，跳过"
+    if not is_port_open(OLLAMA_HOST, OLLAMA_PORT):
+        return False, "Ollama 未运行，跳过"
+    try:
+        req = urllib.request.Request(
+            OLLAMA_API_GENERATE,
+            data=json.dumps(
+                {
+                    "model": model_name,
+                    "prompt": "",
+                    "stream": False,
+                    "keep_alive": 0,
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return True, f"HTTP {r.status}"
+    except Exception as e:
+        return False, str(e)
 
 
 def format_size_bytes(n):
@@ -3203,6 +3235,13 @@ class LauncherWindow(QMainWindow):
                     f"temperature={round(self.spin_temperature.value(), 2)}"
                 )
             self._update_active_voice_label()
+
+            # 后端只会在进程启动时读一次 conf.yaml，正在运行的话改动不会生效
+            if self.llm_process is not None and self.llm_process.poll() is None:
+                self._log(
+                    "[启动器] ⚠ Open-LLM-VTuber 正在运行，本次改动需"
+                    "「停止」后重新启动才会生效"
+                )
         except Exception as e:
             QMessageBox.critical(self, "保存失败", f"写入 conf.yaml 时出错：\n{e}")
 
@@ -3213,10 +3252,16 @@ class LauncherWindow(QMainWindow):
     def _start_llm(self):
         if self.llm_process is not None and self.llm_process.poll() is None:
             self._log("[启动器] ⚠ Open-LLM-VTuber 已经在运行")
+            self._log("[启动器] ⚠ 若刚改过配置，需先「停止」再启动才会生效")
             return
         if not self.project_root:
             QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
             return
+
+        # 启动前先把界面上的参数写入 conf.yaml。
+        # 否则「改了模型/参数 → 直接点启动」不会生效：后端读的是磁盘上的旧配置。
+        self._log("[启动器] 启动前自动保存配置...")
+        self._save_config()
 
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
@@ -3311,6 +3356,64 @@ class LauncherWindow(QMainWindow):
         code = proc.wait()
         self.llm_finished_signal.emit(code)
 
+    def _ollama_model_in_use(self):
+        """返回本项目当前配置的 Ollama 模型名；若当前 provider 不是 ollama 则返回空串。
+
+        只卸载本项目自己配置的模型，不动其他程序加载的模型。
+        """
+        if not self.config:
+            return ""
+        try:
+            cc = self.config.get("character_config", {})
+            agent_cfg = cc.get("agent_config", {})
+            provider = (
+                agent_cfg.get("agent_settings", {})
+                .get("basic_memory_agent", {})
+                .get("llm_provider", "")
+            )
+            if provider != OLLAMA_PROVIDER_KEY:
+                return ""
+            model = (
+                agent_cfg.get("llm_configs", {})
+                .get(OLLAMA_PROVIDER_KEY, {})
+                .get("model", "")
+            )
+            return str(model).strip()
+        except Exception:
+            return ""
+
+    def _unload_ollama_best_effort(self, wait: bool = False):
+        """让 Ollama 卸载本项目正在使用的模型。
+
+        为什么要由启动器主动做：停止服务用的是 `taskkill /F`，Windows 强制终止不会执行
+        Python 的 atexit，后端注册的 ollama_llm.cleanup() 永远不会跑；而 keep_alive=-1
+        又让 Ollama 自己不过期，模型就会一直驻留显存。
+
+        必须在进程被杀**之后**调用：否则后端仍存活，预加载或下一轮对话会立刻把它拉回来。
+        `wait=True` 用于退出流程——daemon 线程会随进程结束被掐掉，必须等它把请求发出去。
+        失败只记日志，绝不弹窗、绝不抛出，避免影响退出流程。
+        """
+        model = self._ollama_model_in_use()
+        if not model:
+            return  # 当前不是 ollama provider，不干预
+        if not is_port_open(OLLAMA_HOST, OLLAMA_PORT):
+            self._log("[启动器] Ollama 未运行，跳过卸载")
+            return
+
+        def _worker():
+            self.log_signal.emit(f"[启动器] ⏏ 正在卸载 Ollama 模型：{model}")
+            ok, msg = unload_ollama_model(model)
+            if ok:
+                self.log_signal.emit(f"[启动器] ✔ 已卸载 Ollama 模型：{model}")
+            else:
+                self.log_signal.emit(f"[启动器] ⚠ 卸载 Ollama 模型失败：{msg}")
+
+        t = threading.Thread(target=_worker, daemon=True)
+        t.start()
+        if wait:
+            # 关窗退出时用：不阻塞太久，但要确保请求已发出
+            t.join(timeout=8.0)
+
     def _stop_llm(self):
         if self.llm_process is None or self.llm_process.poll() is not None:
             return
@@ -3323,11 +3426,17 @@ class LauncherWindow(QMainWindow):
         except Exception as e:
             self._log(f"[启动器] taskkill 失败：{e}")
 
+        # 进程已杀，再卸载模型（顺序不能反）
+        self._unload_ollama_best_effort()
+
     def _on_llm_finished(self, exit_code):
         self._log(f"[启动器] ■ Open-LLM-VTuber 进程结束（exit_code={exit_code}）")
         self.llm_process = None
         self.btn_start_llm.setEnabled(True)
         self.btn_stop_llm.setEnabled(False)
+        # 后端自行退出（崩溃/被外部结束）时的兜底。若它是正常退出，
+        # atexit 里已经卸过一次，这里重复调用是无害的。
+        self._unload_ollama_best_effort()
 
     # ------------------------------------------------------------------
     # 启动 / 停止 GPT-SoVITS
@@ -3401,6 +3510,10 @@ class LauncherWindow(QMainWindow):
 
     def _oneclick_start(self):
         self.btn_oneclick.setEnabled(False)
+        # 启动前先把界面上的参数写入 conf.yaml。
+        # 必须在主线程做：_save_config 会读写 Qt 控件，跨线程操作不安全。
+        self._log("[启动器] 一键启动：先保存当前配置...")
+        self._save_config()
         threading.Thread(target=self._oneclick_worker, daemon=True).start()
 
     def _oneclick_worker(self):
@@ -3667,6 +3780,9 @@ class LauncherWindow(QMainWindow):
         if llm_running:
             self._terminate_sync(self.llm_process)
             self.llm_process = None
+            # 强杀不会触发后端的 atexit 卸载，这里同步补一次（wait=True：
+            # 窗口关闭后进程结束会掐掉 daemon 线程，必须等请求发出去）
+            self._unload_ollama_best_effort(wait=True)
         if gsv_running:
             self._terminate_sync(self.gsv_process)
             self.gsv_process = None

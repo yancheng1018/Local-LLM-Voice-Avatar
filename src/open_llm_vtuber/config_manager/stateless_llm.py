@@ -96,6 +96,13 @@ class OllamaConfig(OpenAICompatibleConfig):
     llm_api_key: str = Field("default_api_key", alias="llm_api_key")
     keep_alive: float = Field(-1, alias="keep_alive")
     unload_at_exit: bool = Field(True, alias="unload_at_exit")
+    # 以下 4 个是 Ollama 原生参数。此前它们没有在这里声明，pydantic 会静默丢弃
+    # conf.yaml 里的同名字段，导致设置永远不生效（一直用 OllamaLLM 的构造默认值）。
+    # 默认值与 agent/stateless_llm/ollama_llm.py 的构造函数保持一致。
+    num_gpu: int = Field(16, alias="num_gpu")
+    num_ctx: int = Field(4096, alias="num_ctx")
+    think: bool = Field(False, alias="think")
+    preload: bool = Field(True, alias="preload")
     interrupt_method: Literal["system", "user"] = Field(
         "system", alias="interrupt_method"
     )
@@ -114,6 +121,24 @@ class OllamaConfig(OpenAICompatibleConfig):
         "unload_at_exit": Description(
             en="Unload the model when the program exits.",
             zh="是否在程序退出时卸载模型。",
+        ),
+        "num_gpu": Description(
+            en="Number of layers to offload to the GPU. -1 lets Ollama decide; "
+            "lower values keep GPU memory free for other models (e.g. GPT-SoVITS).",
+            zh="卸载到 GPU 的层数。-1 表示交给 Ollama 自行决定；"
+            "调低可给其他模型（如 GPT-SoVITS）留出显存。",
+        ),
+        "num_ctx": Description(
+            en="Context window size in tokens.", zh="上下文窗口长度（token 数）。"
+        ),
+        "think": Description(
+            en="Enable the model's thinking/reasoning output (Qwen3 etc.). "
+            "Disabling it avoids extra latency.",
+            zh="是否启用模型的 thinking/推理输出（Qwen3 等）。关闭可避免额外延迟。",
+        ),
+        "preload": Description(
+            en="Preload the model at startup using the same num_gpu/num_ctx.",
+            zh="启动时用相同的 num_gpu/num_ctx 预加载模型。",
         ),
     }
 

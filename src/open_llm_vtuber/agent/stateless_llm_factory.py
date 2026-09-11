@@ -50,6 +50,8 @@ class LLMFactory:
                 project_id=kwargs.get("project_id"),
             )
         if llm_provider == "ollama_llm":
+            # num_gpu / num_ctx / think / preload 是 Ollama 原生参数，
+            # 必须在这里显式转发，否则会落到 OllamaLLM 的构造默认值上
             return OllamaLLM(
                 model=kwargs.get("model"),
                 base_url=kwargs.get("base_url"),
@@ -59,6 +61,10 @@ class LLMFactory:
                 temperature=kwargs.get("temperature"),
                 keep_alive=kwargs.get("keep_alive"),
                 unload_at_exit=kwargs.get("unload_at_exit"),
+                num_gpu=kwargs.get("num_gpu"),
+                num_ctx=kwargs.get("num_ctx"),
+                think=kwargs.get("think"),
+                preload=kwargs.get("preload"),
             )
 
         elif llm_provider == "llama_cpp_llm":
