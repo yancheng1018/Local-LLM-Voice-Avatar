@@ -342,6 +342,14 @@ class ServiceContext:
             logger.critical("Try to proceed without Live2D...")
 
     def init_asr(self, asr_config: ASRConfig) -> None:
+        # 与 init_vad 一致：asr_model 为 None 表示禁用，不做任何初始化。
+        # 注意这里必须先返回，否则下面的 getattr(cfg, None) 会抛 TypeError。
+        if asr_config.asr_model is None:
+            logger.info("ASR is disabled.")
+            self.asr_engine = None
+            self.character_config.asr_config = asr_config
+            return
+
         if not self.asr_engine or (self.character_config.asr_config != asr_config):
             logger.info(f"Initializing ASR: {asr_config.asr_model}")
             self.asr_engine = ASRFactory.get_asr_system(
@@ -533,6 +541,10 @@ class ServiceContext:
             prompt_content = prompt_loader.load_util(prompt_file)
 
             if prompt_name == "live2d_expression_prompt":
+                if not self.live2d_model or not self.live2d_model.emo_map:
+                    # 模型没有可用的表情映射：注入空关键词列表只会诱导 LLM 编造
+                    # [curiosity] 之类的未注册关键词（漏进字幕），直接跳过该提示词
+                    continue
                 prompt_content = prompt_content.replace(
                     "[<insert_emomap_keys>]", self.live2d_model.emo_str
                 )

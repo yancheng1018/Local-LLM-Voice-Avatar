@@ -923,8 +923,8 @@ class LauncherWindow(QMainWindow):
         info_box = QGroupBox("显示信息")
         info_form = QFormLayout(info_box)
         for key, label, tip in [
-            ("character_name", "角色名", "界面（含 Web UI 角色列表）显示的名字，需保持唯一"),
-            ("human_name", "用户名", "界面上显示的你的称呼"),
+            ("character_name", "角色名", "界面（含 Web UI 角色列表）显示的名字，需保持唯一。\n留空保存时会用 conf_uid 兜底"),
+            ("human_name", "对用户的称呼", "角色对话时对你的称呼。留空表示不作要求"),
         ]:
             w = QLineEdit()
             w.setMinimumWidth(200)
@@ -942,13 +942,32 @@ class LauncherWindow(QMainWindow):
         self.char_edit_fields["language"] = w_lang
         char_edit_vbox.addWidget(info_box)
 
-        # ── 形象 ──
+        # ── 形象 ──（头像在 Live2D 模型上方）
         look_box = QGroupBox("形象")
         look_form = QFormLayout(look_box)
 
+        # 头像：下拉 + 刷新 + 导入
+        w_avatar = EditableCombo()
+        w_avatar.setToolTip("从 avatars/ 目录自动扫描，或点「导入」添加图片。留空表示不使用头像")
+        row_avatar = QHBoxLayout()
+        row_avatar.addWidget(w_avatar, stretch=1)
+        btn_refresh_avatar = QPushButton("↻")
+        btn_refresh_avatar.setFixedWidth(32)
+        btn_refresh_avatar.setToolTip("刷新头像列表")
+        btn_refresh_avatar.clicked.connect(self._populate_avatar_combo)
+        btn_import_avatar = QPushButton("导入...")
+        btn_import_avatar.setToolTip("从本地选择图片并复制到 avatars/ 目录")
+        btn_import_avatar.clicked.connect(self._import_avatar)
+        row_avatar.addWidget(btn_refresh_avatar)
+        row_avatar.addWidget(btn_import_avatar)
+        look_form.addRow("头像：", row_avatar)
+        self.char_edit_fields["avatar"] = w_avatar
+
         # Live2D 模型：下拉 + 刷新 + 打开目录 + 导入
         w_l2d = EditableCombo()
-        w_l2d.setToolTip("从 live2d-models/ 与 model_dict.json 自动扫描")
+        w_l2d.setToolTip(
+            "从 live2d-models/ 与 model_dict.json 自动扫描。留空表示该角色不使用 Live2D"
+        )
         row_l2d = QHBoxLayout()
         row_l2d.addWidget(w_l2d, stretch=1)
         btn_refresh_l2d = QPushButton("↻")
@@ -968,22 +987,6 @@ class LauncherWindow(QMainWindow):
         look_form.addRow("Live2D 模型：", row_l2d)
         self.char_edit_fields["live2d_model_name"] = w_l2d
 
-        # 头像：下拉 + 刷新 + 导入
-        w_avatar = EditableCombo()
-        w_avatar.setToolTip("从 avatars/ 目录自动扫描，或点「导入」添加图片")
-        row_avatar = QHBoxLayout()
-        row_avatar.addWidget(w_avatar, stretch=1)
-        btn_refresh_avatar = QPushButton("↻")
-        btn_refresh_avatar.setFixedWidth(32)
-        btn_refresh_avatar.setToolTip("刷新头像列表")
-        btn_refresh_avatar.clicked.connect(self._populate_avatar_combo)
-        btn_import_avatar = QPushButton("导入...")
-        btn_import_avatar.setToolTip("从本地选择图片并复制到 avatars/ 目录")
-        btn_import_avatar.clicked.connect(self._import_avatar)
-        row_avatar.addWidget(btn_refresh_avatar)
-        row_avatar.addWidget(btn_import_avatar)
-        look_form.addRow("头像：", row_avatar)
-        self.char_edit_fields["avatar"] = w_avatar
         char_edit_vbox.addWidget(look_box)
 
         # ── 人设 ──
@@ -1099,7 +1102,7 @@ class LauncherWindow(QMainWindow):
         tab_llm_layout_final = QVBoxLayout(tab_llm)
         tab_llm_layout_final.setContentsMargins(0, 0, 0, 0)
         tab_llm_layout_final.addWidget(tab_llm_scroll)
-        self.tabs.addTab(tab_llm, "LLM")
+        self.tabs.addTab(tab_llm, "语言模型")
 
         # ── Tab 4: TTS ──
         tab_tts = QWidget()
@@ -1242,6 +1245,27 @@ class LauncherWindow(QMainWindow):
         self.combo_asr_model.currentTextChanged.connect(self._on_asr_model_changed)
         self.combo_vad_model.currentTextChanged.connect(self._on_vad_model_changed)
 
+        # 未保存改动检测的基线刷新。
+        # 这些槽在对应的处理函数**之后**执行（Qt 按连接顺序调用），
+        # 用来把"面板重新填充带来的值变化"从"用户改动"里排除掉。
+        # 每个槽只刷新该处理函数会重新填充的区块，不含承载该下拉本身的区块——
+        # 否则用户刚改的选择会被一并当成已保存而漏报。
+        self.combo_character.currentIndexChanged.connect(
+            lambda _: self._mark_sections_saved("_角色字段")
+        )
+        self.combo_llm.currentTextChanged.connect(
+            lambda _: self._mark_sections_saved("语言模型")
+        )
+        self.combo_tts.currentTextChanged.connect(
+            lambda _: self._mark_sections_saved("TTS")
+        )
+        self.combo_asr_model.currentTextChanged.connect(
+            lambda _: self._mark_sections_saved("ASR / VAD")
+        )
+        self.combo_vad_model.currentTextChanged.connect(
+            lambda _: self._mark_sections_saved("ASR / VAD")
+        )
+
     # ------------------------------------------------------------------
     # 项目目录 & 配置加载
     # ------------------------------------------------------------------
@@ -1380,8 +1404,8 @@ class LauncherWindow(QMainWindow):
         self._on_asr_model_changed(self.combo_asr_model.currentText())
         self._on_vad_model_changed(self.combo_vad_model.currentText())
 
-        # 界面已与 conf.yaml 同步，记录快照用于未保存改动检测
-        self._mark_config_saved()
+        # 界面已与 conf.yaml 同步，重设未保存改动检测的基线
+        self._reset_dirty_baseline()
 
     # ------------------------------------------------------------------
     # 角色
@@ -1536,10 +1560,10 @@ class LauncherWindow(QMainWindow):
             "character_config": {
                 # 唯一标识：同时用作 chat_history/<conf_uid>/ 目录名
                 "conf_uid": f"{name}_001",
+                # 以下显示相关字段一律留空，由用户自己填
                 "live2d_model_name": "",
-                # 角色名 = 界面（含 Web UI 角色列表）显示的名字，需唯一
-                "character_name": name,
-                "human_name": "Human",
+                "character_name": "",
+                "human_name": "",
                 "avatar": "",
                 # 回答语言（可在启动器下拉里改）
                 "language": "",
@@ -1590,11 +1614,15 @@ class LauncherWindow(QMainWindow):
                 continue
             cc[key] = value
 
-        # 唯一标识留空时自动补全，避免写出空值导致启动失败。
-        # character_name 不补：应用层已有「缺失时回退为文件名」的处理，
-        # 补写只会往老角色文件里添加冗余字段。
+        # 唯一标识留空时自动补全，避免写出空值导致启动失败
         if not cc.get("conf_uid"):
             cc["conf_uid"] = f"{cc.get('character_name') or stem}_001"
+        # 角色名是后端必填项，留空会让服务起不来。按约定用 conf_uid 兜底。
+        if not cc.get("character_name"):
+            cc["character_name"] = cc["conf_uid"]
+            self._log(
+                f"[启动器] ⚠ 角色名为空，已用 conf_uid「{cc['conf_uid']}」兜底"
+            )
 
         cc["persona_prompt"] = self.char_edit_persona.toPlainText()
         char_data["character_config"] = cc
@@ -1669,9 +1697,11 @@ class LauncherWindow(QMainWindow):
             return
         current = w.currentText()
         w.clear()
+        # 首个空选项让「不使用 Live2D」成为可表达、可保持的状态。
+        # 否则 addItems 之后 currentIndex 会变成 0，界面会显示一个其实没被选中的模型。
+        w.addItem("")
         w.addItems(self._scan_live2d_model_names())
-        if current:
-            w.setText(current)
+        w.setText(current if current else "")
 
     def _import_avatar(self):
         """从本地选择图片，复制到 avatars/ 并选中。"""
@@ -1726,9 +1756,9 @@ class LauncherWindow(QMainWindow):
                         if f.is_file()
                         and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif")
                     ]
+        w.addItem("")   # 空选项 = 不使用头像，避免默认选中第一个文件
         w.addItems(sorted(set(names)))
-        if current:
-            w.setText(current)
+        w.setText(current if current else "")
 
     def _model_dict_path(self) -> Path:
         return self.project_root / "model_dict.json"
@@ -3113,56 +3143,129 @@ class LauncherWindow(QMainWindow):
     # 保存
     # ------------------------------------------------------------------
 
-    def _ui_fingerprint(self) -> str:
-        """把「会被 _save_config 写入 conf.yaml」的控件当前值序列化成字符串。
+    # 内部分区名 -> 展示给用户的页面名（角色页拆成两段是因为它们的保存入口不同）
+    SECTION_TO_PAGE = {
+        "_角色选择": "角色",
+        "_角色字段": "角色",
+        "模型": "模型",
+        "语言模型": "语言模型",
+        "TTS": "TTS",
+        "ASR / VAD": "ASR / VAD",
+    }
+    # 由 _save_config（写 conf.yaml）负责落盘的分区
+    CONFIG_SECTIONS = ("_角色选择", "模型", "语言模型", "TTS", "ASR / VAD")
 
-        用于检测未保存的改动。刻意只覆盖 _save_config 真正读取的控件：
-        角色编辑器的字段（character_name/persona 等）是由「保存角色」写进**角色文件**的，
-        若把它们算进来，会出现"提示已保存但其实没保存"的假象，比不提示更糟。
+    @staticmethod
+    def _editor_values(tag: str, editors: dict) -> list:
+        out = []
+        for key in sorted(editors):
+            w = editors[key]
+            val = w.isChecked() if isinstance(w, QCheckBox) else w.text()
+            out.append(f"{tag}.{key}={val}")
+        return out
+
+    def _ui_sections(self) -> dict:
+        """按页面把"参与持久化的控件取值"序列化，用于定位哪些页面有未保存改动。
+
+        刻意只覆盖真正会被写入的控件，并且与写入条件保持一致：
+        - 通用参数面板只在与当前选择相关时才计入（_save_config 也只写当前那一个），
+          否则切走再切回时通用控件不会被清空，残留字段会造成假阳性
+        - 角色编辑器的字段写入**角色文件**（由「保存角色」负责），与 conf.yaml 分开统计
         """
-        parts = []
-        for name, w in (
-            ("char", self.combo_character),
-            ("llm", self.combo_llm),
-            ("tts", self.combo_tts),
-            ("asr", self.combo_asr_model),
-            ("vad", self.combo_vad_model),
-            ("model", self.combo_model),
-            ("keep_alive", self.combo_keep_alive),
-        ):
-            parts.append(f"{name}={w.currentText()}")
-        parts.append(f"temperature={self.spin_temperature.value()}")
-        parts.append(f"num_gpu={self.spin_num_gpu.value()}")
-        parts.append(f"num_ctx={self.spin_num_ctx.value()}")
-        parts.append(f"think={self.chk_think.isChecked()}")
+        sections = {}
 
-        # 通用面板只在与当前选择相关时才计入——与 _save_config 的写入条件保持一致。
-        # 否则切走再切回（通用控件不会被清空）会残留别的 provider 的字段，
-        # 造成"改了又改回去仍然报未保存"的假阳性。
-        generic_sets = [("gasr", self._generic_asr_editors), ("gvad", self._generic_vad_editors)]
+        sections["_角色选择"] = f"char={self.combo_character.currentText()}"
+
+        char_parts = [f"{k}={w.text()}" for k, w in sorted(self.char_edit_fields.items())]
+        char_parts.append(f"persona={self.char_edit_persona.toPlainText()}")
+        sections["_角色字段"] = "\n".join(char_parts)
+
+        sections["模型"] = "\n".join(
+            [
+                f"llm={self.combo_llm.currentText()}",
+                f"tts={self.combo_tts.currentText()}",
+                f"asr={self.combo_asr_model.currentText()}",
+                f"vad={self.combo_vad_model.currentText()}",
+            ]
+        )
+
+        llm_parts = [
+            f"model={self.combo_model.currentText()}",
+            f"temperature={self.spin_temperature.value()}",
+            f"num_gpu={self.spin_num_gpu.value()}",
+            f"num_ctx={self.spin_num_ctx.value()}",
+            f"think={self.chk_think.isChecked()}",
+            f"keep_alive={self.combo_keep_alive.currentText()}",
+        ]
         if self.combo_llm.currentText() != OLLAMA_PROVIDER_KEY:
-            generic_sets.insert(0, ("gllm", self._generic_llm_editors))
-        if self.combo_tts.currentText() != GPT_SOVITS_TTS_KEY:
-            generic_sets.insert(1, ("gtts", self._generic_tts_editors))
+            llm_parts += self._editor_values("gllm", self._generic_llm_editors)
+        sections["语言模型"] = "\n".join(llm_parts)
 
-        for tag, editors in generic_sets:
-            for key in sorted(editors):
-                w = editors[key]
-                val = w.isChecked() if isinstance(w, QCheckBox) else w.text()
-                parts.append(f"{tag}.{key}={val}")
-        return "\n".join(parts)
+        tts_parts = []
+        if self.combo_tts.currentText() != GPT_SOVITS_TTS_KEY:
+            tts_parts += self._editor_values("gtts", self._generic_tts_editors)
+        sections["TTS"] = "\n".join(tts_parts)
+
+        sections["ASR / VAD"] = "\n".join(
+            self._editor_values("gasr", self._generic_asr_editors)
+            + self._editor_values("gvad", self._generic_vad_editors)
+        )
+        return sections
+
+    def _reset_dirty_baseline(self):
+        """界面刚与磁盘同步过（如加载完配置）时，把全部区块的基线重设。
+
+        对"切换角色 / 切换参数面板"这类局部重新填充，用 _mark_sections_saved(区块名)
+        只刷新对应区块 —— 否则会把用户刚做的选择也一起当成"已保存"而漏报。
+        """
+        self._saved_sections = dict(self._ui_sections())
+
+    def _mark_sections_saved(self, *names: str):
+        """把指定分区标记为已落盘（其余分区保持原基线）。"""
+        now = self._ui_sections()
+        saved = dict(getattr(self, "_saved_sections", {}) or {})
+        for name in names:
+            saved[name] = now[name]
+        self._saved_sections = saved
 
     def _mark_config_saved(self):
-        """记录"当前界面状态已落盘"，用于未保存改动检测。"""
-        self._ui_saved_snapshot = self._ui_fingerprint()
+        """conf.yaml 落盘后调用。"""
+        self._mark_sections_saved(*self.CONFIG_SECTIONS)
+
+    def _mark_character_saved(self):
+        """角色文件落盘后调用。"""
+        self._mark_sections_saved("_角色字段")
+
+    def _unsaved_pages(self) -> list:
+        """返回存在未保存改动的页面名（去重、按固定顺序）。"""
+        if not self.config or not self.project_root:
+            return []
+        saved = getattr(self, "_saved_sections", None)
+        if not saved:
+            return []
+        now = self._ui_sections()
+        pages = []
+        for key, value in now.items():
+            if value != saved.get(key, ""):
+                name = self.SECTION_TO_PAGE.get(key, key)
+                if name not in pages:
+                    pages.append(name)
+        return pages
 
     def _has_unsaved_changes(self) -> bool:
-        if not self.config or not self.project_root:
+        return bool(self._unsaved_pages())
+
+    def _char_fields_dirty(self) -> bool:
+        saved = getattr(self, "_saved_sections", None)
+        if not saved:
             return False
-        snap = getattr(self, "_ui_saved_snapshot", None)
-        if snap is None:
-            return False
-        return self._ui_fingerprint() != snap
+        return self._ui_sections()["_角色字段"] != saved.get("_角色字段", "")
+
+    def _save_all(self):
+        """把两个保存入口都走一遍：conf.yaml + 当前角色的角色文件。"""
+        self._save_config()
+        if self._char_fields_dirty() and self.combo_character.currentIndex() >= 0:
+            self._save_character_inline()
 
     def _save_config(self):
         if not self.config or not self.project_root:
@@ -3246,7 +3349,9 @@ class LauncherWindow(QMainWindow):
             cc.setdefault("asr_config", {})
             asr_text = self.combo_asr_model.currentText()
             if asr_text == "（禁用）":
-                cc["asr_config"][ASR_ENGINE_KEY] = ""
+                # 必须写 None 而不是空字符串：asr_model 是 Literal，
+                # 空串不是合法取值，会让整份配置校验失败、服务起不来
+                cc["asr_config"][ASR_ENGINE_KEY] = None
             else:
                 cc["asr_config"][ASR_ENGINE_KEY] = asr_text
                 if self._generic_asr_editors:
@@ -3821,21 +3926,39 @@ class LauncherWindow(QMainWindow):
             except Exception:
                 pass
 
+    def _ask_unsaved_changes(self) -> str:
+        """有未保存改动时询问。返回 'save' / 'discard' / 'cancel'。
+
+        QMessageBox 的标准按钮在中文系统上仍可能显示英文，所以显式加中文按钮。
+        """
+        pages = self._unsaved_pages()
+        detail = "\n".join(f"  · {p}" for p in pages)
+        box = QMessageBox(self)
+        box.setWindowTitle("有未保存的改动")
+        box.setIcon(QMessageBox.Warning)
+        box.setText("以下页面还有改动没有保存：")
+        box.setInformativeText(f"{detail}\n\n要保存后再退出吗？")
+        btn_save = box.addButton("保存并退出", QMessageBox.AcceptRole)
+        box.addButton("丢弃退出", QMessageBox.DestructiveRole)
+        btn_cancel = box.addButton("取消", QMessageBox.RejectRole)
+        box.setDefaultButton(btn_save)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is btn_save:
+            return "save"
+        if clicked is btn_cancel:
+            return "cancel"
+        return "discard"
+
     def closeEvent(self, event):
         # 先处理未保存的改动（与是否有服务在运行无关）
         if self._has_unsaved_changes():
-            reply = QMessageBox.question(
-                self, "有未保存的改动",
-                "界面上的配置改动还没有写入 conf.yaml。\n\n"
-                "「保存」= 先保存再退出；「丢弃」= 直接退出，改动会丢失。",
-                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-                QMessageBox.Save,
-            )
-            if reply == QMessageBox.Cancel:
+            choice = self._ask_unsaved_changes()
+            if choice == "cancel":
                 event.ignore()
                 return
-            if reply == QMessageBox.Save:
-                self._save_config()
+            if choice == "save":
+                self._save_all()
                 if self._has_unsaved_changes():
                     # 保存失败（例如写文件出错），不要静默退出把改动丢掉
                     event.ignore()

@@ -284,15 +284,20 @@ class SherpaOnnxASRConfig(I18nMixin):
 class ASRConfig(I18nMixin):
     """Configuration for Automatic Speech Recognition."""
 
-    asr_model: Literal[
-        "faster_whisper",
-        "whisper_cpp",
-        "whisper",
-        "azure_asr",
-        "fun_asr",
-        "groq_whisper_asr",
-        "sherpa_onnx_asr",
-    ] = Field(..., alias="asr_model")
+    # 允许 None = 禁用 ASR（与 vad_model 的处理方式一致）。
+    # 此前是必填 Literal，导致「禁用」只能写成空字符串，而空串不是合法取值，
+    # 会让整份配置校验失败、服务无法启动。
+    asr_model: Optional[
+        Literal[
+            "faster_whisper",
+            "whisper_cpp",
+            "whisper",
+            "azure_asr",
+            "fun_asr",
+            "groq_whisper_asr",
+            "sherpa_onnx_asr",
+        ]
+    ] = Field(None, alias="asr_model")
     azure_asr: Optional[AzureASRConfig] = Field(None, alias="azure_asr")
     faster_whisper: Optional[FasterWhisperConfig] = Field(None, alias="faster_whisper")
     whisper_cpp: Optional[WhisperCPPConfig] = Field(None, alias="whisper_cpp")

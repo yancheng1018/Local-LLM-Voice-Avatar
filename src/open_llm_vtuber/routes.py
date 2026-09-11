@@ -175,6 +175,20 @@ def init_webtool_routes(default_context_cache: ServiceContext) -> APIRouter:
             if len(audio_array) == 0:
                 raise ValueError("Empty audio data")
 
+            # ASR 被禁用（asr_model 为 None）时 asr_engine 也是 None
+            if default_context_cache.asr_engine is None:
+                logger.error("ASR endpoint called but ASR is disabled.")
+                return Response(
+                    content=json.dumps(
+                        {
+                            "error": "ASR is disabled. "
+                            "Please select an ASR engine in the settings."
+                        }
+                    ),
+                    status_code=503,
+                    media_type="application/json",
+                )
+
             text = await default_context_cache.asr_engine.async_transcribe_np(
                 audio_array
             )

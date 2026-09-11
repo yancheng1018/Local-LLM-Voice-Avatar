@@ -150,6 +150,22 @@ async def process_user_input(
 ) -> str:
     """Process user input, converting audio to text if needed"""
     if isinstance(user_input, np.ndarray):
+        # asr_model 为 None（禁用）时 asr_engine 也是 None。
+        # 此时收到音频无法转写，给出明确提示，而不是抛 AttributeError。
+        if asr_engine is None:
+            logger.error(
+                "Received audio input but ASR is disabled. "
+                "Enable an ASR engine in the settings or use text input instead."
+            )
+            await websocket_send(
+                json.dumps(
+                    {
+                        "type": "full-text",
+                        "text": "[ASR 已禁用，无法识别语音输入。请先选择 ASR 引擎，或改用文字输入]",
+                    }
+                )
+            )
+            return ""
         logger.info("Transcribing audio input...")
         input_text = await asr_engine.async_transcribe_np(user_input)
         await websocket_send(
