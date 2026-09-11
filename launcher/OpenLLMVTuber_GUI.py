@@ -822,6 +822,14 @@ class LauncherWindow(QMainWindow):
         sel_form.addRow("TTS 模型：", self.combo_tts)
         sel_form.addRow("ASR 引擎：", self.combo_asr_model)
         sel_form.addRow("VAD 引擎：", self.combo_vad_model)
+        # 改了模型选择后需要点这里才写入 conf.yaml（下面预设区的「载入到界面」只改界面）
+        sel_btn_row = QHBoxLayout()
+        sel_btn_row.addStretch(1)
+        btn_apply_models = QPushButton("应用并保存")
+        btn_apply_models.setToolTip("把以上模型选择立即写入 conf.yaml（不含此处未列出的其他参数）")
+        btn_apply_models.clicked.connect(self._save_config)
+        sel_btn_row.addWidget(btn_apply_models)
+        sel_form.addRow("", sel_btn_row)
         tab_preset_layout.addWidget(sel_box)
 
         # 预设区
@@ -832,15 +840,18 @@ class LauncherWindow(QMainWindow):
         preset_inner.addWidget(self.preset_list)
         preset_btn_row = QHBoxLayout()
         btn_save_preset = QPushButton("保存当前为预设")
-        btn_apply_preset = QPushButton("应用")
+        # 「载入到界面」只把预设填进界面控件，不写 conf.yaml。
+        # 写盘请用上面的「应用并保存」或底部的「保存配置」。
+        btn_load_preset = QPushButton("载入到界面")
+        btn_load_preset.setToolTip("把选中的预设填入界面（不会写入 conf.yaml）")
         btn_delete_preset = QPushButton("删除")
         btn_save_preset.clicked.connect(self._save_preset)
-        btn_apply_preset.clicked.connect(
+        btn_load_preset.clicked.connect(
             lambda: self._apply_preset(self.preset_list.currentItem())
         )
         btn_delete_preset.clicked.connect(self._delete_preset)
         preset_btn_row.addWidget(btn_save_preset)
-        preset_btn_row.addWidget(btn_apply_preset)
+        preset_btn_row.addWidget(btn_load_preset)
         preset_btn_row.addWidget(btn_delete_preset)
         preset_inner.addLayout(preset_btn_row)
         tab_preset_layout.addWidget(preset_box)
@@ -1368,6 +1379,9 @@ class LauncherWindow(QMainWindow):
         self._on_tts_model_changed(self.combo_tts.currentText())
         self._on_asr_model_changed(self.combo_asr_model.currentText())
         self._on_vad_model_changed(self.combo_vad_model.currentText())
+
+        # 界面已与 conf.yaml 同步，记录快照用于未保存改动检测
+        self._mark_config_saved()
 
     # ------------------------------------------------------------------
     # 角色
@@ -3078,7 +3092,10 @@ class LauncherWindow(QMainWindow):
             ka_str = f"{ka_int}（永久驻留）" if ka_int < 0 else f"{ka_int}"
             self.combo_keep_alive.setCurrentText(ka_str)
 
-        self._log(f"[启动器] ✔ 已应用预设「{name}」（记得点保存配置写入 conf.yaml）")
+        self._log(
+            f"[启动器] ✔ 已把预设「{name}」载入到界面"
+            "（还需点「应用并保存」或底部「保存配置」才会写入 conf.yaml）"
+        )
 
     def _delete_preset(self):
         item = self.preset_list.currentItem()
@@ -3095,6 +3112,57 @@ class LauncherWindow(QMainWindow):
     # ------------------------------------------------------------------
     # 保存
     # ------------------------------------------------------------------
+
+    def _ui_fingerprint(self) -> str:
+        """把「会被 _save_config 写入 conf.yaml」的控件当前值序列化成字符串。
+
+        用于检测未保存的改动。刻意只覆盖 _save_config 真正读取的控件：
+        角色编辑器的字段（character_name/persona 等）是由「保存角色」写进**角色文件**的，
+        若把它们算进来，会出现"提示已保存但其实没保存"的假象，比不提示更糟。
+        """
+        parts = []
+        for name, w in (
+            ("char", self.combo_character),
+            ("llm", self.combo_llm),
+            ("tts", self.combo_tts),
+            ("asr", self.combo_asr_model),
+            ("vad", self.combo_vad_model),
+            ("model", self.combo_model),
+            ("keep_alive", self.combo_keep_alive),
+        ):
+            parts.append(f"{name}={w.currentText()}")
+        parts.append(f"temperature={self.spin_temperature.value()}")
+        parts.append(f"num_gpu={self.spin_num_gpu.value()}")
+        parts.append(f"num_ctx={self.spin_num_ctx.value()}")
+        parts.append(f"think={self.chk_think.isChecked()}")
+
+        # 通用面板只在与当前选择相关时才计入——与 _save_config 的写入条件保持一致。
+        # 否则切走再切回（通用控件不会被清空）会残留别的 provider 的字段，
+        # 造成"改了又改回去仍然报未保存"的假阳性。
+        generic_sets = [("gasr", self._generic_asr_editors), ("gvad", self._generic_vad_editors)]
+        if self.combo_llm.currentText() != OLLAMA_PROVIDER_KEY:
+            generic_sets.insert(0, ("gllm", self._generic_llm_editors))
+        if self.combo_tts.currentText() != GPT_SOVITS_TTS_KEY:
+            generic_sets.insert(1, ("gtts", self._generic_tts_editors))
+
+        for tag, editors in generic_sets:
+            for key in sorted(editors):
+                w = editors[key]
+                val = w.isChecked() if isinstance(w, QCheckBox) else w.text()
+                parts.append(f"{tag}.{key}={val}")
+        return "\n".join(parts)
+
+    def _mark_config_saved(self):
+        """记录"当前界面状态已落盘"，用于未保存改动检测。"""
+        self._ui_saved_snapshot = self._ui_fingerprint()
+
+    def _has_unsaved_changes(self) -> bool:
+        if not self.config or not self.project_root:
+            return False
+        snap = getattr(self, "_ui_saved_snapshot", None)
+        if snap is None:
+            return False
+        return self._ui_fingerprint() != snap
 
     def _save_config(self):
         if not self.config or not self.project_root:
@@ -3242,6 +3310,8 @@ class LauncherWindow(QMainWindow):
                     "[启动器] ⚠ Open-LLM-VTuber 正在运行，本次改动需"
                     "「停止」后重新启动才会生效"
                 )
+            # 已落盘，更新快照，关闭窗口时就不会再提示"有未保存改动"
+            self._mark_config_saved()
         except Exception as e:
             QMessageBox.critical(self, "保存失败", f"写入 conf.yaml 时出错：\n{e}")
 
@@ -3752,6 +3822,25 @@ class LauncherWindow(QMainWindow):
                 pass
 
     def closeEvent(self, event):
+        # 先处理未保存的改动（与是否有服务在运行无关）
+        if self._has_unsaved_changes():
+            reply = QMessageBox.question(
+                self, "有未保存的改动",
+                "界面上的配置改动还没有写入 conf.yaml。\n\n"
+                "「保存」= 先保存再退出；「丢弃」= 直接退出，改动会丢失。",
+                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+                QMessageBox.Save,
+            )
+            if reply == QMessageBox.Cancel:
+                event.ignore()
+                return
+            if reply == QMessageBox.Save:
+                self._save_config()
+                if self._has_unsaved_changes():
+                    # 保存失败（例如写文件出错），不要静默退出把改动丢掉
+                    event.ignore()
+                    return
+
         llm_running = self.llm_process is not None and self.llm_process.poll() is None
         gsv_running = self.gsv_process is not None and self.gsv_process.poll() is None
 
