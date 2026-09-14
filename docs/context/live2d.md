@@ -53,6 +53,16 @@ Live2D 模型切到对应表情
    字符串 = 表情**名字**（直接 `setExpression(name)`）。两种前端都支持。
 7. `Actions.expressions` 是**列表**，但前端只取 **`expressions[0]`**。
    想一次触发多个表情需要改前端（做不到，见开头的说明）。
+8. **同角色热切换模型（stage4）是原子的**（`ServiceContext.switch_live2d_model`）：
+   失败时 `context.live2d_model`、`character_config.live2d_model_name`、`context.system_prompt`、
+   agent 装饰器闭包（经 `agent.set_live2d_model` 重建）、agent `_system` 五者必须**同为旧值**，
+   不得残留半套状态——否则表情关键词与提示词静默错配，不报错。
+   `self.system_prompt = prompt` 必须是**最后一步提交**，不得挪进 try 内。
+   只支持 BasicMemoryAgent（有 `set_live2d_model`/`set_system` 两个公开能力），其他 agent 拒绝而非半切换。
+9. **模型切换互斥锁的 check 与 add 必须相邻，中间不得插入任何 `await`**（`websocket_handler.py`
+   `active_model_switches`）。当前 per-client while 循环是顺序调度、check/add 间无 await，并不会真的
+   发生竞争；此锁是给未来「消息任务化调度」留的保险——谁往中间插一个 await，两份并发切换就都能穿过。
+   出现第二个持锁 handler 时，把该模式升格为通用 WS 条目。
 
 ### model_dict.json 字段实测情况
 

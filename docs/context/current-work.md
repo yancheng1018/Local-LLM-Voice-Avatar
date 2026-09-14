@@ -7,6 +7,11 @@
 - 其余模型按需处理：37 个 Idle/Talk 组大小写不匹配（跑 `scan_live2d_models.py`
   生成 `live2d_scan_report.md` 查看），
   40 个 emotionMap 为空；两者都只影响对应模型被使用时的表现，用哪个补哪个
+- pytest 未纳入任何依赖组（venv 有 chardet 无 pytest，系统 Python 有 pytest 无 chardet，
+  `uv run pytest` 会解析到系统解释器而报 No module named chardet），现用权宜命令
+  `uv run --with pytest python -m pytest`（每次现解依赖，且与完全离线运行的项目定位相悖）。
+  待把 pytest 加入 pyproject.toml `[project.optional-dependencies]` 新 test 组后该命令即废；
+  此项与 minimal-frontend 无关，属仓库环境杂务
  
 
 > 极简自研前端的完整设计、实现细节、踩坑记录见 docs/context/minimal-frontend.md
