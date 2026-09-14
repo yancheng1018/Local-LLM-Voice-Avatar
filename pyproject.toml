@@ -63,4 +63,4 @@ target-version = "py310"
 
 [tool.ruff.lint]
 # Ignore E402 (module level import not at top of file) for the run_bilibili_live.py script
-per-file-ignores = { "scripts/run_bilibili_live.py" = ["E402"] }
+per-file-ignores = { "legacy/scripts/run_bilibili_live.py" = ["E402"] }
