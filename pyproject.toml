@@ -1,8 +1,7 @@
 [project]
-name = "open-llm-vtuber"
+name = "open-llm-vtuber-zh-local"
 version = "1.2.1"
-description = "Talk to any LLM with hands-free voice interaction, voice interruption, and Live2D taking face running locally across platforms"
-readme = "README.md"
+description = "本地离线语音交互 AI 伴侣（Open-LLM-VTuber 定制版，已与上游切割）"
 requires-python = ">=3.10,<3.13"
 dependencies = [
     "anthropic>=0.40.0",

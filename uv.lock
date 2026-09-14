@@ -1159,7 +1159,7 @@ wheels = [
 ]
 
 [[package]]
-name = "open-llm-vtuber"
+name = "open-llm-vtuber-zh-local"
 version = "1.2.1"
 source = { virtual = "." }
 dependencies = [

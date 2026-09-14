@@ -26,6 +26,8 @@ git ls-files -i -c --exclude-standard
 
 - `live2d-models/*` 整体忽略，仅 `!mao_pro/`、`!shizuku/` 两个上游示例模型入库。
 - `models/`、`Spine-models/`、`voices/`、`avatars/`、`backgrounds/` 忽略但**保磁盘**。
+- `frontend/` 忽略但**保磁盘**：旧官方前端，服务器仍 catch-all mount 它（`server.py`），
+  删了服务器起不来。stage2 已解除其子模块关系，不再指向上游。
 - `conf.yaml` 忽略，入库模板是 `config_templates/conf.ZH.default.yaml`。
 - 根目录 `conf.yaml.bak` / `.backup`、`model_dict.json.bak` 属脚本自动备份，一并忽略。
 
@@ -35,11 +37,14 @@ git ls-files -i -c --exclude-standard
 
 | 路径 | 依赖点 |
 |------|--------|
-| `upgrade_codes/` | `run_server.py:11` import + `:24` 模块级实例化 |
 | `web_tool/` | `server.py` mount 为 `/web_tool` |
 | `models/` | `run_server.py:21` 设为 `HF_HOME`；`conf.yaml` 指向其下 sherpa-onnx 模型 |
 | `Spine-models/` | `server.py` 存在性检查后 mount 为 `/Spine-models` |
-| `frontend/` | Git 子模块，`server.py` catch-all mount + `run_server.py` 自动初始化 |
+| `frontend/` | `server.py` catch-all mount + `run_server.py` 启动检查；已非子模块，被 `.gitignore` 忽略但保磁盘 |
+
+> 变更记录（git_stage2）：`upgrade_codes/` 与 `upgrade.py` 已于本阶段移除，
+> 不再需要升级能力。`run_server.py` 中的 `UpgradeManager` 依赖已剥离。
+> 副作用：启动不再自动创建/备份/合并 `conf.yaml`，该文件必须预先存在。
 
 其余上游遗留件已移入 `legacy/`（见 `legacy/README.md`）。
 
