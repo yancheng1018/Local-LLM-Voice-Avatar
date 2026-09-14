@@ -11,7 +11,7 @@ import shutil
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import Response
+from starlette.responses import RedirectResponse, Response
 from starlette.staticfiles import StaticFiles as StarletteStaticFiles
 
 from .routes import init_client_ws_route, init_webtool_routes, init_proxy_route
@@ -36,6 +36,11 @@ class CORSStaticFiles(StarletteStaticFiles):
 
         if path.endswith(".js"):
             response.headers["Content-Type"] = "application/javascript"
+
+        # html 每次都协商缓存：入口页引用带 hash 的 assets，避免浏览器启发式
+        # 缓存把旧 index.html 留在手里、加载不到新构建
+        if path.endswith(".html") or path == "" or path == "/":
+            response.headers["Cache-Control"] = "no-cache"
 
         return response
 
@@ -140,6 +145,27 @@ class WebSocketServer:
             CORSStaticFiles(directory="web_tool", html=True),
             name="web_tool",
         )
+
+        # Mount Spine models (阶段二：Spine 渲染器的模型目录)
+        if os.path.exists("Spine-models"):
+            self.app.mount(
+                "/Spine-models",
+                CORSStaticFiles(directory="Spine-models"),
+                name="spine_models",
+            )
+
+        # Mount minimal frontend (frontend-minimal/, Vite 构建产物；需在 / catch-all 之前)
+        if os.path.exists("frontend-minimal/dist"):
+            # Starlette 不会为 mount 自动补尾斜杠，/m 会 404，这里显式重定向到 /m/
+            self.app.add_route(
+                "/m",
+                lambda request: RedirectResponse(url="/m/", status_code=307),
+            )
+            self.app.mount(
+                "/m",
+                CORSStaticFiles(directory="frontend-minimal/dist", html=True),
+                name="frontend_minimal",
+            )
 
         # Mount main frontend last (as catch-all)
         self.app.mount(
