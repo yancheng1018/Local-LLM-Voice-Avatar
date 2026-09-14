@@ -1,13 +1,10 @@
 ## 当前阶段
 
 ### 当前需求
-> minimal-frontend stage5（一角色多模型 allowlist）已实现并通过审查（2026-09-15）。
-> 待办：stage5 规格 §8 手工验收（服务起后执行，5 项）：
-> 1. 给某角色 YAML 手加 `live2d_model_names: [mao_pro, <另一模型名>]` → 下拉只有这 2 项，切换生效
-> 2. 无该字段的角色：下拉仍是全局列表
-> 3. allowlist 写不存在的模型名：条目不出现，服务端日志有 warning
-> 4. 启动器编辑器：允许列表行显示逗号串；保存后 YAML 是列表；清空保存写回 []；不碰该行保存不丢
-> 5. spine_test 角色：行为与 stage4 一致
+> minimal-frontend 阶段一~五全部完成并验收通过（2026-09-15）。stage5（一角色多模型
+> allowlist）经两轮审查修复：fix1（合并底套默认角色指针）被手工复验驳回，
+> fix2 改为 conf.yaml 自身块作 merge 底后四点复验通过。
+> 无既定下一阶段；待办与遗留见下方清单。
 
 ### 待处理遗留
 
@@ -16,8 +13,8 @@
 - [live2d] 40 个模型 emotionMap 为空（情绪关键词不触发表情）：同样按需补
 - [环境] pytest 未入 pyproject [project.optional-dependencies]：加 test 组后
   frontend-minimal 测试可 venv 直跑（现需 uv run --with pytest）；仓库杂务，与前端无关
-- [doc-lifecycle] 极简前端线 7 份规格书 + 5 份 impl_report 待 /distill-spec
-  提炼后删除（触摸引擎线 6 份与热区 1 份已于 stage4 阶段清理）
+- [doc-lifecycle] 极简前端线 7 份规格书 + 7 份 impl_report（含 stage5_fix1/fix2）
+  待 /distill-spec 提炼后删除（触摸引擎线 6 份与热区 1 份已于 stage4 阶段清理）
 - [stage5] launcher ruff format 全文件重排单独立项：stage5 曾尝试对
   launcher/OpenLLMVTuber_GUI.py 跑 format，产生 +332/-181 纯排版 diff
   （该文件历史样式从未 format 过），已回退保持最小功能 diff；

@@ -79,7 +79,7 @@ legacy/                            上游遗留部件（本项目不用，详见
 
 ## 当前进行中
 
-极简自研前端（frontend-minimal/）阶段一~五已完成（2026-09-15；阶段五=一角色多模型 allowlist）。
+极简自研前端（frontend-minimal/）阶段一~五已完成并验收通过（2026-09-15；阶段五=一角色多模型 allowlist，含 fix2 跨角色残留修正）。
 待办、下一步与细节见 docs/context/current-work.md。
 上下文文件已于 2026-09-13 重构，详见 docs/context/archive.md
 
