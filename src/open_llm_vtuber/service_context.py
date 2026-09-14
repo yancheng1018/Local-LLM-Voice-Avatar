@@ -687,9 +687,12 @@ class ServiceContext:
 
                 alt_config_data = read_yaml(file_path).get("character_config")
 
-                # Start with original config data and perform a deep merge
+                # 合并底是 conf.yaml 自身的 character_config，不套默认角色指针：
+                # 以当前角色或默认角色为底，都会把该角色独有的可选键
+                # （live2d_model_names、tts_config 等）残留给目标角色
+                base_character_data = read_yaml("conf.yaml").get("character_config")
                 new_character_config_data = deep_merge(
-                    self.config.character_config.model_dump(), alt_config_data
+                    base_character_data, alt_config_data
                 )
 
             if new_character_config_data:

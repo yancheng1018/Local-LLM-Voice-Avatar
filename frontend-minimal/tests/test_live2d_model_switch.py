@@ -331,3 +331,28 @@ def test_launcher_editor_handles_model_names():
     assert re.search(r'cc\["live2d_model_names"\]\s*=\s*model_names', src)
     assert re.search(r'join\(cc\.get\("live2d_model_names"\)\s*or\s*\[\]\)', src)
     assert 'char_edit_fields["live2d_model_names"]' not in src
+
+
+# ---- stage5 修复：切换角色不得继承上一角色的 allowlist ----
+
+
+def test_config_switch_merges_from_base_not_current():
+    src = read(BACKEND / "service_context.py")
+    # handle_config_switch 是类内最后一个方法，其后是模块级 def deep_merge
+    # （0 缩进），method_body 的同级 def 终止符（4 空格缩进）匹配不到，
+    # 故局部切片截取到下一个模块级 def
+    start = src.index("async def handle_config_switch")
+    body = src[start : src.index("\ndef ", start)]
+    # 旧形态（当前角色配置作 merge 底）不得回归：可选键会跨角色残留
+    assert "self.config.character_config.model_dump(), alt_config_data" not in body
+    # 新形态：merge 底 = conf.yaml 自身块；不得套默认角色指针
+    # （默认角色的可选键会泄漏给所有未定义该键的角色——fix1 实测翻车点）
+    assert not re.search(r"base_character_data\s*=\s*apply_default_character", body)
+    assert re.search(
+        r'base_character_data\s*=\s*read_yaml\(\s*"conf\.yaml"\s*\)'
+        r'\s*\.get\(\s*"character_config"\s*\)',
+        body,
+    )
+    assert re.search(
+        r"deep_merge\(\s*base_character_data\s*,\s*alt_config_data\s*\)", body
+    )
