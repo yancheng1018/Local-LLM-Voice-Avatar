@@ -9,7 +9,7 @@ aiosignal==1.3.2
 annotated-types==0.7.0
     # via pydantic
 anthropic==0.49.0
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 anyio==4.9.0
     # via
     #   anthropic
@@ -23,7 +23,7 @@ async-timeout==5.0.1
 attrs==25.3.0
     # via aiohttp
 azure-cognitiveservices-speech==1.43.0
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 certifi==2025.1.31
     # via
     #   edge-tts
@@ -35,7 +35,7 @@ cffi==1.17.1
 cfgv==3.4.0
     # via pre-commit
 chardet==5.2.0
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 charset-normalizer==3.4.1
     # via requests
 click==8.1.8
@@ -55,13 +55,13 @@ distro==1.9.0
 dnspython==2.7.0
     # via email-validator
 edge-tts==7.0.0
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 email-validator==2.2.0
     # via fastapi
 exceptiongroup==1.2.2
     # via anyio
 fastapi==0.115.12
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 fastapi-cli==0.0.7
     # via fastapi
 filelock==3.18.0
@@ -77,7 +77,7 @@ frozenlist==1.5.0
 fsspec==2025.3.2
     # via torch
 groq==0.22.0
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 h11==0.14.0
     # via
     #   httpcore
@@ -116,11 +116,11 @@ jiter==0.9.0
     #   anthropic
     #   openai
 langdetect==1.0.9
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 letta-client==0.1.101
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 loguru==0.7.3
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
@@ -148,13 +148,13 @@ onnxruntime==1.21.0
     #   open-llm-vtuber (pyproject.toml)
     #   silero-vad
 openai==1.72.0
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 packaging==24.2
     # via onnxruntime
 platformdirs==4.3.7
     # via virtualenv
 pre-commit==4.2.0
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 propcache==0.3.1
     # via
     #   aiohttp
@@ -175,7 +175,7 @@ pydantic-core==2.33.1
     #   letta-client
     #   pydantic
 pydub==0.25.1
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 pygments==2.19.1
     # via rich
 pyobjc==11.0
@@ -850,20 +850,20 @@ pyobjc-framework-vision==11.0
 pyobjc-framework-webkit==11.0
     # via pyobjc
 pysbd==0.3.4
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 python-dotenv==1.1.0
     # via uvicorn
 python-multipart==0.0.20
     # via fastapi
 pyttsx3==2.98
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 pyyaml==6.0.2
     # via
     #   open-llm-vtuber (pyproject.toml)
     #   pre-commit
     #   uvicorn
 requests==2.32.3
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 rich==14.0.0
     # via
     #   rich-toolkit
@@ -871,19 +871,19 @@ rich==14.0.0
 rich-toolkit==0.14.1
     # via fastapi-cli
 ruamel-yaml==0.18.10
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 ruamel-yaml-clib==0.2.12
     # via ruamel-yaml
 ruff==0.11.4
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 scipy==1.15.2
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 shellingham==1.5.4
     # via typer
 sherpa-onnx==1.11.3
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 silero-vad==5.1.2
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 six==1.17.0
     # via langdetect
 sniffio==1.3.1
@@ -893,7 +893,7 @@ sniffio==1.3.1
     #   groq
     #   openai
 soundfile==0.13.1
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 srt==3.5.3
     # via edge-tts
 starlette==0.46.1
@@ -905,7 +905,7 @@ sympy==1.13.1
 tabulate==0.9.0
     # via edge-tts
 tomli==2.2.1
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 torch==2.6.0
     # via
     #   open-llm-vtuber (pyproject.toml)
@@ -953,7 +953,7 @@ virtualenv==20.30.0
 watchfiles==1.0.5
     # via uvicorn
 websocket-client==1.8.0
-    # via open-llm-vtuber (pyproject.toml)
+    # via open-llm-vtuber-zh-local (pyproject.toml)
 websockets==15.0.1
     # via uvicorn
 yarl==1.19.0
