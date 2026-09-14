@@ -1,0 +1,20 @@
+{
+  "name": "frontend-minimal",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@esotericsoftware/spine-webgl": "4.1.56",
+    "pixi-live2d-display": "0.5.0-beta",
+    "pixi.js": "^7.4.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vite": "^7.1.0"
+  }
+}

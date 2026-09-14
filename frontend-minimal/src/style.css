@@ -1,0 +1,227 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  background: linear-gradient(160deg, #1a1d29 0%, #2b3148 100%);
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+#overlay button,
+#overlay input {
+  pointer-events: auto;
+}
+
+/* ---- 顶部状态行 ---- */
+#status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.35), transparent);
+}
+
+#status-text.error {
+  color: #ff6b6b;
+}
+
+#char-select {
+  margin-left: auto;
+  max-width: 220px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+#char-select option {
+  background: #2b3148;
+  color: #fff;
+}
+
+#new-chat-btn,
+#touch-debug-btn,
+#debug-panel-btn,
+#history-toggle-btn {
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(6px);
+}
+
+#new-chat-btn:hover,
+#touch-debug-btn:hover,
+#debug-panel-btn:hover,
+#history-toggle-btn:hover {
+  background: rgba(99, 102, 241, 0.5);
+}
+
+#new-chat-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+#new-chat-btn:disabled:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.dot.on {
+  background: #4ade80;
+  box-shadow: 0 0 6px #4ade80;
+}
+
+.dot.off {
+  background: #f87171;
+}
+
+/* ---- 底部字幕 + 输入 ---- */
+#bottom-area,
+#input-row {
+  margin: 0 16px 14px;
+}
+
+#bottom-area {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+#subtitles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 30vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+#subtitles::-webkit-scrollbar {
+  display: none;
+}
+
+.sentence {
+  align-self: flex-start;
+  max-width: 70%;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(6px);
+  word-break: break-word;
+}
+
+.sentence.current {
+  color: #fff;
+  background: rgba(99, 102, 241, 0.45);
+}
+
+.sentence.mine {
+  align-self: flex-end;
+  color: #dbeafe;
+  background: rgba(14, 165, 233, 0.35);
+}
+
+#input-row {
+  display: flex;
+  gap: 8px;
+}
+
+#text-input {
+  flex: 1;
+  padding: 11px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  backdrop-filter: blur(6px);
+}
+
+#text-input:focus {
+  border-color: rgba(99, 102, 241, 0.7);
+}
+
+#send-btn,
+#interrupt-btn {
+  padding: 0 20px;
+  border: none;
+  border-radius: 24px;
+  font-size: 15px;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(99, 102, 241, 0.85);
+  transition: background 0.15s;
+}
+
+#send-btn:hover {
+  background: rgba(99, 102, 241, 1);
+}
+
+#interrupt-btn {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+#interrupt-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.75);
+}
+
+#interrupt-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 仿 l2d.su 左侧调试栏（仅 Live2D） */
+#debug-panel {
+  position: absolute; left: 8px; top: 56px; width: 240px;
+  max-height: calc(100% - 140px); overflow-y: auto; z-index: 20;
+  background: rgba(20, 22, 30, 0.78); color: #dfe3ea;
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px;
+  padding: 8px; font-size: 12px; pointer-events: auto;
+}
+#debug-panel h3 { margin: 6px 0 4px; font-size: 12px; color: #9fc3ff; }
+#debug-panel .row { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+#debug-panel .row label { flex: 0 0 108px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#debug-panel .row input[type='range'] { flex: 1 1 auto; min-width: 0; }
+#debug-panel .val { flex: 0 0 40px; text-align: right; font-variant-numeric: tabular-nums; opacity: 0.8; }
