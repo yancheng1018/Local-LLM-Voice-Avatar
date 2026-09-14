@@ -32,6 +32,8 @@ export interface CharacterRenderer {
   setTouchDebug?(enabled: boolean): void;
   /** 仿 l2d.su 左侧调试栏开关（仅 L2D 实现） */
   setDebugPanel?(enabled: boolean): void;
+  /** 停止当前动作并回到模型的初始待机动作（仅 L2D 实现） */
+  resetToInitialMotion?(): void;
   /** 回到默认表情 */
   resetExpression(): void;
   dispose(): void;

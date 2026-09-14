@@ -105,6 +105,8 @@ export class L2DRenderer implements CharacterRenderer {
   actionAllowed: (name: string) => boolean = () => true;
   /** main.ts 注入：触摸链当前 idleIndex（ATA.idle 门槛 + idle 回放组名用） */
   chainIdleIndex: () => number = () => 0;
+  /** main.ts 注入：触摸链状态归零（复位时用，不持有 TouchChain 实例） */
+  resetTouchChain: (() => void) | null = null;
 
   /** 手势互动回调：tap=单击、drag=按住拖动超阈值、longpress=按住 ≥800ms。
    *  areas=Live2D 命名热区；region=包围盒估计的头/身区域；
@@ -968,6 +970,25 @@ export class L2DRenderer implements CharacterRenderer {
       // priority: 2=NORMAL(说话), 3=FORCE(点击动作盖过待机)
       void model.motion(group, undefined, priority);
     }
+  }
+
+  /** 一键复位：停止当前动作、清除表情和触摸链，再播放初始待机动作。 */
+  resetToInitialMotion(): void {
+    const mm = (
+      this.model?.internalModel as unknown as {
+        motionManager?: { stopAllMotions?: () => void } | null;
+      }
+    )?.motionManager;
+    mm?.stopAllMotions?.();
+    this.touchPlay = { active: false, ruleId: null };
+    this.resetExpression();
+    try {
+      // 链状态归零由 main.ts 注入，失败也不得阻断下面的初始 idle 回放
+      this.resetTouchChain?.();
+    } catch (e) {
+      console.error('resetTouchChain failed:', e);
+    }
+    this.playIdleOnce();
   }
 
   resetExpression(): void {

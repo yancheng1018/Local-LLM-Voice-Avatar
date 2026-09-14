@@ -16,6 +16,7 @@ export class UI {
   onToggleHistory: ((enabled: boolean) => void) | null = null;
   onToggleTouchDebug: ((enabled: boolean) => void) | null = null;
   onToggleDebugPanel: ((enabled: boolean) => void) | null = null;
+  onResetModel: (() => void) | null = null;
 
   constructor() {
     this.statusText = document.getElementById('status-text')!;
@@ -43,6 +44,8 @@ export class UI {
     touchDebugBtn.addEventListener('click', () => this.onToggleTouchDebug?.(touchDebugBtn.textContent!.includes('关')));
     const debugPanelBtn = document.getElementById('debug-panel-btn') as HTMLButtonElement;
     debugPanelBtn.addEventListener('click', () => this.onToggleDebugPanel?.(debugPanelBtn.textContent!.includes('关')));
+    const resetModelBtn = document.getElementById('reset-model-btn') as HTMLButtonElement;
+    resetModelBtn.addEventListener('click', () => this.onResetModel?.());
   }
 
   /** 历史功能开关状态（按钮文案 + 新对话按钮可用性） */
@@ -62,6 +65,12 @@ export class UI {
   setDebugPanelEnabled(enabled: boolean): void {
     const btn = document.getElementById('debug-panel-btn') as HTMLButtonElement;
     btn.textContent = enabled ? '🧪 调试栏：开' : '🧪 调试栏：关';
+  }
+
+  /** 显示一次复位操作结果；失败时使用现有 error 样式。 */
+  setResetStatus(supported: boolean): void {
+    if (supported) this.setStatus('模型已复位');
+    else this.setStatus('当前模型不支持复位', true);
   }
 
   /** 填充角色下拉；currentName 传当前角色显示名用于选中 */

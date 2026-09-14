@@ -116,6 +116,7 @@ ws.register('set-model-and-conf', (data) => {
     // 规则区交互门槛 + idle 回放组名需要链状态：注入只读回调（spec stage3 §3.2/§3.4）
     activeRenderer.actionAllowed = (n) => touchChain.isActionAllowed(n);
     activeRenderer.chainIdleIndex = () => touchChain.currentIndex;
+    activeRenderer.resetTouchChain = () => touchChain.reset();
     const chainGroups = () =>
       activeRenderer
         .getMotionGroups()
@@ -360,6 +361,19 @@ ui.onToggleDebugPanel = (on) => {
   debugPanelOn = on;
   ui.setDebugPanelEnabled(on);
   renderer.setDebugPanel?.(on);
+};
+
+// 仅视觉复位：不发 interrupt-signal，避免取消角色正在生成的对话
+ui.onResetModel = () => {
+  audioQueue.interrupt();
+  turnActive = false;
+  ui.setBusy(false);
+  if (!renderer.resetToInitialMotion) {
+    ui.setResetStatus(false);
+    return;
+  }
+  renderer.resetToInitialMotion();
+  ui.setResetStatus(true);
 };
 
 // ---- 连接 ----

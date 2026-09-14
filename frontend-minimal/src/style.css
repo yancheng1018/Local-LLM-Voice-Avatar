@@ -68,6 +68,7 @@ body {
 #new-chat-btn,
 #touch-debug-btn,
 #debug-panel-btn,
+#reset-model-btn,
 #history-toggle-btn {
   padding: 4px 12px;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -83,6 +84,7 @@ body {
 #new-chat-btn:hover,
 #touch-debug-btn:hover,
 #debug-panel-btn:hover,
+#reset-model-btn:hover,
 #history-toggle-btn:hover {
   background: rgba(99, 102, 241, 0.5);
 }
