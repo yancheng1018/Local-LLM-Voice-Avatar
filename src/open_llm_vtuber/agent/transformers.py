@@ -1,4 +1,14 @@
-from typing import AsyncIterator, Tuple, Callable, List, Union, Dict, Any
+import re
+from typing import (
+    AsyncIterator,
+    Tuple,
+    Callable,
+    List,
+    Union,
+    Dict,
+    Any,
+    Optional,
+)
 from functools import wraps
 from .output_types import Actions, SentenceOutput, DisplayText
 from ..utils.tts_preprocessor import tts_filter as filter_text
@@ -78,10 +88,10 @@ def actions_extractor(live2d_model: Live2dModel):
                 if isinstance(item, SentenceWithTags):
                     sentence = item
                     actions = Actions()
-                    # Only extract emotions for non-tag text
+                    # Skip think content entirely (boundary and inside),
+                    # aligning with the tts_filter muting condition
                     if not any(
-                        tag.state in [TagState.START, TagState.END]
-                        for tag in sentence.tags
+                        tag.name == "think" for tag in sentence.tags
                     ):
                         expressions = live2d_model.extract_emotion(sentence.text)
                         if expressions:
@@ -100,9 +110,13 @@ def actions_extractor(live2d_model: Live2dModel):
     return decorator
 
 
-def display_processor():
+def display_processor(
+    live2d_model: Optional[Live2dModel] = None,
+):
     """
     Decorator that processes text for display, passing through dicts.
+    Removes emotion keywords (e.g. [joy]) from the display text when
+    a live2d_model is provided.
     """
 
     def decorator(
@@ -138,6 +152,14 @@ def display_processor():
                                 text = "("
                             elif tag.state == TagState.END:
                                 text = ")"
+
+                    # Strip emotion keywords so they don't show up
+                    # in subtitles or chat history
+                    if live2d_model is not None:
+                        text = live2d_model.remove_emotion_keywords(text)
+                        # 兜底：剔除 LLM 自创的未注册关键词（如 [curiosity]），
+                        # 与 TTS 侧 ignore_brackets 的剥离行为保持一致
+                        text = re.sub(r"\[[^\[\]]*\]", "", text)
 
                     display = DisplayText(text=text)  # Simplified DisplayText creation
                     yield sentence, display, actions  # Yield the tuple
