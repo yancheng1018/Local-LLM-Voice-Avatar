@@ -5,3 +5,39 @@ frontend-minimal/node_modules/
 
 # 通用产物
 *.tsbuildinfo
+
+# ---------- 模型资产（体积大，保留本地不入库） ----------
+# live2d-models/ 仅入库上游示例模型 mao_pro / shizuku
+live2d-models/*
+!live2d-models/mao_pro/
+!live2d-models/shizuku/
+models/
+Spine-models/
+voices/
+avatars/
+backgrounds/
+
+# ---------- 运行时产物 ----------
+logs/
+chat_history/
+cache/
+*.log
+
+# ---------- 本地配置与备份 ----------
+conf.yaml
+conf.yaml.bak
+conf.yaml.backup
+model_dict.json.bak
+
+# ---------- 逆向/扫描临时产物 ----------
+Temp/
+temp_root_*.txt
+live2d_scan_report.md
+
+# ---------- Python 缓存与虚拟环境 ----------
+__pycache__/
+*.py[cod]
+.venv/
+.venv-gui/
+.pytest_cache/
+.ruff_cache/
