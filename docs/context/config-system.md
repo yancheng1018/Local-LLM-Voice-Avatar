@@ -18,9 +18,13 @@ system_config:
 `character_config` 之上再校验。`service_context.handle_config_switch` 的
 `conf.yaml` 分支同样套用，所以 Web UI 切回「基础配置」时也尊重该默认角色。
 
-**为什么用指针而不是把角色内容写进 conf.yaml**：运行时 merge 永远是以「当前配置」为底，
-就地合并会在反复切换角色时逐步累积上一个角色的残留，把 `conf.yaml` 污染掉。
-指针方案下 `conf.yaml` 永远保持干净，每次启动只 merge 一次。
+**为什么用指针**：以当前配置为底就地合并会累积上一个角色的残留；指针让 `conf.yaml` 保持干净，每次启动只 merge 一次。
+
+**⚠️ 契约（2026-09-15 fix2 起）**：`handle_config_switch` 角色文件分支的 merge 底只能是
+`conf.yaml` 自身的 `character_config`——以当前角色或默认角色（套 `default_character` 指针）
+为底，都会把该角色独有的可选键（`live2d_model_names`、`tts_config` 等）泄漏给未定义该键的
+目标角色；仅「基础配置」分支（目标即默认角色）合法套指针。fix1 翻车：套指针后默认角色恰带
+allowlist，复验全败——静态源码断言抓不住此语义错误，改合并逻辑须配语义级验证。守卫：`test_config_switch_merges_from_base_not_current`。
 
 指针为空或指向不存在的文件 → 忽略该指针、原样使用 `conf.yaml` 自身配置（只告警，不阻断启动）。
 
