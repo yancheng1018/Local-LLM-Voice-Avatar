@@ -204,8 +204,29 @@
   复位序列：停全部 motion → 清 `touchPlay` 播放门控 → `resetExpression()` →
   `TouchChain.reset()` → `playIdleOnce()`。文案固定 `模型已复位` /
   `当前模型不支持复位`；契约见 `temp_spec_minimal-frontend_stage3.md`
-- **复位是纯视觉操作**：不发 `interrupt-signal`（会取消角色正在生成的对话，超出需求），
-  只打断前端音频队列并清本地 `turnActive`/busy
+- ⚠️ **复位是纯本地视觉操作：禁止触碰对话生命周期**。具体地，`ui.onResetModel` 内
+  **不得发送会取消 / 重置 / 并发化当前对话轮次的 WebSocket 指令**，尤其不得发
+  `interrupt-signal`——服务端收到它会取消角色正在生成的回复，用户点「复位模型」却丢失
+  回复且无任何报错，这是最容易顺手照抄 `onSend`/`onInterrupt` 模式踩到的坑。
+  复位只打断前端音频队列、清本地 `turnActive`/busy，**本地轮次状态因此与后端脱钩**：
+  后端仍会推完 `backend-synth-complete` 与后续 `audio` 帧（`audioQueue.interrupt()`
+  自增 generation，旧播放循环自行退出，不串台），但下一轮 `onSend` 时
+  `turnActive`/`audioQueue.busy` 均为 false，**不会补发 `interrupt-signal`**，
+  服务端上一轮与新一轮可能并存。这是有意设计（视觉复位不碰对话），非缺陷。
+  注意 `test_main_resets_chain_and_audio_only` 目前断言该回调块内**完全不含** `ws.send`，
+  比"不发 `interrupt-signal`"更严：若将来确需发送与对话生命周期无关的消息
+  （遥测、只读状态同步等），必须先证明它不改变服务端轮次状态，
+  并相应收窄该测试中"禁止全部 `ws.send`"的断言，而非绕过它
+- **`resetToInitialMotion?()` 当前是 L2D 专属能力，不是跨渲染器契约**。本阶段只由
+  `L2DRenderer` 实现，且**不打算**为 Spine 补一个假复位：现有两个 cutscene Spine 模型
+  只有环境循环动画（loop/loop_2/cut_A/B），没有与"回到模型初始动作"等价的语义，
+  硬套待机动画会让用户以为复位生效而实际语义不同。因此接口刻意声明为可选
+  （`CharacterRenderer.resetToInitialMotion?()`），`SpineRenderer` 不实现，
+  `main.ts` 走「当前模型不支持复位」分支——**能力缺失必须如实上报，不得伪装成功**。
+  这不是永久禁令：若将来拿到带表情动画的 Spine 模型、能定义其"初始状态"，
+  允许 Spine 实现复位，但须同时补验收口径与该渲染器的测试；
+  另注意 `resetExpression(): void` 是 Spine **也实现**的非可选方法（打断 / 新对话 /
+  chain-end 都调它），故 Spine 的"打断走表情复位、复位按钮走不支持"是有意的不对称
 - ⚠️ **`resetTouchChain` 可空，且注入是「每模型一次」而非一次性**：L2DRenderer 不持有
   TouchChain 实例（实例在 main.ts 的 `set-model-and-conf` 处理器里按模型闭包创建，
   键 `l2d-touch:<角色名>`），链归零必须经注入的只写回调 `resetTouchChain: (() => void) | null`。
