@@ -93,7 +93,7 @@ from PySide6.QtWidgets import (
     QLabel, QComboBox, QPushButton, QTextEdit, QFormLayout,
     QGroupBox, QMessageBox, QFileDialog, QLineEdit, QSpinBox,
     QDoubleSpinBox, QCheckBox, QInputDialog, QListWidget,
-    QListWidgetItem, QSplitter, QScrollArea, QSizePolicy,
+    QListWidgetItem, QScrollArea,
     QDialog, QDialogButtonBox, QPlainTextEdit, QTabWidget
 )
 
@@ -2972,7 +2972,8 @@ class LauncherWindow(QMainWindow):
         saved = self.launcher_cfg.get("gpt_sovits_model", {})
         gpt_name = saved.get("gpt") or "（未选）"
         sovits_name = saved.get("sovits") or "（未选）"
-        short = lambda s: s if len(s) <= 34 else s[:31] + "..."
+        def short(s):
+            return s if len(s) <= 34 else s[:31] + "..."
         self.lbl_current_weights.setText(
             f"GPT: {short(gpt_name)}\nSoVITS: {short(sovits_name)}"
         )

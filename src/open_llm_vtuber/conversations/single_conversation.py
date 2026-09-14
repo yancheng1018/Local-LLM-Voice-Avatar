@@ -1,7 +1,6 @@
 from typing import Union, List, Dict, Any, Optional
 import asyncio
 import json
-import requests
 from loguru import logger
 import numpy as np
 
