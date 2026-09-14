@@ -8,7 +8,6 @@ from pathlib import Path
 import tomli
 import uvicorn
 from loguru import logger
-from upgrade_codes.upgrade_manager import UpgradeManager
 
 from src.open_llm_vtuber.server import WebSocketServer
 from src.open_llm_vtuber.config_manager import (
@@ -20,8 +19,6 @@ from src.open_llm_vtuber.config_manager import (
 
 os.environ["HF_HOME"] = str(Path(__file__).parent / "models")
 os.environ["MODELSCOPE_CACHE"] = str(Path(__file__).parent / "models")
-
-upgrade_manager = UpgradeManager()
 
 
 def get_version() -> str:
@@ -58,7 +55,7 @@ def check_frontend_submodule(lang=None):
     If initialization fails, log an error message.
     """
     if lang is None:
-        lang = upgrade_manager.lang
+        lang = "zh"
 
     frontend_path = Path(__file__).parent / "frontend" / "index.html"
     if not frontend_path.exists():
@@ -127,16 +124,13 @@ def run(console_log_level: str):
     logger.info(f"Open-LLM-VTuber, version v{get_version()}")
 
     # Get selected language
-    lang = upgrade_manager.lang
+    lang = "zh"
 
     # Check if the frontend submodule is initialized
     check_frontend_submodule(lang)
 
-    # Sync user config with default config
-    try:
-        upgrade_manager.sync_user_config()
-    except Exception as e:
-        logger.error(f"Error syncing user config: {e}")
+    # 已移除上游的配置同步（sync_user_config）：不再自动创建/备份/合并 conf.yaml。
+    # conf.yaml 必须预先存在，否则启动失败。
 
     atexit.register(WebSocketServer.clean_cache)
 
