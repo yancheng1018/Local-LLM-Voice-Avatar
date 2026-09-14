@@ -132,7 +132,17 @@ def run(console_log_level: str):
     check_frontend_submodule(lang)
 
     # 已移除上游的配置同步（sync_user_config）：不再自动创建/备份/合并 conf.yaml。
-    # conf.yaml 必须预先存在，否则启动失败。
+    # 因此这里必须自己给出可执行的指引 —— 否则新克隆的仓库只会收到一个
+    # FileNotFoundError("conf.yaml")，看不出下一步该做什么。
+    if not Path("conf.yaml").is_file():
+        template = Path("config_templates/conf.ZH.default.yaml")
+        logger.critical(
+            "未找到 conf.yaml，服务器无法启动。\n"
+            f"请先复制配置模板：copy {template} conf.yaml\n"
+            "（模板位于 config_templates/，zh 版为 conf.ZH.default.yaml，"
+            "英文版为 conf.default.yaml）"
+        )
+        sys.exit(1)
 
     atexit.register(WebSocketServer.clean_cache)
 
