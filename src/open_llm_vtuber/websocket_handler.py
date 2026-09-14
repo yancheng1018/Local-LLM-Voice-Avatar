@@ -30,6 +30,35 @@ from .conversations.conversation_handler import (
 )
 
 
+def resolve_allowed_model_names(
+    configured: list[str],
+    current: str,
+    model_dict_path: str = "model_dict.json",
+) -> list[str]:
+    """Resolve the selectable model names for one character (stage5 allowlist).
+
+    configured 为空（未配置）回退全局名单；已配置时逐条对 model_dict 前端兼容
+    名单过滤（忽略不可用条目），并把仍在名单内的当前模型补到末尾，
+    保证下拉始终能显示当前模型；类型不兼容（Spine）的 current 不补。
+    """
+    frontend_names = [
+        entry["name"] for entry in Live2dModel.list_frontend_models(model_dict_path)
+    ]
+    if not configured:
+        return frontend_names
+    available = set(frontend_names)
+    resolved: list[str] = []
+    for name in configured:
+        if name not in available:
+            logger.warning(f"live2d_model_names entry ignored (not selectable): {name}")
+            continue
+        if name not in resolved:
+            resolved.append(name)
+    if current and current in available and current not in resolved:
+        resolved.append(current)
+    return resolved
+
+
 class MessageType(Enum):
     """Enum for WebSocket message types"""
 
@@ -562,10 +591,17 @@ class WebSocketHandler:
     async def _handle_fetch_live2d_models(
         self, websocket: WebSocket, client_uid: str, data: WSMessage
     ) -> None:
-        """Handle fetching the selectable Live2D model list (Spine excluded)."""
+        """Handle fetching the selectable Live2D model list (per-character allowlist)."""
         try:
             context = self.client_contexts[client_uid]
-            models = Live2dModel.list_frontend_models()
+            current = (
+                context.live2d_model.live2d_model_name
+                if context.live2d_model
+                else context.character_config.live2d_model_name
+            )
+            names = resolve_allowed_model_names(
+                context.character_config.live2d_model_names, current
+            )
         except Exception as e:
             logger.exception("Failed to fetch Live2D model list")
             await websocket.send_text(
@@ -578,8 +614,8 @@ class WebSocketHandler:
             json.dumps(
                 {
                     "type": "live2d-models",
-                    "models": models,
-                    "current": context.live2d_model.live2d_model_name,
+                    "models": [{"name": n} for n in names],
+                    "current": current,
                 }
             )
         )
@@ -597,7 +633,8 @@ class WebSocketHandler:
             )
             return
 
-        # 互斥必须在任何 await 之前取得，否则两次并发切换都能穿过检查
+        # check 与 add 之间不得插入任何 await：顺序调度下本就原子，
+        # 插入 await 后两份并发切换都能穿过检查（锁为未来任务化调度预留）
         if client_uid in self.active_model_switches:
             await websocket.send_text(
                 json.dumps(
@@ -631,9 +668,14 @@ class WebSocketHandler:
             return
 
         try:
-            allowed = {entry["name"] for entry in Live2dModel.list_frontend_models()}
+            allowed = set(
+                resolve_allowed_model_names(
+                    context.character_config.live2d_model_names,
+                    context.character_config.live2d_model_name,
+                )
+            )
         except Exception:
-            logger.exception("Failed to read Live2D model whitelist")
+            logger.exception("Failed to resolve the character's Live2D allowlist")
             await websocket.send_text(
                 json.dumps(
                     {"type": "error", "message": "Live2D 模型切换失败：模型不可用"}

@@ -995,6 +995,12 @@ class LauncherWindow(QMainWindow):
         look_form.addRow("Live2D 模型：", row_l2d)
         self.char_edit_fields["live2d_model_name"] = w_l2d
 
+        # 模型允许列表：list[str]，不能走 char_edit_fields 的字符串写回通道
+        w_model_names = QLineEdit()
+        w_model_names.setPlaceholderText("模型允许列表，逗号分隔；留空 = 全部可选")
+        look_form.addRow("模型允许列表：", w_model_names)
+        self.char_edit_model_names = w_model_names
+
         char_edit_vbox.addWidget(look_box)
 
         # ── 人设 ──
@@ -1491,6 +1497,7 @@ class LauncherWindow(QMainWindow):
             self.avatar_label.setText("无头像")
             for w in self.char_edit_fields.values():
                 w.setText("")
+            self.char_edit_model_names.setText("")
             self.char_edit_persona.setPlainText("")
             return
 
@@ -1523,6 +1530,9 @@ class LauncherWindow(QMainWindow):
 
         for key, w in self.char_edit_fields.items():
             w.setText(str(cc.get(key, "")))
+        self.char_edit_model_names.setText(
+            ", ".join(cc.get("live2d_model_names") or [])
+        )
         self.char_edit_persona.setPlainText(str(cc.get("persona_prompt", "")))
 
         # 预览跟随当前角色的 Live2D 模型
@@ -1627,6 +1637,12 @@ class LauncherWindow(QMainWindow):
             if not value and key not in cc:
                 continue
             cc[key] = value
+
+        # 允许列表是 list[str]，不能走 char_edit_fields 的字符串写回
+        raw_names = self.char_edit_model_names.text().replace("，", ",")
+        model_names = [s.strip() for s in raw_names.split(",") if s.strip()]
+        if model_names or "live2d_model_names" in cc:
+            cc["live2d_model_names"] = model_names
 
         # 唯一标识留空时自动补全，避免写出空值导致启动失败
         if not cc.get("conf_uid"):

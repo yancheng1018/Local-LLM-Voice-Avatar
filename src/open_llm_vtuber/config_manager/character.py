@@ -15,6 +15,9 @@ class CharacterConfig(I18nMixin):
 
     conf_uid: str = Field(..., alias="conf_uid")
     live2d_model_name: str = Field(..., alias="live2d_model_name")
+    live2d_model_names: list[str] = Field(
+        default_factory=list, alias="live2d_model_names"
+    )
     character_name: str = Field(..., alias="character_name")
     human_name: str = Field(default="Human", alias="human_name")
     avatar: str = Field(default="", alias="avatar")
@@ -35,6 +38,10 @@ class CharacterConfig(I18nMixin):
         ),
         "live2d_model_name": Description(
             en="Name of the Live2D model to use", zh="使用的Live2D模型名称"
+        ),
+        "live2d_model_names": Description(
+            en="Allowed Live2D models for this character (empty = all)",
+            zh="该角色可切换的 Live2D 模型允许列表（逗号分隔；留空 = 全部可选）",
         ),
         "character_name": Description(
             en="Name of the AI character in conversation",
@@ -110,6 +117,18 @@ class CharacterConfig(I18nMixin):
                 f"({' '.join(sorted(invalid))}): {v!r}"
             )
         return v
+
+    @field_validator("live2d_model_names")
+    def check_live2d_model_names(cls, v):
+        # 允许列表：剔空白项与重复项，保序；空列表 = 未配置（回退全局名单）
+        if v is None:
+            return []
+        cleaned: list[str] = []
+        for name in v:
+            s = str(name).strip()
+            if s and s not in cleaned:
+                cleaned.append(s)
+        return cleaned
 
     @field_validator("language")
     def check_language(cls, v):

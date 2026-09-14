@@ -3,7 +3,10 @@
 
 规格：temp_spec_minimal-frontend_stage4.md（v1）+ temp_spec_minimal-frontend_stage4_v2.md（Agent
 重绑定修正）。v2 明确 v1 不得按原样实施：必须走 BasicMemoryAgent.set_live2d_model() / set_system()。
+
+stage5：一角色多模型 allowlist（本文件新增 5 用例）。
 """
+
 import json
 import re
 import subprocess
@@ -157,12 +160,14 @@ def test_ws_whitelist_and_error_contract():
     assert "list_frontend_models" not in body, "白名单校验应留在持锁的方法体内"
     assert "active_model_switches" in body
     assert "current_conversation_tasks" not in body, "对话中判断应留在持锁的方法体内"
-    # 取锁与持锁调用之间不得有 await（两者紧邻），否则并发切换可穿透
+    # 取锁与持锁调用之间不得有 await（两者紧邻）；先证切片非空再切，防空切片恒真
     add_at = body.index("active_model_switches.add")
-    assert "await " not in body[add_at:body.index("await self._switch_live2d_model_locked")]
+    call_at = body.index("await self._switch_live2d_model_locked")
+    assert add_at < call_at
+    assert "await " not in body[add_at:call_at]
 
     inner = method_body(src, "async def _switch_live2d_model_locked")
-    assert "list_frontend_models" in inner
+    assert "resolve_allowed_model_names" in inner
     assert "model_name not in allowed" in inner
     assert "current_conversation_tasks" in inner
     assert "Live2D 模型切换失败" in inner
@@ -257,3 +262,72 @@ def test_build_and_bundle():
         p.read_text(encoding="utf-8") for p in (FM / "dist" / "assets").glob("*.css")
     )
     assert "#model-select" in css
+
+
+# ---- stage5：一角色多模型 allowlist ----
+
+
+def test_resolver_runtime_allowlist(tmp_path):
+    model_dict = tmp_path / "model_dict.json"
+    model_dict.write_text(
+        json.dumps(
+            [
+                {"name": "mao", "url": "/live2d-models/mao/mao.model3.json"},
+                {"name": "shizuku", "url": "/live2d-models/s/s.model3.json"},
+                {"name": "spine1", "url": "/Spine-models/x/x.skel"},
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    sys.path.insert(0, str(ROOT / "src"))
+    try:
+        from open_llm_vtuber.websocket_handler import resolve_allowed_model_names
+    finally:
+        sys.path.pop(0)
+
+    p = str(model_dict)
+    assert resolve_allowed_model_names([], "mao", p) == ["mao", "shizuku"]
+    assert resolve_allowed_model_names(["shizuku", "ghost", "mao"], "shizuku", p) == [
+        "shizuku",
+        "mao",
+    ]
+    assert resolve_allowed_model_names(["mao"], "shizuku", p) == ["mao", "shizuku"]
+    assert resolve_allowed_model_names(["mao"], "spine1", p) == ["mao"]
+    assert resolve_allowed_model_names(["ghost"], "ghost", p) == []
+
+
+def test_character_config_model_names_field():
+    sys.path.insert(0, str(ROOT / "src"))
+    try:
+        from open_llm_vtuber.config_manager.character import CharacterConfig
+    finally:
+        sys.path.pop(0)
+
+    assert "live2d_model_names" in CharacterConfig.model_fields
+    assert CharacterConfig.model_fields["live2d_model_names"].default_factory is list
+    assert CharacterConfig.check_live2d_model_names(["a", " ", "a", "b"]) == ["a", "b"]
+    assert CharacterConfig.check_live2d_model_names(None) == []
+
+
+def test_ws_fetch_uses_character_allowlist():
+    src = read(BACKEND / "websocket_handler.py")
+    body = method_body(src, "async def _handle_fetch_live2d_models")
+    assert "resolve_allowed_model_names" in body
+    assert "live2d_model_names" in body
+    assert "list_frontend_models" not in body
+
+
+def test_ws_switch_validates_character_allowlist():
+    src = read(BACKEND / "websocket_handler.py")
+    body = method_body(src, "async def _switch_live2d_model_locked")
+    assert "resolve_allowed_model_names" in body
+    assert "live2d_model_names" in body
+    assert "list_frontend_models" not in body
+
+
+def test_launcher_editor_handles_model_names():
+    src = read(ROOT / "launcher" / "OpenLLMVTuber_GUI.py")
+    assert re.search(r'cc\["live2d_model_names"\]\s*=\s*model_names', src)
+    assert re.search(r'join\(cc\.get\("live2d_model_names"\)\s*or\s*\[\]\)', src)
+    assert 'char_edit_fields["live2d_model_names"]' not in src
