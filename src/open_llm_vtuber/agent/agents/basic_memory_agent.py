@@ -125,6 +125,11 @@ class BasicMemoryAgent(AgentInterface):
 
         self._system = system
 
+    def set_live2d_model(self, live2d_model) -> None:
+        """Replace the emotion model and rebuild decorators that captured the old one."""
+        self._live2d_model = live2d_model
+        self.chat = self._chat_function_factory()
+
     def _add_message(
         self,
         message: Union[str, List[Dict[str, Any]]],

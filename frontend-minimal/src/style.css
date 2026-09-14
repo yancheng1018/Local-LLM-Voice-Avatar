@@ -49,6 +49,10 @@ body {
 #char-select {
   margin-left: auto;
   max-width: 220px;
+}
+
+#char-select,
+#model-select {
   padding: 4px 10px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 14px;
@@ -60,9 +64,15 @@ body {
   cursor: pointer;
 }
 
-#char-select option {
+#char-select option,
+#model-select option {
   background: #2b3148;
   color: #fff;
+}
+
+/* 不复用 margin-left:auto，否则会破坏角色选择器的顶栏右对齐 */
+#model-select {
+  max-width: 180px;
 }
 
 #new-chat-btn,

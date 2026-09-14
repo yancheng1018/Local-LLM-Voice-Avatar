@@ -23,6 +23,7 @@ let getVolume: () => number = () => 0;
 let renderer: CharacterRenderer = new L2DRenderer(stage, () => getVolume());
 let touchDebugOn = false; // 热区可视化开关状态（换模型后需重申）
 let debugPanelOn = false; // 调试栏开关状态（换 L2D 模型后需重申）
+let currentLive2DModelName = ''; // 当前 Live2D 模型名（服务端 set-model-and-conf 同步）
 
 /** tapMotions 表 {动作组: 权重} 加权随机；组名可能为空串（mao_pro），null=无可用动作 */
 function pickWeightedMotion(table: Record<string, number>): string | null {
@@ -86,6 +87,7 @@ ws.register('set-model-and-conf', (data) => {
     return;
   }
   currentConfName = String(data.conf_name ?? modelInfo.name);
+  currentLive2DModelName = modelInfo.name;
   // 同步角色下拉选中项（conf_name 即 config-files 里的 name）
   const select = document.getElementById('char-select') as HTMLSelectElement;
   if (select.options.length > 0) {
@@ -99,6 +101,7 @@ ws.register('set-model-and-conf', (data) => {
 
   // 先确定渲染器实例（可能新建），再注入互动处理器与触摸链回调，避免赋值到旧实例
   const activeRenderer = ensureRenderer(modelInfo);
+  ui.setLive2DModelEnabled(false); // load 完成前禁用，防止连续选择竞争
 
   // 手势互动：拖动 → touch_drag*；长按 → touch_special；单击头 → touch_head；
   // 单击身 → touch_idle 递进链（碧蓝航线连续触摸：按编号顺序推进，闲置重置，
@@ -256,11 +259,15 @@ ws.register('set-model-and-conf', (data) => {
       renderer.setTouchDebug?.(touchDebugOn);
       renderer.setDebugPanel?.(debugPanelOn);
       ui.setStatus(`已连接 · ${String(data.conf_name ?? modelInfo.name)}`);
+      ui.setLive2DModelEnabled(true);
+      // 任何角色切换/模型切换/重连后刷新列表与 current（本 handler 不回发 WS，无循环）
+      ws.send({ type: 'fetch-live2d-models' });
     })
     .catch((e) => {
       console.error('Model load failed:', e);
       const msg = e instanceof Error ? `${e.message}` : String(e);
       ui.setStatus(`模型加载失败：${modelInfo.name} · ${msg}`, true);
+      ui.setLive2DModelEnabled(true); // 让用户能重试选择
     });
 });
 
@@ -297,6 +304,13 @@ let currentConfName = '';
 ws.register('config-files', (data) => {
   const configs = (data.configs as { filename: string; name: string }[]) ?? [];
   ui.setCharacters(configs, currentConfName);
+});
+
+// 可切换的 Live2D 模型列表（不含 Spine）；本 handler 不发任何 WS，避免循环
+ws.register('live2d-models', (data) => {
+  const models = (data.models as { name: string }[]) ?? [];
+  const current = String(data.current ?? currentLive2DModelName);
+  ui.setLive2DModels(models, current);
 });
 
 // ---- 交互 ----
@@ -376,12 +390,24 @@ ui.onResetModel = () => {
   ui.setResetStatus(true);
 };
 
+// 切模型必须走后端：后端切 Live2dModel 并重建 emotionMap/系统提示，前端只加载回推的模型
+ui.onSwitchLive2DModel = (modelName) => {
+  if (!modelName || modelName === currentLive2DModelName) return;
+  audioQueue.interrupt();
+  turnActive = false;
+  ui.setBusy(false);
+  ui.setLive2DModelEnabled(false);
+  ui.setStatus(`切换模型 ${modelName}…`);
+  ws.send({ type: 'switch-live2d-model', model_name: modelName });
+};
+
 // ---- 连接 ----
 
 ws.onOpen = () => {
   ui.setConnected(true);
   ui.setStatus('已连接，等待模型…');
   ws.send({ type: 'fetch-configs' });
+  ws.send({ type: 'fetch-live2d-models' });
 };
 ws.onClose = () => {
   ui.setConnected(false);

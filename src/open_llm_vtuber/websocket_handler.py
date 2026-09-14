@@ -7,6 +7,7 @@ import numpy as np
 from loguru import logger
 
 from .service_context import ServiceContext
+from .live2d_model import Live2dModel
 from .chat_group import (
     ChatGroupManager,
     handle_group_operation,
@@ -40,7 +41,12 @@ class MessageType(Enum):
         "delete-history",
     ]
     CONVERSATION = ["mic-audio-end", "text-input", "ai-speak-signal"]
-    CONFIG = ["fetch-configs", "switch-config"]
+    CONFIG = [
+        "fetch-configs",
+        "switch-config",
+        "fetch-live2d-models",
+        "switch-live2d-model",
+    ]
     CONTROL = ["interrupt-signal", "audio-play-start"]
     DATA = ["mic-audio-data"]
 
@@ -67,6 +73,8 @@ class WebSocketHandler:
         self.client_contexts: Dict[str, ServiceContext] = {}
         self.chat_group_manager = ChatGroupManager()
         self.current_conversation_tasks: Dict[str, Optional[asyncio.Task]] = {}
+        # 防并发模型切换（切换会重建 agent.chat，不能与其他切换交叠）
+        self.active_model_switches: set[str] = set()
         self.default_context_cache = default_context_cache
         self.received_data_buffers: Dict[str, np.ndarray] = {}
 
@@ -91,6 +99,8 @@ class WebSocketHandler:
             "ai-speak-signal": self._handle_conversation_trigger,
             "fetch-configs": self._handle_fetch_configs,
             "switch-config": self._handle_config_switch,
+            "fetch-live2d-models": self._handle_fetch_live2d_models,
+            "switch-live2d-model": self._handle_live2d_model_switch,
             "fetch-backgrounds": self._handle_fetch_backgrounds,
             "audio-play-start": self._handle_audio_play_start,
             "request-init-config": self._handle_init_config_request,
@@ -548,6 +558,122 @@ class WebSocketHandler:
         if config_file_name:
             context = self.client_contexts[client_uid]
             await context.handle_config_switch(websocket, config_file_name)
+
+    async def _handle_fetch_live2d_models(
+        self, websocket: WebSocket, client_uid: str, data: WSMessage
+    ) -> None:
+        """Handle fetching the selectable Live2D model list (Spine excluded)."""
+        try:
+            context = self.client_contexts[client_uid]
+            models = Live2dModel.list_frontend_models()
+        except Exception as e:
+            logger.exception("Failed to fetch Live2D model list")
+            await websocket.send_text(
+                json.dumps(
+                    {"type": "error", "message": f"Live2D 模型列表获取失败：{e}"}
+                )
+            )
+            return
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "live2d-models",
+                    "models": models,
+                    "current": context.live2d_model.live2d_model_name,
+                }
+            )
+        )
+
+    async def _handle_live2d_model_switch(
+        self, websocket: WebSocket, client_uid: str, data: WSMessage
+    ) -> None:
+        """Switch the current character's Live2D model; only by name, never by URL."""
+        model_name = data.get("model_name")
+        if not isinstance(model_name, str) or not model_name:
+            await websocket.send_text(
+                json.dumps(
+                    {"type": "error", "message": "Live2D 模型切换失败：缺少 model_name"}
+                )
+            )
+            return
+
+        # 互斥必须在任何 await 之前取得，否则两次并发切换都能穿过检查
+        if client_uid in self.active_model_switches:
+            await websocket.send_text(
+                json.dumps(
+                    {"type": "error", "message": "Live2D 模型切换失败：切换正在进行"}
+                )
+            )
+            return
+        self.active_model_switches.add(client_uid)
+        try:
+            await self._switch_live2d_model_locked(websocket, client_uid, model_name)
+        finally:
+            self.active_model_switches.discard(client_uid)
+
+    async def _switch_live2d_model_locked(
+        self, websocket: WebSocket, client_uid: str, model_name: str
+    ) -> None:
+        """Body of the model switch, executed while the per-client switch lock is held."""
+        context = self.client_contexts[client_uid]
+
+        # 切换会重建 agent.chat，正在迭代的生成器管线不能被改写
+        task = self.current_conversation_tasks.get(client_uid)
+        if task is not None and not task.done():
+            await websocket.send_text(
+                json.dumps(
+                    {
+                        "type": "error",
+                        "message": "Live2D 模型切换失败：当前对话尚未结束",
+                    }
+                )
+            )
+            return
+
+        try:
+            allowed = {entry["name"] for entry in Live2dModel.list_frontend_models()}
+        except Exception:
+            logger.exception("Failed to read Live2D model whitelist")
+            await websocket.send_text(
+                json.dumps(
+                    {"type": "error", "message": "Live2D 模型切换失败：模型不可用"}
+                )
+            )
+            return
+        if model_name not in allowed:
+            await websocket.send_text(
+                json.dumps(
+                    {"type": "error", "message": "Live2D 模型切换失败：模型不可用"}
+                )
+            )
+            return
+
+        # conf_name/conf_uid 在建 candidate 前冻结，不依赖切换后 context 的残余状态
+        conf_name = context.character_config.character_name
+        conf_uid = context.character_config.conf_uid
+
+        try:
+            await context.switch_live2d_model(model_name)
+        except Exception:
+            logger.exception("Failed to switch Live2D model")
+            await websocket.send_text(
+                json.dumps(
+                    {"type": "error", "message": "Live2D 模型切换失败：模型加载失败"}
+                )
+            )
+            return
+
+        # 复用既有模型加载消息；conf_name/conf_uid 保持原角色不变
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "set-model-and-conf",
+                    "model_info": context.live2d_model.model_info,
+                    "conf_name": conf_name,
+                    "conf_uid": conf_uid,
+                }
+            )
+        )
 
     async def _handle_fetch_backgrounds(
         self, websocket: WebSocket, client_uid: str, data: WSMessage

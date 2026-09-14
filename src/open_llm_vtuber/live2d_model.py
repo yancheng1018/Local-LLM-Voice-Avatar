@@ -52,7 +52,8 @@ class Live2dModel:
         # emo_str is a string of the keys in the emoMap dictionary. The keys are enclosed in square brackets.
         # example: `"[fear], [anger], [disgust], [sadness], [joy], [neutral], [surprise]"`
 
-    def _load_file_content(self, file_path: str) -> str:
+    @staticmethod
+    def _load_file_content(file_path: str) -> str:
         """Load the content of a file with robust encoding handling."""
         # Try common encodings first
         encodings = ["utf-8", "utf-8-sig", "gbk", "gb2312", "ascii"]
@@ -142,6 +143,32 @@ class Live2dModel:
         logger.info("Model Information Loaded.")
 
         return matched_model
+
+    @staticmethod
+    def list_frontend_models(
+        model_dict_path: str = "model_dict.json",
+    ) -> list[dict[str, str]]:
+        """Return public Live2D selector entries; exclude Spine/malformed records."""
+
+        content = Live2dModel._load_file_content(model_dict_path)
+        raw = json.loads(content)
+
+        if not isinstance(raw, list):
+            raise ValueError("model_dict.json must be a list")
+
+        result: list[dict[str, str]] = []
+        for info in raw:
+            if not isinstance(info, dict):
+                continue
+            name = info.get("name")
+            url = info.get("url")
+            if (
+                isinstance(name, str)
+                and isinstance(url, str)
+                and not url.endswith(".skel")
+            ):
+                result.append({"name": name})
+        return result
 
     def extract_emotion(self, str_to_check: str) -> list:
         """

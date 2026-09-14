@@ -341,6 +341,62 @@ class ServiceContext:
             logger.critical(f"Error initializing Live2D: {e}")
             logger.critical("Try to proceed without Live2D...")
 
+    async def switch_live2d_model(self, model_name: str) -> None:
+        """Switch only the visual/emotion model; preserve character, engines, agent memory.
+
+        Only BasicMemoryAgent exposes the two public capabilities used here
+        (set_live2d_model / set_system); other agents are rejected outright.
+        """
+        if self.live2d_model.live2d_model_name == model_name:
+            return
+
+        # 先构造候选：失败时旧模型、旧提示词完全不变
+        candidate = Live2dModel(model_name)
+
+        agent = self.agent_engine
+        if agent is None:
+            raise RuntimeError("agent is not initialized")
+        if not callable(getattr(agent, "set_live2d_model", None)):
+            raise RuntimeError("current agent does not support Live2D model switching")
+        if not callable(getattr(agent, "set_system", None)):
+            raise RuntimeError("current agent does not support system prompt refresh")
+
+        # construct_system_prompt 从 self.live2d_model 读 emotionMap，故为构建候选 prompt 临时替换
+        old_model = self.live2d_model
+        old_model_name = self.character_config.live2d_model_name
+        old_system_prompt = self.system_prompt
+        self.live2d_model = candidate
+        self.character_config.live2d_model_name = model_name
+        try:
+            prompt = await self.construct_system_prompt(
+                self.character_config.persona_prompt,
+                self.character_config.language,
+                self.character_config.human_name,
+            )
+            agent.set_live2d_model(
+                candidate
+            )  # 重建 decorators，绑定 candidate emotionMap
+            agent.set_system(prompt)  # 走 setter 以保留 interrupt 提示语义
+        except Exception:
+            # 精确回滚：context 字段、agent 模型闭包与 agent 系统提示一并复位。
+            # 二次失败只记录日志，不覆盖原异常。
+            try:
+                agent.set_live2d_model(old_model)
+                agent.set_system(old_system_prompt)
+            except Exception:
+                logger.exception(
+                    "Failed to roll back agent after Live2D switch failure"
+                )
+            self.live2d_model = old_model
+            self.character_config.live2d_model_name = old_model_name
+            self.system_prompt = old_system_prompt
+            raise
+
+        self.system_prompt = prompt  # 仅在所有步骤成功后提交，避免半套状态对外可见
+        logger.info(
+            f"Switched Live2D model: {old_model.live2d_model_name} -> {model_name}"
+        )
+
     def init_asr(self, asr_config: ASRConfig) -> None:
         # 与 init_vad 一致：asr_model 为 None 表示禁用，不做任何初始化。
         # 注意这里必须先返回，否则下面的 getattr(cfg, None) 会抛 TypeError。

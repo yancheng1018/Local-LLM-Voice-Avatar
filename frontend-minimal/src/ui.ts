@@ -1,5 +1,9 @@
 /** 极简 UI：全屏模型舞台 + 顶部状态行 + 底部字幕/输入区 */
 
+export interface Live2DModelOption {
+  name: string;
+}
+
 export class UI {
   private statusText: HTMLElement;
   private connDot: HTMLElement;
@@ -8,6 +12,7 @@ export class UI {
   private sendBtn: HTMLButtonElement;
   private interruptBtn: HTMLButtonElement;
   private charSelect: HTMLSelectElement;
+  private modelSelect: HTMLSelectElement;
 
   onSend: ((text: string) => void) | null = null;
   onInterrupt: (() => void) | null = null;
@@ -17,6 +22,7 @@ export class UI {
   onToggleTouchDebug: ((enabled: boolean) => void) | null = null;
   onToggleDebugPanel: ((enabled: boolean) => void) | null = null;
   onResetModel: (() => void) | null = null;
+  onSwitchLive2DModel: ((modelName: string) => void) | null = null;
 
   constructor() {
     this.statusText = document.getElementById('status-text')!;
@@ -26,6 +32,7 @@ export class UI {
     this.sendBtn = document.getElementById('send-btn') as HTMLButtonElement;
     this.interruptBtn = document.getElementById('interrupt-btn') as HTMLButtonElement;
     this.charSelect = document.getElementById('char-select') as HTMLSelectElement;
+    this.modelSelect = document.getElementById('model-select') as HTMLSelectElement;
 
     this.sendBtn.addEventListener('click', () => this.submit());
     this.input.addEventListener('keydown', (e) => {
@@ -46,6 +53,10 @@ export class UI {
     debugPanelBtn.addEventListener('click', () => this.onToggleDebugPanel?.(debugPanelBtn.textContent!.includes('关')));
     const resetModelBtn = document.getElementById('reset-model-btn') as HTMLButtonElement;
     resetModelBtn.addEventListener('click', () => this.onResetModel?.());
+    this.modelSelect.addEventListener('change', () => {
+      const name = this.modelSelect.value;
+      if (name) this.onSwitchLive2DModel?.(name);
+    });
   }
 
   /** 历史功能开关状态（按钮文案 + 新对话按钮可用性） */
@@ -71,6 +82,24 @@ export class UI {
   setResetStatus(supported: boolean): void {
     if (supported) this.setStatus('模型已复位');
     else this.setStatus('当前模型不支持复位', true);
+  }
+
+  /** 填充 Live2D 模型下拉；少于 2 项时禁用（无可选项） */
+  setLive2DModels(models: Live2DModelOption[], currentName: string): void {
+    this.modelSelect.replaceChildren();
+    for (const m of models) {
+      const opt = document.createElement('option');
+      opt.value = m.name;
+      opt.textContent = m.name;
+      if (m.name === currentName) opt.selected = true;
+      this.modelSelect.appendChild(opt);
+    }
+    this.modelSelect.disabled = models.length < 2;
+  }
+
+  /** 模型下拉可用性；保留「少于 2 项仍禁用」规则 */
+  setLive2DModelEnabled(enabled: boolean): void {
+    this.modelSelect.disabled = !(this.modelSelect.options.length >= 2 && enabled);
   }
 
   /** 填充角色下拉；currentName 传当前角色显示名用于选中 */
