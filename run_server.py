@@ -54,6 +54,8 @@ def check_frontend_submodule(lang=None):
     Check if the frontend submodule is initialized. If not, attempt to initialize it.
     If initialization fails, log an error message.
     """
+    # 注意：frontend/ 已不是子模块（.gitmodules 已删，见 docs/context/repo-maintenance.md），
+    # 因此下方的 `git submodule update` 恒失败。此函数当前只保留"文件缺失则告警"的作用。
     if lang is None:
         lang = "zh"
 
