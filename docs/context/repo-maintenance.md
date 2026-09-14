@@ -31,6 +31,9 @@ git ls-files -i -c --exclude-standard
   删除），不再指向上游；磁盘文件保留但不入库。
 - `conf.yaml` 忽略，入库模板是 `config_templates/conf.ZH.default.yaml`。
 - 根目录 `conf.yaml.bak` / `.backup`、`model_dict.json.bak` 属脚本自动备份，一并忽略。
+- `docs/context/temp_spec_*.md` 与 `docs/context/impl_report_*.md` 忽略：施工期的临时图纸，
+  结论沉淀进归档文档后即弃。**已入库的同名历史文件不受影响**（声明式规则只作用于未追踪文件），
+  改它们仍须 `git add -f`。阶段收尾时把有长期价值的规格书改名为 `spec-*.md` 入库。
 
 ### 可搬移性红线（移走 = 服务器起不来）
 
@@ -120,3 +123,10 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
 
 本阶段同时清零了全部 ruff 错误（`launcher/OpenLLMVTuber_GUI.py` 的 2 个未使用 Qt 导入
 与 1 处 lambda 赋值、`single_conversation.py` 的未使用 `requests` 导入）。
+
+### 整理与切割的完整记录（git_stage1~3）
+
+三阶段的规格书与实施报告已合并为 `docs/context/spec-git-reorganize.md`，原文删除。
+该文含：不可搬移目录红线、忽略与索引策略、上游切割清单、**施工踩坑表**（`git mv` 父目录、
+`git reset` 丢 rename 暂存、删 `.git/modules/<name>` 留悬空 gitdir、PowerShell `.Count` 误报等）、
+归档测试断言与遗留待办。**做仓库级改动前先读它对表。**

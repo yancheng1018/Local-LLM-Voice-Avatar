@@ -23,3 +23,9 @@
 - 将 temp_spec_stage1~6 合并为 docs/context/spec-l2d-touch-engine.md
 - 固化偏离站点项 D1~D3、明确不做清单、遗留 C4/C6
 - 删除已合并的 temp_spec_stage1~6
+
+## 2026-09-14 仓库整理与上游切割（git_stage1~3）
+- 三阶段：文件归位与索引整理 → 与上游切割 → 收尾清理（lint/悬空引用/残留）
+- 合并 temp_spec_git_stage1~3 与 impl_report_git_stage1~3 为 docs/context/spec-git-reorganize.md，原文删除
+- 留下：无 remote、`push.default = nothing`、ruff 归零；`config_templates/` 确认为运行时依赖；
+  `frontend/` 忽略但保磁盘（`server.py:172` 无守卫，删前须补）；`Temp/` 逆向产物确认不可找回（见 docs/assets/README.md）
