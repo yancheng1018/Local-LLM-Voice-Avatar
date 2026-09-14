@@ -41,3 +41,6 @@ __pycache__/
 .venv-gui/
 .pytest_cache/
 .ruff_cache/
+
+# ZCode 会话产物
+.zcode/
