@@ -145,7 +145,7 @@ l2d.su 当前行为与我们等价（§1），因此**追平站点不需要大�
 
 > 方法：浏览器重开 https://l2d.su/cn/skins/237031/ 实测（XHR 钩子 + performance 资源条目 + 核心模型
 > `Model.prototype.update` 捕获 + 逐帧参数/drawable 采样器 + 动作「参数活动签名」比对 + 站点「动作」面板按组名触发）；
-> deob 复核 `Temp/su_modelRuntime_deob.js`（已丢失）。置信度标注同前。产物：`Temp/su_touch_rules_skin9.json`（站点
+> deob 复核 `Temp/su_modelRuntime_deob.js`（已丢失）。置信度标注同前。产物：`Temp/su_touch_rules_skin9.json`（已丢失；站点
 > guanghui_9 全部 62 条规则）。
 
 ### 9.1 Q1 规则数据加载 —— stage1 §1/§6 需修正〔证实〕

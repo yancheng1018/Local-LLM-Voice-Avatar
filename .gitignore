@@ -38,6 +38,10 @@ Temp/
 temp_root_*.txt
 live2d_scan_report.md
 
+# 历史规格书与实施报告（施工过程中的临时图纸，结论已沉淀进归档文档）
+docs/context/temp_spec_*.md
+docs/context/impl_report_*.md
+
 # ---------- Python 缓存与虚拟环境 ----------
 __pycache__/
 *.py[cod]

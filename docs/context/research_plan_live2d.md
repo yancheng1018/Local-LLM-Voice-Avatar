@@ -34,14 +34,17 @@ Touch* 绘画件是实体区域还是画布外虚拟标记、命中链路用什�
 
 | 子问题 | 本地资料/代码 | 需抓取/实测（本次已获许可） |
 |--------|--------------|------------------------------|
-| SQ1 | `Temp/modelRuntime-BDk3g7Pb.js`（Ve、hitTest）；`Temp/stage2_ctx.txt`（已提取符号上下文，先查此文件避免重复逆向）；spec-l2dsu-engine.md §5 | 站点在线 JS 与 Temp 快照 diff（站点更新则以新为准） |
-| SQ2 | `live2d-models/guanghui_9/{touch.json, guanghui_9.model3.json, guanghui_9.moc3}`；`frontend-minimal/src/renderer/l2d.ts:104-231`（emitInteraction/loadTouchRules/pointInDrawable）；`frontend-minimal/src/renderer/l2d_touch_debug.ts`（可视化叠加层，本地实测工具）；`frontend-minimal/src/main.ts:122-201`（兜底分支） | l2d.su 页面控制台注入 getDrawableBounds 逐件实测；或本地 frontend-minimal + TouchDebug 覆盖层读 `[Touch] N/31` 日志 |
-| SQ3 | `Temp/modelRuntime-BDk3g7Pb.js`（type 分发/num/time/circle）；spec-l2dsu-engine.md §2/§3/§6；`live2d-models/guanghui_9/motions/`（touch_* 动作与 rule.parameter 对照）；`frontend-minimal/src/renderer/l2d_touch.ts`（现 TouchChain，对照差距） | 站点实测：逐热区点击/拖动观察触发行为 |
-| SQ4 | touch.json 的 3 条 Param3 规则原文；`Temp/modelRuntime-BDk3g7Pb.js`（mode===2 过滤与 reactPosX/Y 求和消费点）；spec-l2dsu-engine.md §1/§5.3 | 站点实测：指针在模型各部位移动时的参数变化 |
-| SQ5 | touch.json 顶层 `tips` 键 | 站点 HTML + 全部 JS chunk（Temp 四文件之外可能有 app 层代码）；数据源 `https://l2d.su/data/ships/CN/<shipGroupId>.json`（guanghui_9 的 id 由 touch.json 反推，疑似 207037；URL 记录见 minimal-frontend.md:91） |
 
-> 注：上表所列 `Temp/` 路径的产物已丢失（stage1 删除、从未入库，见 `docs/assets/README.md`）。
+> 注：下表所列 `Temp/` 路径的产物已丢失（stage1 删除、从未入库，见 `docs/assets/README.md`）。
 > 按本表施工前须重新采集站点资源，或改用 spec-l2dsu-engine.md 的既有结论。
+
+| 子问题 | 本地资料/代码 | 需抓取/实测（本次已获许可） |
+|--------|--------------|------------------------------|
+| SQ1 | `Temp/modelRuntime-BDk3g7Pb.js`（Ve、hitTest，已丢失）；`Temp/stage2_ctx.txt`（已提取符号上下文，已丢失；改用 spec-l2dsu-engine.md §5 结论）；spec-l2dsu-engine.md §5 | 站点在线 JS 与 Temp 快照 diff（站点更新则以新为准） |
+| SQ2 | `live2d-models/guanghui_9/{touch.json, guanghui_9.model3.json, guanghui_9.moc3}`；`frontend-minimal/src/renderer/l2d.ts:104-231`（emitInteraction/loadTouchRules/pointInDrawable）；`frontend-minimal/src/renderer/l2d_touch_debug.ts`（可视化叠加层，本地实测工具）；`frontend-minimal/src/main.ts:122-201`（兜底分支） | l2d.su 页面控制台注入 getDrawableBounds 逐件实测；或本地 frontend-minimal + TouchDebug 覆盖层读 `[Touch] N/31` 日志 |
+| SQ3 | `Temp/modelRuntime-BDk3g7Pb.js`（type 分发/num/time/circle，已丢失；改用 spec-l2dsu-engine.md §2/§3/§6）；spec-l2dsu-engine.md §2/§3/§6；`live2d-models/guanghui_9/motions/`（touch_* 动作与 rule.parameter 对照）；`frontend-minimal/src/renderer/l2d_touch.ts`（现 TouchChain，对照差距） | 站点实测：逐热区点击/拖动观察触发行为 |
+| SQ4 | touch.json 的 3 条 Param3 规则原文；`Temp/modelRuntime-BDk3g7Pb.js`（mode===2 过滤与 reactPosX/Y 求和消费点，已丢失；改用 spec-l2dsu-engine.md §1/§5.3）；spec-l2dsu-engine.md §1/§5.3 | 站点实测：指针在模型各部位移动时的参数变化 |
+| SQ5 | touch.json 顶层 `tips` 键 | 站点 HTML + 全部 JS chunk（Temp 四文件之外可能有 app 层代码）；数据源 `https://l2d.su/data/ships/CN/<shipGroupId>.json`（guanghui_9 的 id 由 touch.json 反推，疑似 207037；URL 记录见 minimal-frontend.md:91） |
 
 > 抓取方法自选（Invoke-WebRequest/curl、浏览器 DevTools、WebFetch 均可），命令示例用
 > PowerShell 语法（与 temp_spec 系列一致）；产物统一存 `docs/assets/`（命名 `su_*`；早期 Temp/ 产物已丢失），
