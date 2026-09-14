@@ -197,3 +197,26 @@
   删了丢可读性；拆分方案已否决——纯函数与状态机共享 ParamRule 域模型，
   且 test_params_module_exists 按文件路径断言四个 export function 位置（测试语义不得改）。
   若 stage3 后续给引擎加 listenerData 等新职责导致明显超限，再按职责拆分（数学纯函数 vs 状态机）
+
+**stage3 一键复位（2026-09-14，Live2D 模型复位）**：
+
+- `index.html` 顶栏「↺ 复位模型」→ `ui.onResetModel` → `L2DRenderer.resetToInitialMotion()`。
+  复位序列：停全部 motion → 清 `touchPlay` 播放门控 → `resetExpression()` →
+  `TouchChain.reset()` → `playIdleOnce()`。文案固定 `模型已复位` /
+  `当前模型不支持复位`；契约见 `temp_spec_minimal-frontend_stage3.md`
+- **复位是纯视觉操作**：不发 `interrupt-signal`（会取消角色正在生成的对话，超出需求），
+  只打断前端音频队列并清本地 `turnActive`/busy
+- ⚠️ **`resetTouchChain` 可空，且注入是「每模型一次」而非一次性**：L2DRenderer 不持有
+  TouchChain 实例（实例在 main.ts 的 `set-model-and-conf` 处理器里按模型闭包创建，
+  键 `l2d-touch:<角色名>`），链归零必须经注入的只写回调 `resetTouchChain: (() => void) | null`。
+  三处推论：
+  1. **可空即未就绪**：模型未加载、当前是 Spine 模型时该字段为 `null`，复位必须在链缺席时
+     仍完成表情与初始 idle——故 `this.resetTouchChain?.()` 包 try/catch，且
+     `resetExpression()` 放在它之前（注入回调由 main.ts 提供，抛错不能连带吞掉表情与 idle）
+  2. **每次换模型都重新注入**：renderer 实例会被 `ensureRenderer()` 销毁重建，
+     旧实例的回调指向上一个模型的 TouchChain；依赖「重新赋值」而非「注入一次永久有效」
+  3. **`playIdleOnce()` 依链状态选组**：`chainIdleIndex()` 为 0 才播初始 `idle` 组，
+     否则播 `idleN`——链归零失败时复位会退化为播当前递进组的 idle（可接受降级，不报错）
+- 复位调用的是模块级 `renderer`，而注入发生在 `activeRenderer` 上：二者恒为同一实例
+  （`ensureRenderer()` 只改 `renderer` 自身并原样 return，无第二处赋值）。
+  后续若引入多 renderer 实例缓存（预加载）必须重新审视这条隐性依赖
