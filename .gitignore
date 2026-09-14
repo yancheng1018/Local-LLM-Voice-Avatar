@@ -17,6 +17,10 @@ voices/
 avatars/
 backgrounds/
 
+# 旧官方前端（stage2 起已解除子模块关系；服务器仍 mount 它，故保磁盘不入库）
+# 见 docs/context/repo-maintenance.md
+frontend/
+
 # ---------- 运行时产物 ----------
 logs/
 chat_history/
