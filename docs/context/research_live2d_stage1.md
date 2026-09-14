@@ -6,6 +6,9 @@
 > 逐 drawable 顶点实测几何（`Temp/su_touch_geometry.json`）+ 站点自带热区叠加层/点击行为黑盒验证。
 > 置信度标注：〔证实〕=去混淆代码或运行时实测直接证据；〔推断〕=行为反推。
 
+> ⚠️ 本文引用的 `Temp/*` 产物已丢失（stage1 删除、从未入库），详见 `docs/assets/README.md`。
+> 以下路径仅记录当时的取证过程，无法再复核。
+
 ## 1. 结论速览（一页）
 
 - **l2d.su 没有「分区」引擎**：命中判定 = 指针转模型局部坐标 → **drawable 包围盒包含测试**
@@ -55,7 +58,7 @@
 ## 3. guanghui_9 热区几何实测（SQ2）〔证实〕
 
 画布：`canvasinfo` 9999×6599 px / PixelsPerUnit 399.94 → 模型坐标画布 **x∈[-12.5,12.5], y∈[-8.25,8.25]**（y 向上）。
-角色主体可见包围盒约 x∈[-3,3]，y∈[-3,5.5]。31 条规则分类（完整表 `Temp/su_touch_geometry.json`）：
+角色主体可见包围盒约 x∈[-3,3]，y∈[-3,5.5]。31 条规则分类（完整表原存 `Temp/su_touch_geometry.json`，已丢失）：
 
 | 分类 | 数量 | 明细 |
 |------|------|------|
@@ -142,7 +145,7 @@ l2d.su 当前行为与我们等价（§1），因此**追平站点不需要大�
 
 > 方法：浏览器重开 https://l2d.su/cn/skins/237031/ 实测（XHR 钩子 + performance 资源条目 + 核心模型
 > `Model.prototype.update` 捕获 + 逐帧参数/drawable 采样器 + 动作「参数活动签名」比对 + 站点「动作」面板按组名触发）；
-> deob 复核 `Temp/su_modelRuntime_deob.js`。置信度标注同前。产物：`Temp/su_touch_rules_skin9.json`（站点
+> deob 复核 `Temp/su_modelRuntime_deob.js`（已丢失）。置信度标注同前。产物：`Temp/su_touch_rules_skin9.json`（站点
 > guanghui_9 全部 62 条规则）。
 
 ### 9.1 Q1 规则数据加载 —— stage1 §1/§6 需修正〔证实〕
@@ -153,7 +156,7 @@ l2d.su 当前行为与我们等价（§1），因此**追平站点不需要大�
   实际请求的 URL —— 「数据管道失效」结论**作废**。
 - skin 237031（幽影徘徊之夜）= **62 条规则**（ids 23703101+）；skin 207037（二人的学习时间）= 31 条
   （ids 207037xx）。**本地 touch.json 的 31 条 207037xx = 站点 guanghui_7 规则集**，§8 疑点1「错配」坐实；
-  本地却配在 guanghui_9 模型上。要按 guanghui_9 对齐须用站点 62 条集（已存 `Temp/su_touch_rules_skin9.json`）。
+  本地却配在 guanghui_9 模型上。要按 guanghui_9 对齐须用站点 62 条集（原存 `Temp/su_touch_rules_skin9.json`，已丢失）。
 - 62 条要点：TouchDrag1/2/3/15 = type2 + `circle:true,target:1` + 无 action（参数手势）；TouchDrag4/5 =
   **无 actionTrigger** + offsetY=-15/-20（slide 类）；TouchIdleN = type2 + action touch_idleN +
   `actionTriggerActive.idle = N`（idle 索引门槛，见 9.2）；另有 type12×1（touch_drag3 num 监听）、type7×1
@@ -253,10 +256,10 @@ l2d.su 当前行为与我们等价（§1），因此**追平站点不需要大�
 ```powershell
 # 站点规则集（本次新证）：浏览器打开 https://l2d.su/cn/skins/237031/ 后在控制台执行
 #   fetch('/data/ships/CN/20703.json').then(r=>r.json()).then(j=>console.log(JSON.stringify(j.ship.skins[9].model.live2dTouch)))
-# 结果已存 Temp/su_touch_rules_skin9.json
-# 旧产物（stage1）仍有效：Temp/su_modelRuntime_deob.js、Temp/su_site_model3.json、Temp/su_touch_geometry.json
+# 结果原存 Temp/su_touch_rules_skin9.json（已丢失）
+# 旧产物（stage1）仍有效，但文件均已丢失：Temp/su_modelRuntime_deob.js、Temp/su_site_model3.json、Temp/su_touch_geometry.json
 ```
-stage1 复现（PowerShell 语法与 temp 系列一致；产物已存 `Temp/su_*`）：
+stage1 复现（PowerShell 语法与 temp 系列一致；产物原存 `Temp/su_*`，已丢失）：
 ```powershell
 # 1) 抓站点 chunk（本次新解禁 l2d.su）
 curl.exe -s -o Temp\su_index-LGceUR3e.js https://l2d.su/assets/index-LGceUR3e.js

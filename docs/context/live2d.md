@@ -160,8 +160,9 @@ fetch(modelHomeDir + name + ".model3.json")   // 路径来自 model_dict.json �
 
 ### guanghui_9 / l2d.su 规则引擎（2026-09-13 逆向，详情见 spec-l2dsu-engine.md）
 
-- `Temp/*.js` 四文件是 l2d.su 查看器**运行时**（PixiJS 渲染 ×2 + Cubism4 + 热区规则引擎
-  modelRuntime），不含任何模型数据；数据源是模型目录的 `touch.json` + `motions/` + `model3.json`。
+- l2d.su 查看器的四份**运行时** JS（PixiJS 渲染 ×2 + Cubism4 + 热区规则引擎
+  modelRuntime）是本次逆向的取证对象（原抓取产物已丢失，见 `docs/assets/README.md`），
+  不含任何模型数据；数据源是模型目录的 `touch.json` + `motions/` + `model3.json`。
 - guanghui_9 无 `HitAreas`、无 `Idle`/`Talk` 组、0 条 Expressions——官方前端链路（tapMotions
   点击、Idle/Talk 动作、emotionMap 表情）在该模型上**全部空转**，互动只能走 touch.json 规则引擎路径。
 - l2d.su 引擎核心语义：`actionTriggerActive` = 动作白名单 + 链状态机（`enable`/`ignore`/`idle:N`，

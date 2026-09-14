@@ -109,3 +109,14 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
   （该报告已忽略，属可重生成产物）。
 - `fit_live2d_scale.py`：按 moc3 画布尺寸自动标定 `model_dict.json` 的 `kScale`
   （自动备份 `.bak`）。
+
+### Temp/ 悬空引用订正（git_stage3）
+
+`Temp/` 于 stage1 删除且从未入库，产物不可找回（记录见 `docs/assets/README.md`）。
+本阶段已把 `live2d.md`、`spec-l2dsu-engine.md`、`research_plan_live2d.md`、
+`research_live2d_stage1.md` 四份文档中对 `Temp/` 的**路径引用**订正为"已丢失"表述。
+`docs/context/temp_spec_*.md` 与 `impl_report_*.md` 中的引用**保持原样** —— 它们是历史
+规格书与报告，其中的路径是当时的真实状态，不是悬空引用。
+
+本阶段同时清零了全部 ruff 错误（`launcher/OpenLLMVTuber_GUI.py` 的 2 个未使用 Qt 导入
+与 1 处 lambda 赋值、`single_conversation.py` 的未使用 `requests` 导入）。

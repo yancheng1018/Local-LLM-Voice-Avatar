@@ -28,7 +28,7 @@ Touch* 绘画件是实体区域还是画布外虚拟标记、命中链路用什�
   位置）的坐标系（模型局部 or 屏幕）与作用范围（全模型 or 某区域），与 SQ1 命中链路的关系。
 - **SQ5 tips 锚定旁证**：touch.json `tips`（28 个 Touch* drawable 的 offset/scale）
   由站点哪段代码消费、锚点如何换算——这是站点「知道」每个热区屏幕位置的旁证，可反推
-  分区实现；Temp/ 四文件 grep 为 0 命中，需在完整站点资源里找消费方。
+  分区实现；四份运行时 JS 中 grep 为 0 命中，需在完整站点资源里找消费方。
 
 ## 3. 各子问题的资料与代码位置
 
@@ -40,8 +40,11 @@ Touch* 绘画件是实体区域还是画布外虚拟标记、命中链路用什�
 | SQ4 | touch.json 的 3 条 Param3 规则原文；`Temp/modelRuntime-BDk3g7Pb.js`（mode===2 过滤与 reactPosX/Y 求和消费点）；spec-l2dsu-engine.md §1/§5.3 | 站点实测：指针在模型各部位移动时的参数变化 |
 | SQ5 | touch.json 顶层 `tips` 键 | 站点 HTML + 全部 JS chunk（Temp 四文件之外可能有 app 层代码）；数据源 `https://l2d.su/data/ships/CN/<shipGroupId>.json`（guanghui_9 的 id 由 touch.json 反推，疑似 207037；URL 记录见 minimal-frontend.md:91） |
 
+> 注：上表所列 `Temp/` 路径的产物已丢失（stage1 删除、从未入库，见 `docs/assets/README.md`）。
+> 按本表施工前须重新采集站点资源，或改用 spec-l2dsu-engine.md 的既有结论。
+
 > 抓取方法自选（Invoke-WebRequest/curl、浏览器 DevTools、WebFetch 均可），命令示例用
-> PowerShell 语法（与 temp_spec 系列一致）；产物统一存 `Temp/`（命名 `su_*`），
+> PowerShell 语法（与 temp_spec 系列一致）；产物统一存 `docs/assets/`（命名 `su_*`；早期 Temp/ 产物已丢失），
 > URL 与命令清单记入研究文档附录以便复现。
 
 ## 4. 输出文档结构（/research-doc 产物的章节标题）
@@ -65,7 +68,7 @@ Touch* 绘画件是实体区域还是画布外虚拟标记、命中链路用什�
   （涉及通用性只作标注，不展开）。
 - **几何实测优先运行时 API**（getDrawableBounds / Pixi hitTest），不解析 moc3 顶点
   （live2d.md 已记录该路线因 keyform 间接索引放弃；Node+WASM 属新工程，不在本次）。
-- **混淆 JS 逆向基线**：以 `Temp/stage2_ctx.txt` 已提取上下文为准，新增提取沿用
+- **混淆 JS 逆向基线**：以 spec-l2dsu-engine.md §5 的既有结论为准（原 `stage2_ctx.txt` 已丢失），新增提取沿用
   stage2 的符号上下文方法；字段语义结论必须附置信度（证实/推断）。
 - **与既有文档的关系**：产出为新研究文档，不直接改写 spec-l2dsu-engine.md；
   与其 §5/§7 冲突处须显式列出矛盾点，合并由主模型决定。

@@ -1,6 +1,7 @@
 ﻿## 当前需求
 
-> （在这里写你接下来要让 ZCode 帮你做的事）
+> git_stage3 已收尾：ruff 清零、Temp 悬空引用订正、git 上游残留清除。
+> 后续需求写在这里。
 
 ### 待处理
 - 其余模型按需处理：37 个 Idle/Talk 组大小写不匹配（跑 `scan_live2d_models.py`
