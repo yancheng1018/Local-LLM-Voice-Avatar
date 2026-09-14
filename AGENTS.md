@@ -60,6 +60,7 @@ legacy/                            上游遗留部件（本项目不用，详见
 | 改配置/角色/人设/语言 | docs/context/config-system.md |
 | 改 Live2D 模型/表情/动作/尺寸 | docs/context/live2d.md |
 | 改 GUI 启动器/声音模型/编辑器 | docs/context/gui-launcher.md |
+| git/加忽略/搬移文件/分批提交 | docs/context/repo-maintenance.md |
 | 改后端/Ollama/streaming/加引擎 | docs/context/ollama-backend.md |
 | 续接工作/排优先级 | docs/context/current-work.md |
 | 查历史决策 | docs/context/archive.md |
