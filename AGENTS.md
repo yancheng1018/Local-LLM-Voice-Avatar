@@ -68,6 +68,14 @@ legacy/                            上游遗留部件（本项目不用，详见
 | 查 l2d.su 热区/动作链引擎逆向 | docs/context/spec-l2dsu-engine.md |
 | 查 Live2D 触摸引擎设计 | docs/context/spec-l2d-touch-engine.md |
 
+## 用户级工作流绑定
+
+供用户级命令（~/.zcode/commands/）解析本项目上下文用：
+- 当前状态入口：docs/context/current-work.md
+- 文档目录：docs/context/（temp_spec / impl_report / fix_instruction / research_* 均在此）
+- 归档文件：docs/context/archive.md
+- 模块知识索引：即上方「按需加载索引」表
+
 ## 当前进行中
 
 极简自研前端（frontend-minimal/）阶段一~四已完成（2026-09-15；阶段四=同角色切换 Live2D 模型）。
