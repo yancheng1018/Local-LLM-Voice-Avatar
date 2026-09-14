@@ -41,13 +41,57 @@ git ls-files -i -c --exclude-standard
 | `web_tool/` | `server.py` mount 为 `/web_tool` |
 | `models/` | `run_server.py:21` 设为 `HF_HOME`；`conf.yaml` 指向其下 sherpa-onnx 模型 |
 | `Spine-models/` | `server.py` 存在性检查后 mount 为 `/Spine-models` |
-| `frontend/` | `server.py` catch-all mount + `run_server.py` 启动检查；已非子模块（`.gitmodules` 已删），被 `.gitignore` 忽略、不在索引中，仅保磁盘 |
+| `frontend/` | `server.py:172` catch-all mount（**无存在性检查**）+ `run_server.py:52` 启动检查；已非子模块（`.gitmodules` 已删），被 `.gitignore` 忽略、不在索引中，仅保磁盘 |
+
+> `frontend/` 是本表里**唯一没有 `os.path.exists` 守卫**的 mount：`Spine-models`（`server.py:150`）
+> 与 `frontend-minimal/dist`（`server.py:158`）都在 mount 前做了存在性判断，`frontend` 没有。
+> 因此该目录一旦缺失，`CORSStaticFiles(directory="frontend")` 直接在启动时抛错，服务器起不来。
+> 日后若真要删除它，**必须先给 `server.py:172` 补守卫**；这也是它"忽略但保磁盘"的根本原因 ——
+> 文件不能删（无兜底），却又不该入库（44 MB，含嵌套 `.git`）。
 
 > 变更记录（git_stage2）：`upgrade_codes/` 与 `upgrade.py` 已于本阶段移除，
 > 不再需要升级能力。`run_server.py` 中的 `UpgradeManager` 依赖已剥离。
 > 副作用：启动不再自动创建/备份/合并 `conf.yaml`，该文件必须预先存在。
 
 其余上游遗留件已移入 `legacy/`（见 `legacy/README.md`）。
+
+### 解除子模块关系（危险操作）
+
+把子模块转成普通目录/忽略项时，**删 `.git/modules/<name>` 与删工作区里的
+`<name>/.git` 指针必须成对进行** —— 只做前者会留下悬空 `gitdir`：
+
+- `<name>/.git` 是个**文件**，内容为 `gitdir: ../.git/modules/<name>`。
+- 一旦 `../.git/modules/<name>` 被删，该指针即失效，此后 git 对这个仓库的**任何**
+  操作都报 `fatal: not a git repository: <name>/../.git/modules/<name>`。
+- 失败的不只是子模块相关命令：一次普通的 `git reset` 也会连带回滚已暂存的改动
+  （git_stage2 就因此把 `git rm --cached frontend` 偷偷撤掉了，`git status` 看着像已完成，
+  实际索引里 gitlink 还在）。
+
+**唯一可靠的验收断言**是索引本身，不是 `git status`：
+
+```bash
+git ls-files -s frontend          # 期望：无输出（不是"首列非 160000"）
+```
+
+> 注意 `git ls-files -s frontend` 已无条目时输出为空字符串；用 `-notmatch '^160000'`
+> 这类写法反而会把"正确解除"判成失败（空串不匹配任何模式）。判定"为空"而不是"不等于"。
+
+### 项目身份的耦联字段
+
+改 `pyproject.toml` 的项目身份时，以下字段是**联动**的，漏改会导致 `uv sync` 失败
+或行为与预期不符：
+
+| 字段 | 位置 | 同步要求 |
+|------|------|---------|
+| `name` | `pyproject.toml` + `uv.lock` 的自引用条目 | 两处必须一致，否则 `uv sync` 报错 |
+| `version` | `pyproject.toml` + `uv.lock` 同一自引用条目 | 两处必须一致 |
+
+- `uv.lock` 中该项目自身条目形如 `source = { virtual = "." }`：**只改这一条**，
+  不要动第三方依赖名。
+- `version` 另有一处运行时用途：`run_server.py:24` 的 `get_version()` 从
+  `pyproject.toml` 读 `version` 并打进启动横幅。它**不读 `name`**，
+  所以"改了 `name` 但启动横幅没变"是正常现象，不是改名失败。
+- 改完必须跑 `uv sync --dry-run` 验证（期望 `Would make no changes`）。
 
 ### 施工习惯（踩过的坑）
 
