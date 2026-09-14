@@ -52,6 +52,8 @@ git ls-files -i -c --exclude-standard
 > 变更记录（git_stage2）：`upgrade_codes/` 与 `upgrade.py` 已于本阶段移除，
 > 不再需要升级能力。`run_server.py` 中的 `UpgradeManager` 依赖已剥离。
 > 副作用：启动不再自动创建/备份/合并 `conf.yaml`，该文件必须预先存在。
+> 善后（已收尾）：`run_server.py` 现在会在缺失时打印复制模板的命令并退出，
+> 因此**无需**为此在 `AGENTS.md` 增设根级契约 —— 错误信息自身已承载全部指引。
 
 其余上游遗留件已移入 `legacy/`（见 `legacy/README.md`）。
 
