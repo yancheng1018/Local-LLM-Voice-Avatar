@@ -60,13 +60,14 @@ legacy/                            上游遗留部件（本项目不用，详见
 | 改配置/角色/人设/语言 | docs/context/config-system.md |
 | 改 Live2D 模型/表情/动作/尺寸 | docs/context/live2d.md |
 | 改 GUI 启动器/声音模型/编辑器 | docs/context/gui-launcher.md |
-| git/加忽略/搬移文件/分批提交 | docs/context/repo-maintenance.md |
+| git/加忽略/搬移文件/分批提交/文档体系维护 | docs/context/repo-maintenance.md |
 | 改后端/Ollama/streaming/加引擎 | docs/context/ollama-backend.md |
 | 续接工作/排优先级 | docs/context/current-work.md |
 | 查历史决策 | docs/context/archive.md |
 | 开发极简自研前端 | docs/context/minimal-frontend.md |
 | 查 l2d.su 热区/动作链引擎逆向 | docs/context/spec-l2dsu-engine.md |
 | 查 Live2D 触摸引擎设计 | docs/context/spec-l2d-touch-engine.md |
+| 查 git 仓库重组历程与施工踩坑 | docs/context/spec-git-reorganize.md |
 
 ## 用户级工作流绑定
 

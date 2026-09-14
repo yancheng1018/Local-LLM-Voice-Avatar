@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """链推进修复（ATA 按 drawAbleName 应用）+ 真实渲染序 + 仪表盘 idleIndex stage6：静态断言 + 构建产物验证。
 
-用例与断言点严格对应 docs/context/temp_spec_stage6.md §4 表格（不得增减语义）。
+用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage6 章节，原 temp_spec_stage6.md 已并入；不得增减语义）。
 """
 import json
 import re

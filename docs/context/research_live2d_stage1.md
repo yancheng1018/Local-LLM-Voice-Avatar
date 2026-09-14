@@ -141,7 +141,7 @@ l2d.su 当前行为与我们等价（§1），因此**追平站点不需要大�
 3. 站点默认注册表的第一个元素（0x391，实测叠加层显示 TouchSpecial 与 TouchHead 同时存在，
    推断 he=['TouchSpecial','TouchHead','TouchBody']）未逐字解码。
 
-## 9. stage1b · 站点行为核验（阶段0，2026-09-13，按 temp_spec_stage2.md §阶段0 执行）
+## 9. stage1b · 站点行为核验（阶段0，2026-09-13，按 stage2 研究规格执行；规格已并入 spec-l2d-touch-engine.md）
 
 > 方法：浏览器重开 https://l2d.su/cn/skins/237031/ 实测（XHR 钩子 + performance 资源条目 + 核心模型
 > `Model.prototype.update` 捕获 + 逐帧参数/drawable 采样器 + 动作「参数活动签名」比对 + 站点「动作」面板按组名触发）；

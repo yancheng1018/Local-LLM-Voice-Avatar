@@ -105,6 +105,8 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
   删除未入暂存、仓库同时存在新旧两份。改用 `git restore --staged <path>` 逐项撤。
 - 删除**已追踪**文件要用 `git rm`（才进暂存区）；未追踪的临时产物用普通删除即可。
 - 提交前跑 `git diff --cached --stat`，确认没有 `models/`、`live2d-models/` 大文件混入。
+- Git Bash 下 grep 输出反斜杠路径（`docs\context\...`），`grep -v "^docs/context/..."` 这类
+  正斜杠前缀过滤**恒不命中**、形同虚设；要按路径排除用 `grep -rn --exclude="<模式>"`。
 
 ### 相关工具
 
@@ -130,3 +132,42 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
 该文含：不可搬移目录红线、忽略与索引策略、上游切割清单、**施工踩坑表**（`git mv` 父目录、
 `git reset` 丢 rename 暂存、删 `.git/modules/<name>` 留悬空 gitdir、PowerShell `.Count` 误报等）、
 归档测试断言与遗留待办。**做仓库级改动前先读它对表。**
+
+### docs/context 文档体系维护
+
+分工与检查点：
+
+| 内容 | 谁写 | 什么时候 |
+|------|------|---------|
+| 新结论、新契约、踩坑记录 | Agent（/doc-record） | 每次会话结束，由你指示 |
+| 当前进展、待处理遗留 | 强模型（/plan-feature、/review-spec） | 阶段开始/收尾 |
+| 模块边界调整、索引表增删 | 你 | 归属不对/新建删除文件时 |
+| 删除过时内容 | 你 | 定期扫一眼时 |
+
+关键提醒：Agent 不会自动更新文档，这是特性。若 Agent 在代码任务后静默更新文档，
+任务有 bug 时错误行为会被记成「预期行为」，下个会话就会把错误当规则。
+你是检查点：先确认代码正确，再指示记录。
+
+周期性检查（每周或每阶段收尾跑一次）：
+
+```bash
+echo "===== 行数检查 ====="
+for f in AGENTS.md docs/context/*.md; do
+  n=$(wc -l < "$f"); limit=200
+  [ "$f" = "AGENTS.md" ] && limit=100
+  if [ "$n" -gt "$limit" ]; then flag=超标; else flag=OK; fi
+  printf "%-42s %4d 行  %s\n" "$f" "$n" "$flag"
+done
+echo "===== 索引表一致性 ====="
+grep -o 'docs/context/[A-Za-z0-9._-]*\.md' AGENTS.md | sort -u > /tmp/idx.txt
+ls docs/context/*.md | sort -u > /tmp/act.txt
+echo "索引提到但不存在：";  comm -23 /tmp/idx.txt /tmp/act.txt
+echo "存在但索引未提：";      comm -13 /tmp/idx.txt /tmp/act.txt
+```
+
+> 「存在但索引未提」列出 temp_spec_* / impl_report_* / distill_draft_* / 本规格
+> 属正常（临时产物，不入索引）。其余即为索引欠账，须补。
+
+（并入自原 docs/context/MAINTENANCE.md，doc-lifecycle stage1 合并；
+其「文件体系总览」表因与 AGENTS.md 索引双头维护且已过时而废止，
+「日常流程」节因已被 /doc-record 等命令取代而不迁移。）

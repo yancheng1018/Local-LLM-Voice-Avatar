@@ -190,8 +190,8 @@
 **stage2 参数驱动引擎（2026-09-13，热区/动作链升级）**：
 
 - `src/renderer/l2d_params.ts`：l2d.su 同款规则驱动参数引擎（mode1 circle/drag 状态机 +
-  mode2 指针反应 + type103 查表 + localStorage 持久化）。契约与测试口径见
-  `temp_spec_stage2.md`，逆向结论见 `spec-l2dsu-engine.md`
+  mode2 指针反应 + type103 查表 + localStorage 持久化）。契约与测试口径已并入
+  `spec-l2d-touch-engine.md`（原 temp_spec_stage2.md），逆向结论见 `spec-l2dsu-engine.md`
 - ⚠️ **行数上限例外：该文件 220 行封顶（规格书原定 ≤200，实现 215 行）**。
   理由：4 轮压缩（242→215）已删尽全部可删排版，剩余超标全是逆向语义契约注释，
   删了丢可读性；拆分方案已否决——纯函数与状态机共享 ParamRule 域模型，

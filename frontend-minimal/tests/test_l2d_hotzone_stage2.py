@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Live2D 热区与动作链条升级 stage2（参数驱动引擎）：静态断言 + 构建产物验证。
 
-用例与断言点严格对应 docs/context/temp_spec_stage2.md §4 表格（不得增减语义）。
+用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage2 章节，原 temp_spec_stage2.md 已并入；不得增减语义）。
 """
 import re
 import subprocess

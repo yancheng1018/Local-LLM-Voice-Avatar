@@ -1,6 +1,6 @@
 # 研究报告 · 复现 l2d.su 互动热区 + 动作链条（精确规则引擎）（stage2）
 
-> 2026-09-13，按 `docs/context/temp_spec_stage2.md` 执行的**只读研究**（未访问任何网页，未改源码）。
+> 2026-09-13，按 stage2 研究规格（已并入 `spec-l2d-touch-engine.md`）执行的**只读研究**（未访问任何网页，未改源码）。
 > 测试脚本为 `stage2_tests.ps1`（§6 原样，加 UTF-8 BOM），T1~T20：19 PASS / 1 FAIL（T12，误报，见下）。
 > 符号上下文提取全文原存 `stage2_ctx.txt`（§5.1-B 原样命令产物）——**该产物已丢失，见 `docs/assets/README.md`**。
 

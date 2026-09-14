@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Live2D 拖拽像素制 + circle 翻转开关 + 空参数区注册 + idle 单次化 stage5：静态断言 + 构建产物验证。
 
-用例与断言点严格对应 docs/context/temp_spec_stage5.md §6 表格（不得增减语义）。
+用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage5 章节，原 temp_spec_stage5.md 已并入；不得增减语义）。
 """
 import json
 import re

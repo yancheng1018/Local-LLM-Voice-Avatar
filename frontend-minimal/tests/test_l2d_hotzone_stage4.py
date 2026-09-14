@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Live2D circle 转盘手势 + 热区可见性稳定化 + 信浓入列 stage4：静态断言 + 构建产物验证。
 
-用例与断言点严格对应 docs/context/temp_spec_stage4.md §5 表格（不得增减语义）。
+用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage4 章节，原 temp_spec_stage4.md 已并入；不得增减语义）。
 """
 import json
 import re
