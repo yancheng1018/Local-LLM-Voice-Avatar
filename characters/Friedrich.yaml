@@ -1,0 +1,11 @@
+character_config:
+  conf_uid: Friedrich_001
+  live2d_model_name: 'feiteliedadi_3'
+  character_name: 'フリードリヒ・デア・グローセ'
+  human_name: '指揮官'
+  avatar: ''
+  language: 'ja'
+  persona_prompt: 'フリードリヒ・デア・グローセ'
+  live2d_model_names:
+    - feiteliedadi_3
+    - feiteliedadi_4
