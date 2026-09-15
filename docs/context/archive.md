@@ -29,3 +29,7 @@
 - 合并 temp_spec_git_stage1~3 与 impl_report_git_stage1~3 为 docs/context/spec-git-reorganize.md，原文删除
 - 留下：无 remote、`push.default = nothing`、ruff 归零；`config_templates/` 确认为运行时依赖；
   `frontend/` 忽略但保磁盘（`server.py:172` 无守卫，删前须补）；`Temp/` 逆向产物确认不可找回（见 docs/assets/README.md）
+
+## 2026-09-15 拆分 minimal-frontend.md
+- 259 行超 200 上限（/split-module），按域拆为 4 分册 + 总入口索引：minimal-frontend-foundation.md（阶段一工程/协议 + 阶段三历史/口型，81 行）、minimal-frontend-live2d.md（阶段四手势/目光/心跳 + stage2 参数引擎 + stage3 复位，110 行）、minimal-frontend-spine.md（阶段二，47 行）、minimal-frontend-model-switch.md（stage4，20 行），总入口 29 行；原内容逐字保留
+- 留下：AGENTS.md 索引表 1 行扩为 5 行；distill_draft_minimal-frontend.md 受阻候选 #3/#6/#7/#8/#10/#14/#15 解锁待入档（落点 model-switch/foundation/live2d）；research_plan_live2d.md:47、spec-l2d-touch-engine.md:21 的 minimal-frontend.md 行号指针已漂移（未改，遗留候选）；遗留节「mao_pro 表情验收未完成」与阶段四「验收完成」条目存在新旧矛盾，保留原文待清理

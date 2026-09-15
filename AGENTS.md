@@ -64,7 +64,11 @@ legacy/                            上游遗留部件（本项目不用，详见
 | 改后端/Ollama/streaming/加引擎 | docs/context/ollama-backend.md |
 | 续接工作/排优先级 | docs/context/current-work.md |
 | 查历史决策 | docs/context/archive.md |
-| 开发极简自研前端 | docs/context/minimal-frontend.md |
+| 开发极简自研前端（总入口/遗留） | docs/context/minimal-frontend.md |
+| 极简前端 工程/协议/历史/口型 | docs/context/minimal-frontend-foundation.md |
+| 极简前端 Live2D 手势/触摸引擎/复位 | docs/context/minimal-frontend-live2d.md |
+| 极简前端 Spine 渲染 | docs/context/minimal-frontend-spine.md |
+| 极简前端 模型切换/allowlist | docs/context/minimal-frontend-model-switch.md |
 | 查 l2d.su 热区/动作链引擎逆向 | docs/context/spec-l2dsu-engine.md |
 | 查 Live2D 触摸引擎设计 | docs/context/spec-l2d-touch-engine.md |
 | 查 git 仓库重组历程与施工踩坑 | docs/context/spec-git-reorganize.md |
