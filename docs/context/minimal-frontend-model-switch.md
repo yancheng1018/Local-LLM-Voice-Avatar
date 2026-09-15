@@ -2,7 +2,7 @@
 
 > 拆分自 minimal-frontend.md（2026-09-15）。总入口与遗留 → minimal-frontend.md；兄弟分册：基础管线 →
 > minimal-frontend-foundation.md、Live2D → minimal-frontend-live2d.md、Spine → minimal-frontend-spine.md。
-> 预留落点：stage5（一角色多模型 allowlist）与模型消息安全类契约候选
+> stage5（一角色多模型 allowlist）与模型消息安全知识已于 2026-09-15 蒸馏并入本文件
 
 **stage4 已完成**（2026-09-15，同角色切换 Live2D 模型，后端驱动）：
 
@@ -10,11 +10,30 @@
   后端按名称白名单查表（排除 Spine `.skel` 与畸形条目），前端只在收到 `set-model-and-conf`
   回推后才加载新模型，`conf_name`/`conf_uid` 取自切换前的局部快照。切换失败回滚不变量与
   WS 互斥模式见 `live2d.md` 硬性契约第 8/9 条
-- 测试 `frontend-minimal/tests/test_live2d_model_switch.py`：13 用例（静态契约 + 运行时白名单
-  过滤 + 构建产物）。运行命令在本机为 `uv run --with pytest python -m pytest`（venv 无 pytest，
-  见 current-work.md 待办）
+- 测试 `frontend-minimal/tests/test_live2d_model_switch.py`：19 用例（stage4 13 + stage5 5 +
+  fix1 1；静态契约 + 运行时白名单/allowlist 过滤 + 构建产物）。运行命令在本机为
+  `uv run --with pytest python -m pytest`（venv 无 pytest，见 current-work.md 待办）
 - ⚠️ **静态源码断言测试的书写纪律**：先跑 `ruff format` 再写断言。`method_body()` 辅助函数
   以 `\n    def ` 四空格缩进为锚点，整个静态契约框架建立在「源码已格式化」之上；format 把
   带尾注释的调用折成多行就会让单行字符串断言假红（stage4 实际发生过）。断言必须对空白
   不敏感（`re.search` + `\s*`），不得断言单行书写或精确缩进；切片断言先证非空再切，
   防止空切片让断言恒真
+
+**stage5 已完成**（2026-09-15，一角色多模型 allowlist；fix2 切换角色 merge 底契约见
+config-system.md「指针方案」节，Agent 重绑定见 live2d.md 硬性契约第 8 条）：
+
+- 角色 YAML 可声明 `live2d_model_names: list[str]`。**allowlist 语义**（`resolve_allowed_model_names()`，
+  websocket_handler.py 模块级同步 helper，查询与切换共用）：
+  - 缺失或 `[]` = 未配置 → 回退全局名单（stage4 行为不变，旧 YAML 零迁移）
+  - **查询时过滤，不在配置加载时校验**：对 `Live2dModel.list_frontend_models()` 名单过滤；
+    不可用条目 `logger.warning` 后忽略，不让配置加载失败（model_dict 可后补）
+  - **当前模型兜底**：过滤后 current 仍在名单内则 append 到末尾，保证下拉始终显示当前模型；
+    current 是 Spine（不在名单）则不补
+- ⚠️ **`live2d-models` handler 内不得发送任何 WS 消息**（防无限循环）。`fetch-live2d-models`
+  只在 `set-model-and-conf` 成功 load 的 then 分支发送——保证角色切换/模型切换/重连后 current
+  都会刷新，且回包时角色上下文已切换完成（在 switch-config 后立即发会有回包顺序竞争）；
+  load 前 disabled / 成功后 enabled 门控防连续选择竞争
+- ⚠️ **模型消息安全**：前端只传模型名（不传 URL/条目），后端查 model_dict 白名单校验；
+  `live2d-models` 只回 `[{name}]`，绝不泄露 model_dict 条目或本机路径；对话生成中后端拒绝
+  切换并发 error，不自动中断（切模型会重建 agent.chat 生成器管线，须防改写正在迭代的管线）
+- 编辑器侧 list 字段通道契约见 gui-launcher.md「角色编辑器」；字段定义见 config-system.md

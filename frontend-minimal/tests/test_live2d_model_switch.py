@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """stage4：同角色切换 Live2D 模型（后端驱动）——静态契约 + 运行时白名单过滤 + 构建产物。
 
-规格：temp_spec_minimal-frontend_stage4.md（v1）+ temp_spec_minimal-frontend_stage4_v2.md（Agent
-重绑定修正）。v2 明确 v1 不得按原样实施：必须走 BasicMemoryAgent.set_live2d_model() / set_system()。
+契约依据：docs/context/live2d.md 硬性契约第 8/9 条——Agent 重绑定必须走
+BasicMemoryAgent.set_live2d_model() / set_system()，禁止直写私有属性。
 
 stage5：一角色多模型 allowlist（本文件新增 5 用例）。
 """

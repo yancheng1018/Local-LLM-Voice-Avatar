@@ -57,7 +57,9 @@
   `w.text().strip()` 字符串写回，会把 list 写成 str 导致 CharacterConfig 校验失败，
   填充时 `str(cc.get(key,""))` 也会把 list 显示成 Python repr。list 字段（如
   `live2d_model_names`）须用独立控件 + 手工解析（中文逗号归一、剔空白、
-  「有值写入；清空且原键存在写 `[]`；清空且原本无键不写」）
+  「有值写入；清空且原键存在写 `[]`；清空且原本无键不写」）。
+  另：`_save_character_inline` 走 ruamel round-trip（先 load 再改已知键），
+  YAML 里的未知自定义键不会被启动器丢弃（有测试守护）
 
 ### Live2D 贴图预览的实现与限制
 
@@ -133,4 +135,11 @@ TTS 页「声音模型」区：
 `_start_llm` 启动进程后会起一个守护线程轮询 12393 端口，就绪后经 `web_ready_signal`
 回到主线程调用 `webbrowser.open("http://localhost:12393")`。用 `_web_open_token`
 递增令牌避免重复打开；点击「停止」会使等待中的线程失效。
+
+### ⚠️ launcher 代码维护（stage5 教训）
+
+- `OpenLLMVTuber_GUI.py` 历史上从未被 ruff format 过：对它执行 format 会触发
+  **全文件重排**（实测 +332/-181 纯排版 diff），淹没功能改动。format-clean 化须
+  单独立项，不得混入功能阶段；功能阶段对它只跑 `ruff check`
+  （ruff 不在 Git Bash PATH，用 `uv run ruff`）
 

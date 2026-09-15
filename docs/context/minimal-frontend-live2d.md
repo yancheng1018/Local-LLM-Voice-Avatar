@@ -108,3 +108,20 @@
 - 复位调用的是模块级 `renderer`，而注入发生在 `activeRenderer` 上：二者恒为同一实例
   （`ensureRenderer()` 只改 `renderer` 自身并原样 return，无第二处赋值）。
   后续若引入多 renderer 实例缓存（预加载）必须重新审视这条隐性依赖
+
+**stage1~2 仿 l2d.su 调试栏（2026-09-14，l2d_debug_panel.ts + l2d_debug_panel_types.ts）**：
+
+- 顶栏「🧪 调试栏」开关，四区：显示（可见性/不透明度/眨眼/呼吸/物理开关）、动作（按组
+  FORCE 播放）、参数（全参数滑条实时读写）、部件（部件不透明度滑条）。仅 Live2D；
+  换模型 `onModelChanged()` 重建，Spine 无该方法面板自动消失
+- ⚠️ **pixi-live2d-display 取核心模型的唯一公开途径是 `coreModel.getModel()` 方法**，
+  核心结构为 `getModel().parameters.ids` / `getModel().parts.ids`。框架 CubismModel 的
+  `_model` 是 private，**不存在 `.model` 公开访问器**——任何 `.model` 直读恒 undefined
+  且经 `?.` 链静默短路（调试栏参数/部件区曾因此两轮空白：先错 `parameterIds`，再错
+  `.model` 这一跳）。控制台一锤定音自检：
+  `__vtuber.renderer.model.internalModel.coreModel.getModel().parameters.ids.length`
+- **遗留清理候选**：l2d.ts 的 `coreModel?.model?.canvasinfo` 兜底永不执行（死代码，生产路径
+  走 `internalModel.pixelsPerUnit`），建议改 `getModel()` 或删除，防再被当「先例」照抄
+- 调试滑条被 ParamDriver/眨眼/呼吸/物理/口型每帧回写覆盖**属预期行为**（调试工具，
+  不做协调逻辑）；RAF 刷新跳过用户拖动中的行。⚠️ `l2d_debug_panel.ts` 恰 200 行
+  零余量（纯类型已拆到 `_types.ts`），加功能前先决策拆分或 220 行例外（参照 l2d_params.ts 先例）

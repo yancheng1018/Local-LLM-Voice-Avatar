@@ -13,8 +13,6 @@
 - [live2d] 40 个模型 emotionMap 为空（情绪关键词不触发表情）：同样按需补
 - [环境] pytest 未入 pyproject [project.optional-dependencies]：加 test 组后
   frontend-minimal 测试可 venv 直跑（现需 uv run --with pytest）；仓库杂务，与前端无关
-- [doc-lifecycle] 极简前端线 7 份规格书 + 7 份 impl_report（含 stage5_fix1/fix2）
-  待 /distill-spec 提炼后删除（触摸引擎线 6 份与热区 1 份已于 stage4 阶段清理）
 - [stage5] launcher ruff format 全文件重排单独立项：stage5 曾尝试对
   launcher/OpenLLMVTuber_GUI.py 跑 format，产生 +332/-181 纯排版 diff
   （该文件历史样式从未 format 过），已回退保持最小功能 diff；
