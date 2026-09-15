@@ -23,7 +23,7 @@ let getVolume: () => number = () => 0;
 let renderer: CharacterRenderer = new L2DRenderer(stage, () => getVolume());
 let touchDebugOn = false; // 热区可视化开关状态（换模型后需重申）
 let debugPanelOn = false; // 调试栏开关状态（换 L2D 模型后需重申）
-let currentLive2DModelName = ''; // 当前 Live2D 模型名（服务端 set-model-and-conf 同步）
+let currentLive2DModelName = ''; // 最近一次成功加载的 Live2D 模型名；加载失败时清空（服务端 set-model-and-conf 同步）
 
 /** tapMotions 表 {动作组: 权重} 加权随机；组名可能为空串（mao_pro），null=无可用动作 */
 function pickWeightedMotion(table: Record<string, number>): string | null {
@@ -87,7 +87,6 @@ ws.register('set-model-and-conf', (data) => {
     return;
   }
   currentConfName = String(data.conf_name ?? modelInfo.name);
-  currentLive2DModelName = modelInfo.name;
   // 同步角色下拉选中项（conf_name 即 config-files 里的 name）
   const select = document.getElementById('char-select') as HTMLSelectElement;
   if (select.options.length > 0) {
@@ -260,6 +259,7 @@ ws.register('set-model-and-conf', (data) => {
       renderer.setDebugPanel?.(debugPanelOn);
       ui.setStatus(`已连接 · ${String(data.conf_name ?? modelInfo.name)}`);
       ui.setLive2DModelEnabled(true);
+      currentLive2DModelName = modelInfo.name; // 加载成功才视为当前模型
       // 任何角色切换/模型切换/重连后刷新列表与 current（本 handler 不回发 WS，无循环）
       ws.send({ type: 'fetch-live2d-models' });
     })
@@ -268,6 +268,7 @@ ws.register('set-model-and-conf', (data) => {
       const msg = e instanceof Error ? `${e.message}` : String(e);
       ui.setStatus(`模型加载失败：${modelInfo.name} · ${msg}`, true);
       ui.setLive2DModelEnabled(true); // 让用户能重试选择
+      currentLive2DModelName = ''; // 旧模型已被销毁、舞台为空：如实清空，重选任何模型都会重新走 switch
     });
 });
 

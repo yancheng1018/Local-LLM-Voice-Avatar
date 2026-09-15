@@ -37,3 +37,12 @@ config-system.md「指针方案」节，Agent 重绑定见 live2d.md 硬性契�
   `live2d-models` 只回 `[{name}]`，绝不泄露 model_dict 条目或本机路径；对话生成中后端拒绝
   切换并发 error，不自动中断（切模型会重建 agent.chat 生成器管线，须防改写正在迭代的管线）
 - 编辑器侧 list 字段通道契约见 gui-launcher.md「角色编辑器」；字段定义见 config-system.md
+
+**stage6 已完成**（2026-09-15，bug 修复；成因与研究结论见 research_minimal-frontend-bugs.md）：
+
+- ⚠️ **`currentLive2DModelName` 语义 = 最近一次成功加载的模型名**：赋值只在
+  `set-model-and-conf` handler 的 `.then()`（load 成功后）进行，`.catch()` 中清空。
+  加载前不得提前赋值——失败后该名若仍是刚失败的模型，`switch-live2d-model` 因
+  `modelName === currentLive2DModelName` 直接 return，重选同一模型无法恢复；
+  清空后重选**任何**模型（含刚失败那个）都会发出 switch 请求并收到 `set-model-and-conf`
+  回推触发完整重载，一步恢复（后端同名切换是 no-op 但仍回发，故无需改动后端）

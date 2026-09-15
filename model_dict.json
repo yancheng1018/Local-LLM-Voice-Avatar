@@ -468,18 +468,6 @@
     "tapMotions": {}
   },
   {
-    "name": "shizuku",
-    "description": "",
-    "url": "/live2d-models/shizuku/runtime/shizuku.model3.json",
-    "kScale": 0.6716,
-    "initialXshift": 0,
-    "initialYshift": 0,
-    "kXOffset": 1150,
-    "idleMotionGroupName": "Idle",
-    "emotionMap": {},
-    "tapMotions": {}
-  },
-  {
     "name": "telafaerjia_2",
     "description": "",
     "url": "/live2d-models/telafaerjia_2/telafaerjia_2.model3.json",

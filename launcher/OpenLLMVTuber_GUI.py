@@ -1654,7 +1654,17 @@ class LauncherWindow(QMainWindow):
                 f"[启动器] ⚠ 角色名为空，已用 conf_uid「{cc['conf_uid']}」兜底"
             )
 
-        cc["persona_prompt"] = self.char_edit_persona.toPlainText()
+        # 人设是后端必填项（空值触发 CharacterConfig 校验失败，服务起不来）；
+        # 无合理自动兜底值，留空直接阻止保存
+        persona_text = self.char_edit_persona.toPlainText().strip()
+        if not persona_text:
+            QMessageBox.warning(
+                self,
+                "人设不能为空",
+                "角色人设（persona_prompt）为必填项，不能留空。\n请填写后再保存。",
+            )
+            return
+        cc["persona_prompt"] = persona_text
         char_data["character_config"] = cc
 
         try:
