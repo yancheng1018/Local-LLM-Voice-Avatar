@@ -2,6 +2,17 @@
 
 > 压缩格式：日期 + 做了什么 + 留下的契约/文件。过程性叙述不复述，事实以代码与 git log 为准。
 
+## 2026-09-16 遗留清理第一批（leftover-triage_stage1，A 类机械项）
+- 按 research_leftover-triage.md §5.1/§5.3 清 4 条：新增 `fix_live2d_idle_groups.py`
+  （幂等补 model3.json 的大小写精确 Idle 别名组，只在需新增时写回并留 .bak；实测修 37 模型，
+  mao_pro/shizuku 已合规未动）+ 补 pytest 入 pyproject `test` 组 + 删 `characters/en_nuke_debate.yaml`
+  （模型名无效且无引用）+ 新建 `tests/test_live2d_model_data.py`（在用模型必须含非空精确 Idle 组）
+- 留下：模型入库脚本链 = `scan_live2d_models.py` → `fix_live2d_idle_groups.py` → `fit_live2d_scale.py`
+  （轻量版工作流；launcher 内嵌检测仍为遗留）；规格编写规范新增 3 条（∩ 口径写明具体名单 /
+  幂等判据只锚可确定项 / 脚本行数预检留输出余量），见 spec-writing.md §6-8
+- 原 temp_spec_leftover-triage*.md 与 impl_report_leftover-triage_stage1.md 已删除；
+  研究报告 research_leftover-triage.md 留存（N02/N04/N08 与 D 类裁决待续）
+
 ## 2026-09-10 综合会话（GUI v2.0~v2.4 与遗留修复）
 - GUI 启动器迭代至 v2.4：模型页、角色编辑器、贴图预览、voices/ 声音模型体系、Live2D 导入（自动登记 model_dict.json）、启动后自动开浏览器；另做 streaming_mode 注解等遗留修复
 - 留下：`启动器.bat`（须保持 GBK 编码、不加 chcp）；conf.yaml `ref_audio_path` 指向 `voices/加藤惠/ref.wav`；加藤惠 Live2D 因 Cubism 2.1 前端不支持而弃用并移出 model_dict.json，其余 41 条 url 核对有效

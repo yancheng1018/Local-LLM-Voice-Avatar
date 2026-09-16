@@ -12,7 +12,7 @@
   WS 互斥模式见 `live2d.md` 硬性契约第 8/9 条
 - 测试 `frontend-minimal/tests/test_live2d_model_switch.py`：19 用例（stage4 13 + stage5 5 +
   fix1 1；静态契约 + 运行时白名单/allowlist 过滤 + 构建产物）。运行命令在本机为
-  `uv run --with pytest python -m pytest`（venv 无 pytest，见 current-work.md 待办）
+  `uv run --extra test python -m pytest`（pytest 已入 pyproject test 组，2026-09-16）
 - ⚠️ **静态源码断言测试的书写纪律**：先跑 `ruff format` 再写断言。`method_body()` 辅助函数
   以 `\n    def ` 四空格缩进为锚点，整个静态契约框架建立在「源码已格式化」之上；format 把
   带尾注释的调用折成多行就会让单行字符串断言假红（stage4 实际发生过）。断言必须对空白

@@ -118,6 +118,13 @@ Live2D 模型切到对应表情
   校准）；小画布标准模型（mao_pro 1.45 / shizuku 1.08 / oppai_bunny 0.38）与
   游戏系（12~32）之间有清晰断层。倍率不对时改脚本顶部 `GAME_FACTOR` 或单独
   改某模型 kScale。
+- **`fix_live2d_idle_groups.py`** 为 model3.json 补大小写精确的 `Idle`/`Talk`
+  别名组（契约见上文「前端动作（motion）触发约定」；别名组引用原有动作文件，
+  纯数据改动）：精确组名已存在即跳过（幂等），仅在确实要新增时写回，写回前
+  整字节备份 `.bak`，只新增别名组键、不动任何既有键；无大小写变体可复制的模型
+  只报告不修改。
+  模型入库脚本链：导入后依次跑 `scan_live2d_models.py`（体检报告）→
+  `fix_live2d_idle_groups.py`（补别名组）→ `fit_live2d_scale.py`（算 kScale）。
 - 曾尝试解析 moc3 顶点数据自动求人物包围盒（用户需求「全自动」），因 keyform
   多层间接索引（artMeshKeyforms 数 ≠ artMeshes 数、需经 keyformSourcesBeginIndices
   间接定位）且无可靠格式文档而放弃；如要重试，可考虑在 Node 里加载 Cubism Core
