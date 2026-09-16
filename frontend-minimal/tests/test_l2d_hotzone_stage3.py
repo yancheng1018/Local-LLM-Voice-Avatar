@@ -18,9 +18,9 @@ def read(rel: str) -> str:
 
 def test_slide_rule_registered():
     src = read("src/renderer/l2d.ts")
-    # toParamRule：无 actionTrigger 且 offset≠0 → slide 注册分支
+    # toParamRule：无 action（有无 actionTrigger 均可，r3 §3.1）且 offset≠0 → slide 注册分支
     assert re.search(
-        r"!at && \(\(num\(rule\.offsetX\) \?\? 0\) !== 0 \|\| \(num\(rule\.offsetY\) \?\? 0\) !== 0\)",
+        r"!at\?\.action && \(\(num\(rule\.offsetX\) \?\? 0\) !== 0 \|\| \(num\(rule\.offsetY\) \?\? 0\) !== 0\)",
         src,
     )
     assert "slide: { ox:" in src
@@ -41,8 +41,9 @@ def test_hold_pipeline():
 
 def test_slide_axis_choice():
     src = read("src/renderer/l2d_params.ts")
-    assert re.search(r"holdAcc\.x / \(r\.slide\.ox \|\| 1\)", src)
-    assert re.search(r"holdAcc\.y / \(r\.slide\.oy \|\| 1\)", src)
+    # r3 §5.4.5：offset=0 的轴不参与（undefined），非 ||1 兜底
+    assert re.search(r"ox !== 0 \? this\.holdAcc\.x / r\.slide\.ox : undefined", src)
+    assert re.search(r"oy !== 0 \? this\.holdAcc\.y / r\.slide\.oy : undefined", src)
     assert re.search(r"Math\.abs\(xv\) >= Math\.abs\(yv\) \? xv : yv", src)  # 引擎同款轴选择
 
 
@@ -65,9 +66,12 @@ def test_type14_branch():
 
 def test_overlay_status():
     src = read("src/renderer/l2d_touch_debug.ts")
-    assert "'ok' | 'H' | 'T' | 'O' | 'G'" in src  # 状态标记（原因字母）
+    helpers = read("src/renderer/l2d_touch_debug_helpers.ts")
+    # 状态标记（原因字母）：r2 重构已迁 helpers（授权的第三处锚点迁移，性质同 §2.7）
+    assert "'ok' | 'H' | 'T' | 'O' | 'G'" in helpers
     assert "getZoneStates" in src  # 全部已注册区都画（不再只画可用区）
-    assert re.search(r"` \[\$\{a\.status\}\]`", src)  # 剔除区标签带原因标记（stage4：T 改提示仍带标）
+    # 剔除区标签带原因标记（stage4：T 改提示仍带标）；r2 迁 zoneLabelParts（helpers）
+    assert re.search(r"` \[\$\{a\.status\}\]`", helpers)
     assert "if (r.fill)" in src and "beginFill(r.color, 0.18)" in src  # 可用区实色填充 / 剔除区只描边
 
 
@@ -86,7 +90,7 @@ def test_regression_core():
         touch,
     )
     l2d = read("src/renderer/l2d.ts")
-    for s in ("OE_TYPES", "ataIdle !== this.chainIdleIndex()", "playAction", "playIdleOnce"):
+    for s in ("OE_TYPES", "ataIdle === this.chainIdleIndex()", "playAction", "playIdleOnce"):
         assert s in l2d
     assert "PARAM_STORAGE_PREFIX = 'l2d-param:'" in read("src/renderer/l2d_params.ts")
     assert "l2d-touch:" in read("src/main.ts")

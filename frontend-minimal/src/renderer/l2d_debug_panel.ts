@@ -78,11 +78,8 @@ export class DebugPanel {
 
   /** 参数区/部件区共用：ids 逐条建滑条（asParam=true 参数区读 min/max，否则部件区固定 0~1） */
   private buildList(
-    root: HTMLElement,
-    title: string,
-    core: DebugCoreModel | null | undefined,
-    field: 'parameters' | 'parts',
-    asParam: boolean,
+    root: HTMLElement, title: string, core: DebugCoreModel | null | undefined,
+    field: 'parameters' | 'parts', asParam: boolean,
   ): void {
     root.appendChild(this.heading(title));
     if (!core) return void root.appendChild(this.text('（未暴露 coreModel）'));
@@ -93,8 +90,7 @@ export class DebugPanel {
       const id = ids[i];
       const read = () => (asParam ? core.getParameterValueById(id) : core.getPartOpacityById(id));
       this.makeRow(
-        root,
-        id,
+        root, id,
         asParam ? core.getParameterMinimumValue(i) : 0,
         asParam ? core.getParameterMaximumValue(i) : 1,
         read,
@@ -113,13 +109,8 @@ export class DebugPanel {
 
   /** 行工厂：label + range + 数值 span，统一注册进 rows 供 RAF 回写 */
   private makeRow(
-    parent: HTMLElement,
-    label: string,
-    min: number,
-    max: number,
-    get: () => number,
-    set: (v: number) => void,
-    key: string,
+    parent: HTMLElement, label: string, min: number, max: number,
+    get: () => number, set: (v: number) => void, key: string,
   ): void {
     const row = document.createElement('div');
     row.className = 'row';
@@ -129,7 +120,16 @@ export class DebugPanel {
     input.max = String(max);
     input.step = '0.01';
     input.value = String(get());
-    input.addEventListener('pointerdown', () => this.active.add(key));
+    input.addEventListener('pointerdown', (e) => {
+      // r4 §10.2-C：指针捕获——拖出滑条外释放时 pointerup 也必达 input，
+      // 防 active 永久滞留导致该行不再回写（面板"不刷新"）；异常时退化为原行为
+      try {
+        input.setPointerCapture(e.pointerId);
+      } catch {
+        /* 运行时无该 API（如测试 fake 元素）或 pointer 已释放时忽略 */
+      }
+      this.active.add(key);
+    });
     for (const ev of ['pointerup', 'pointercancel', 'blur']) {
       input.addEventListener(ev, () => this.active.delete(key)); // 拖动结束恢复回写
     }

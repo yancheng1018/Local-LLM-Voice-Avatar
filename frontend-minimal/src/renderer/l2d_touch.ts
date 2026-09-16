@@ -70,12 +70,15 @@ export class TouchChain {
     const now = Date.now();
     const until = this.cooldowns.get(id);
     if (until !== undefined && now < until) return null; // ③ 冷却中，拦截
-    if (rule.actionTriggerActive) {
-      this.applyActive(rule.actionTriggerActive, id); // ① 先建白名单/状态
-      this.save();
-    }
     const action = this.dispatch(rule.actionTrigger, kind, available);
     if (action === null) return null;
+    if (rule.actionTriggerActive) {
+      // ① 触发成功后才建白名单/链状态（r4 §10.4.4 时序）：白名单判定用触发前的全局
+      // 状态——先应用会把规则自身 action 拒在自身 ATA.enable 外（wuqi TouchIdle1 类
+      // 核心区自锁死锁，U3′ 实测站点确实播放）；触发失败不推进链状态
+      this.applyActive(rule.actionTriggerActive, id);
+      this.save();
+    }
     const limitTime = rule.limitTime ?? 0;
     if (limitTime > 0) {
       this.cooldowns.set(id, now + limitTime * 1000); // ③ 记冷却（秒→毫秒）

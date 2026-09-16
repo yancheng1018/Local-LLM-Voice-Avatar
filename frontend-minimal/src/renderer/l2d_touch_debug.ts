@@ -1,46 +1,20 @@
-import { Container, Graphics, Point, Text } from 'pixi.js';
-import type { Matrix, Ticker } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
+import type { Ticker } from 'pixi.js';
+import { firstModelPoint, modelRectToScreen, selfCheckConversion, collectHitAreas, zoneLabelParts } from './l2d_touch_debug_helpers';
+import type { TouchDebugModel, TouchZoneState } from './l2d_touch_debug_helpers';
+export type { TouchDebugModel };
+export type { TouchZoneState };
 
-/** 模型侧最小接口（L2DRenderer 用 as unknown as 转入，与 l2d.ts 现有风格一致） */
-export interface TouchDebugModel {
-  worldTransform: Matrix;
-  getBounds(): { x: number; y: number; width: number; height: number };
-  toModelPosition(position: Point, result?: Point, skipUpdate?: boolean): Point;
-  internalModel: {
-    settings?: { hitAreas?: { Id?: string; Name?: string }[] };
-    originalWidth?: number;
-    originalHeight?: number;
-    coreModel?: {
-      getDrawableIndex(id: string): number;
-      getDrawableVisibility?(i: number): boolean;
-      getDrawableOpacity?(i: number): number;
-    };
-    getDrawableBounds?(i: number, b?: { x: number; y: number; width: number; height: number }): { x: number; y: number; width: number; height: number };
-    localTransform?: Matrix; // 运行时已确认存在（查阅任务 T1）
-  };
-}
-
-/** 区状态（l2d.ts 每帧提供，spec stage3 v2 §3.3.1）：
- *  ok=可用；H=不可见；T=透明度≤0.01（提示，仍可交互）；O=画布外/包围盒无效；G=交互门槛拦截。
- *  paramValue=参数实时值（验收仪表盘）；actionName=无参数区的动作名（spec stage5 §2.6）；
- *  blockedEnable=G 且动作全被 ATA 白名单拒（spec stage6 §2.3 标注 blocked:enable） */
-export interface TouchZoneState {
-  drawIndex: number;
-  group: string;
-  name: string;
-  status: 'ok' | 'H' | 'T' | 'O' | 'G';
-  paramValue?: number;
-  actionName?: string;
-  blockedEnable?: boolean;
-}
-
-/** 屏幕坐标下的一个待画区域 { x, y, w, h, color, label, fill }；fill=false 只描边（被剔除区） */
-interface Region { x: number; y: number; w: number; h: number; color: number; label: string; fill: boolean }
+/** 屏幕坐标下的一个待画区域；fill=false 只描边（被剔除区）；dim=非交互区（O/H/G）标签降透明度（research §7 候选 B） */
+interface Region { x: number; y: number; w: number; h: number; color: number; label: string; fill: boolean; dim: boolean }
 
 const TEXT_STYLE = {
   fontSize: 12, fill: '#ffffff', stroke: '#000000', strokeThickness: 3,
   fontFamily: "'Segoe UI', 'Microsoft YaHei', sans-serif",
 };
+
+const HINT_TEXT = '未命中可交互热区';
+const HINT_MS = 1200;
 
 /** 触摸热区可视化叠加层：全部已注册区每帧重画——可用区实色彩框 + 动作组标签，
  *  被剔除区描边 + 原因标记（O/T/G/H）；只做显示，不改 l2d.ts 判定逻辑；层 eventMode='none' 不拦截指针 */
@@ -51,6 +25,8 @@ export class TouchDebugOverlay {
   private labels: Text[] = [];
   /** 左上角固定读数：链 idleIndex 实时刷新（spec stage6 §2.3） */
   private idleText: Text | null = null;
+  private hintText: Text | null = null; // 无命中点击轻提示（research §7 候选 C）
+  private hintUntil = 0;
   private hitAreas: { name: string; drawIndex: number }[] = [];
   private warned = false; // 坐标自检失败：只警告一次，后续帧跳过依赖换算的框
 
@@ -79,13 +55,23 @@ export class TouchDebugOverlay {
     this.loadHitAreas();
   }
 
+  /** 点击未命中任何可交互热区的轻提示（research §7 候选 C）：叠加层开着才显示，HINT_MS 淡出；
+   *  只做显示，判定逻辑在 l2d.ts。坐标 = 画布内 CSS 像素（与 zone 投影同空间） */
+  notifyNoHit(canvasX: number, canvasY: number): void {
+    if (!this.enabled || !this.layer) return;
+    this.hintText ??= new Text(HINT_TEXT, { ...TEXT_STYLE, fontSize: 13 });
+    if (!this.hintText.parent) this.layer.addChild(this.hintText);
+    this.hintText.position.set(canvasX + 10, canvasY - 14);
+    this.hintUntil = performance.now() + HINT_MS;
+  }
+
   destroy(): void {
     this.removeLayer();
   }
   private removeLayer(): void {
     this.ticker.remove(this.tick);
     this.layer?.destroy({ children: true });
-    this.layer = this.rects = this.idleText = null;
+    this.layer = this.rects = this.idleText = this.hintText = null;
     this.labels = [];
   }
 
@@ -102,64 +88,45 @@ export class TouchDebugOverlay {
 
   /** 只收集 Name 非空且绘画件存在的 HitArea（与 main.ts「键名非空才算定向热区」一致） */
   private loadHitAreas(): void {
-    this.hitAreas = [];
     const m = this.getModel();
-    if (!m) return;
-    for (const h of m.internalModel.settings?.hitAreas ?? []) {
-      const idx = m.internalModel.coreModel?.getDrawableIndex(h.Id ?? '') ?? -1;
-      if (h.Name && idx >= 0) this.hitAreas.push({ name: h.Name, drawIndex: idx });
-    }
+    this.hitAreas = m ? collectHitAreas(m) : [];
   }
 
   private tick = (): void => {
     if (!this.enabled) return;
     const m = this.getModel();
     if (!m) return;
-    if (!this.warned) this.selfCheck(m);
-    if (this.idleText) this.idleText.text = `idleIndex=${this.getChainIdleIndex()}`;
+    if (!this.warned) {
+      const idxs = [
+        ...(this.getZoneStates() ?? []).map((a) => a.drawIndex),
+        ...this.hitAreas.map((h) => h.drawIndex),
+      ];
+      if (!selfCheckConversion(m, firstModelPoint(m, idxs))) {
+        this.warned = true;
+        console.warn('[TouchDebug] 坐标换算疑似错误，仅显示头/身启发式框');
+      }
+    }
+    if (this.idleText) {
+      // 链入口出视口提示（r2 C3-②）：TouchBody 是连点链唯一入口，动作冻结终帧可将其
+      // 带出视口使链卡死；rect 无效时不告警（避免误报）
+      const entry = (this.getZoneStates() ?? []).find((z) => z.name === 'TouchBody');
+      const eb = entry
+        ? modelRectToScreen(m, m.internalModel.getDrawableBounds?.(entry.drawIndex) ?? { x: 0, y: 0, width: 0, height: 0 })
+        : null;
+      const gone =
+        !!eb && (eb.y + eb.h < 0 || eb.y > window.innerHeight || eb.x + eb.w < 0 || eb.x > window.innerWidth);
+      this.idleText.text = `idleIndex=${this.getChainIdleIndex()}${gone ? ' ⚠链入口出视口' : ''}`;
+    }
+    this.updateHint();
     this.draw(this.collectRegions(m));
   };
-  /** 运行时自检：模型点 → 屏幕点 → toModelPosition 回代，误差 >2px 视为换算错误 */
-  private selfCheck(m: TouchDebugModel): void {
-    const c = this.firstModelPoint(m);
-    if (!c) return;
-    const s = this.modelPointToScreen(m, c.x, c.y);
-    const back = m.toModelPosition(new Point(s.x, s.y), new Point(), true);
-    if (Math.hypot(back.x - c.x, back.y - c.y) > 2) {
-      this.warned = true;
-      console.warn('[TouchDebug] 坐标换算疑似错误，仅显示头/身启发式框');
-    }
-  }
 
-  /** 首个有效热区绘画件的模型空间中心（touch 规则区优先，其次 HitArea） */
-  private firstModelPoint(m: TouchDebugModel): Point | null {
-    const idxs = [
-      ...(this.getZoneStates() ?? []).map((a) => a.drawIndex),
-      ...this.hitAreas.map((h) => h.drawIndex),
-    ];
-    for (const i of idxs) {
-      const b = m.internalModel.getDrawableBounds?.(i);
-      if (b) return new Point(b.x + b.width / 2, b.y + b.height / 2);
-    }
-    return null;
-  }
-  /** 反向链（T1 已确认）：toModelPosition = worldTransform.applyInverse → localTransform.applyInverse，
-   *  故反向为 localTransform.apply → worldTransform.apply */
-  private modelPointToScreen(m: TouchDebugModel, x: number, y: number): Point {
-    const local = m.internalModel.localTransform;
-    return m.worldTransform.apply(local ? local.apply(new Point(x, y)) : new Point(x, y));
-  }
-  private modelRectToScreen(m: TouchDebugModel, b: { x: number; y: number; width: number; height: number }) {
-    const corners = [
-      this.modelPointToScreen(m, b.x, b.y),
-      this.modelPointToScreen(m, b.x + b.width, b.y),
-      this.modelPointToScreen(m, b.x, b.y + b.height),
-      this.modelPointToScreen(m, b.x + b.width, b.y + b.height),
-    ];
-    const xs = corners.map((p) => p.x), ys = corners.map((p) => p.y);
-    const x = Math.min(...xs), y = Math.min(...ys);
-    const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
-    return w > 0 && h > 0 ? { x, y, w, h } : null;
+  /** 每帧淡出：到期隐藏，剩余时间线性降透明度 */
+  private updateHint(): void {
+    if (!this.hintText) return;
+    const remain = this.hintUntil - performance.now();
+    this.hintText.visible = remain > 0;
+    if (remain > 0) this.hintText.alpha = Math.min(1, remain / HINT_MS);
   }
 
   private collectRegions(m: TouchDebugModel): Region[] {
@@ -170,41 +137,29 @@ export class TouchDebugOverlay {
       (im.coreModel?.getDrawableVisibility?.(i) ?? true) &&
       (im.coreModel?.getDrawableOpacity?.(i) ?? 1) > 0;
     const push = (r: { x: number; y: number; w: number; h: number }, color: number, label: string, fill = true) =>
-      out.push({ ...r, color, label, fill });
+      out.push({ ...r, color, label, fill, dim: !fill });
     if (!this.warned) {
       // A. touch.json 规则热区（橙=规则 / 粉=拖动 / 紫=特殊）：全部已注册区都画——
       //    可用区实色填充；被剔除区只描边 + 原因标记（O=画布外 T=透明 G=门槛 H=不可见）
       for (const a of this.getZoneStates() ?? []) {
         const b = im.getDrawableBounds?.(a.drawIndex);
         if (!b) continue;
-        const r = this.modelRectToScreen(m, b);
+        const r = modelRectToScreen(m, b);
         if (!r) continue;
         const color = a.name.startsWith('TouchDrag') ? 0xf472b6 : a.name.startsWith('TouchSpecial') ? 0xa78bfa : 0xf59e0b;
-        // T=透明提示：仍填充=可交互（超越项 #3）；O/H/G 仍剔除，只描边
-        const interactive = a.status === 'ok' || a.status === 'T';
-        const mark =
-          a.status === 'ok'
-            ? ''
-            : a.status === 'T'
-              ? ' [T:透明但可点]'
-              : a.blockedEnable
-                ? ' [blocked:enable]'
-                : ` [${a.status}]`;
-        // 验收仪表盘（spec stage5 §2.6）：有参数区显示实时值，无参数区显示动作名
-        const readout =
-          a.paramValue !== undefined
-            ? ` ${a.group}=${a.paramValue.toFixed(1)}`
-            : a.actionName
-              ? ` action=${a.actionName}`
-              : '';
-        push(r, color, `${a.group}（${a.name}）${mark}${readout}`, interactive);
+        // T=透明剔除（r2 收回 D1/D3）：透明标记不进命中池，与 O/G 同为不可交互，只描边
+        const interactive = a.status === 'ok';
+        const { mark, readout } = zoneLabelParts(a);
+        // 'empty' 是 parameter 哨兵值非组名（research §2）：不作标签前缀，免掩盖动作名
+        const prefix = a.group === 'empty' ? a.name : `${a.group}（${a.name}）`;
+        push(r, color, `${prefix}${mark}${readout}`, interactive);
       }
       // B. model3.json HitAreas（红）；标签附 tapMotions 里首个权重>0 的动作组
       const tm = this.getTapMotions();
       for (const h of this.hitAreas) {
         const b = visible(h.drawIndex) ? im.getDrawableBounds?.(h.drawIndex) : undefined;
         if (!b) continue;
-        const r = this.modelRectToScreen(m, b);
+        const r = modelRectToScreen(m, b);
         if (!r) continue;
         const weights = tm?.[h.name];
         const motionKey = weights ? Object.keys(weights).find((k) => weights[k] > 0) : undefined;
@@ -232,6 +187,7 @@ export class TouchDebugOverlay {
       if (r.fill) this.rects!.endFill();
       this.labels[i].text = r.label;
       this.labels[i].position.set(r.x + 6, r.y + 12);
+      this.labels[i].alpha = r.dim ? 0.45 : 1;
     });
   }
 

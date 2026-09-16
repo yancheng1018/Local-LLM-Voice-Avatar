@@ -100,7 +100,17 @@ export class DebugPanel {
         input.max = String(max);
         input.step = '0.01';
         input.value = String(get());
-        input.addEventListener('pointerdown', () => this.active.add(key));
+        input.addEventListener('pointerdown', (e) => {
+            // r4 §10.2-C：指针捕获——拖出滑条外释放时 pointerup 也必达 input，
+            // 防 active 永久滞留导致该行不再回写（面板"不刷新"）；异常时退化为原行为
+            try {
+                input.setPointerCapture(e.pointerId);
+            }
+            catch {
+                /* 运行时无该 API（如测试 fake 元素）或 pointer 已释放时忽略 */
+            }
+            this.active.add(key);
+        });
         for (const ev of ['pointerup', 'pointercancel', 'blur']) {
             input.addEventListener(ev, () => this.active.delete(key)); // 拖动结束恢复回写
         }

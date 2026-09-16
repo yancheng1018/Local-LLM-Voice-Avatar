@@ -63,7 +63,8 @@ def test_idle_readout():
     debug = read("src/renderer/l2d_touch_debug.ts")
     assert "idleIndex=" in debug  # 左上角固定读数渲染
     assert "getChainIdleIndex" in debug  # 数据源 chainIdleIndex 注入
-    assert "blocked:enable" in debug  # §2.3 白名单拦截标注
+    helpers = read("src/renderer/l2d_touch_debug_helpers.ts")
+    assert "blocked:enable" in helpers  # §2.3 白名单拦截标注（r2 迁入 helpers）
     l2d = read("src/renderer/l2d.ts")
     states = section(l2d, "touchZoneStates(): TouchZoneState[] {")
     assert "blockedEnable" in states  # l2d.ts 提供 blocked 状态
@@ -85,7 +86,7 @@ def test_regression_core():
     assert "setIsLoop(false)" in l2d  # Meta.Loop 单次化
     load = section(l2d, "private async loadTouchRules(")
     assert "group: param || name" in load  # 空参数区注册
-    assert "ataIdle !== this.chainIdleIndex()" in l2d  # ATA.idle 门槛保持
+    assert "ataIdle === this.chainIdleIndex()" in l2d  # ATA.idle 防重复（r4 §4.3 方向翻转）
     touch = read("src/renderer/l2d_touch.ts")
     assert re.search(
         r"resolve\(rule: TouchRule,\s*kind: 'tap' \| 'drag' \| 'longpress',\s*available: string\[\]\): string \| null",

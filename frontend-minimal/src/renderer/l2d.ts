@@ -295,12 +295,15 @@ export class L2DRenderer implements CharacterRenderer {
     const t = rule.actionTrigger;
     if (!t) return (rule.offsetX ?? 0) !== 0 || (rule.offsetY ?? 0) !== 0; // slide 型
     if (!OE_TYPES.has(t.type ?? -1)) return false;
-    // ATA.idle 门槛：规则要求当前链 idleIndex == N 才可触发（stage1b §9.2 证实）
+    // ATA.idle 防重复（r4 §4.3 源码定案：站点 live2DActiveDataRepeatsCurrentIdle 只在
+    // 目标 idle == 当前链状态时跳过——防重复播同一 idle；v3「不匹配即拒」方向相反，
+    // 锁死 453/874 条 typed 规则，是症状①主因）
     const ataIdle = rule.actionTriggerActive?.idle;
-    if (typeof ataIdle === 'number' && ataIdle !== this.chainIdleIndex()) return false;
-    // 手势放松（本地增强，超越站点）：无 action 但带 circle 或 type∈{1,6,7} 的参数手势区放行
+    if (typeof ataIdle === 'number' && ataIdle === this.chainIdleIndex()) return false;
     const names = actionNamesOf(rule);
-    if (names.length === 0) return t.circle === true || [1, 6, 7].includes(t.type ?? -1);
+    // 无 action 规则直接放行（r3 §3.1.1）：站点 live2DRulePointerEnabled 对 typed 规则只要求
+    // type∈Oe（上文已判），不要求 action；无 offset 的该类区站点同样可点但无效果（语义一致）
+    if (names.length === 0) return true;
     return names.some((n) => this.actionAllowed(n));
   }
 
@@ -320,11 +323,12 @@ export class L2DRenderer implements CharacterRenderer {
     const canvasH = typeof im?.originalHeight === 'number' ? im.originalHeight : Number.POSITIVE_INFINITY;
     const hits: (TouchZone & { boundsArea: number; renderOrder: number })[] = [];
     for (const zone of this.touchAreas) {
-      // visibility ?? true：0.5.0-beta native 无 getDrawableVisibility；透明度剔除已移除
-      //（stage4 超越项 #3）；drawables.dynamicFlags 位义未逐字核实故不启用（spec stage6 §2.2）
+      // visibility ?? true：0.5.0-beta native 无 getDrawableVisibility；透明度剔除已恢复
+      //（r2 收回 D1）；drawables.dynamicFlags 位义未逐字核实故不启用（spec stage6 §2.2）
       if (!(core?.getDrawableVisibility?.(zone.drawIndex) ?? true)) continue;
-      // 超越项 #3（spec stage4 §0.3/§3.1）：命中不按透明度剔除——Touch* 辅助绘画件透明度
-      // 随姿态抖动会挤掉可拖拽区；可见性/画布外/交互门槛保留，透明仅叠加层提示
+      // 透明度剔除（r2 收回 D1，站点同款）：透明 TouchIdleN 虚拟标记不进命中池——
+      // 死区点击与标记截胡主因（research r2 §5 C1）；阈值与叠加层 T 判定同源
+      if ((core?.getDrawableOpacity?.(zone.drawIndex) ?? 1) <= OPACITY_CUTOFF) continue;
       if (!this.isRuleInteractive(zone.rule)) continue;
       const b = this.drawableBounds(zone.drawIndex);
       if (!b) continue;
@@ -398,6 +402,11 @@ export class L2DRenderer implements CharacterRenderer {
         if (kind !== 'drag' && hit.rule.actionTrigger?.circle) {
           this.paramDriver?.poke(hit.rule.id ?? 0);
         }
+      } else if (kind === 'tap' && this.hasTouchRules) {
+        // 点击未命中可交互热区（被 G 门槛锁死的区在 hitZoneAt 收集阶段已剔除，也落到这里）。
+        // hasTouchRules 为真时 main.ts 不播兜底（游戏同款），点击会「没反应」——
+        // 叠加层轻提示解释原因；拖拽/长按未命中保持静默（提示会刷屏）
+        this.touchDebugOverlay?.notifyNoHit(x, y);
       }
     }
     this.onInteraction?.({ kind, areas, region, rule });
@@ -453,6 +462,14 @@ export class L2DRenderer implements CharacterRenderer {
             (zone.rule.actionTrigger?.action as string | undefined));
       const base = { ...zone, paramValue, actionName };
       if (!(core?.getDrawableVisibility?.(i) ?? true)) return { ...base, status: 'H' as const };
+      if (!this.isRuleInteractive(zone.rule)) {
+        // G 前移（r2 C2）：透明+门槛锁死区原显示 T「可点」，系统性高估可点性
+        // blocked:enable 标注（spec stage6 §2.1/§2.3）：动作全被 ATA 白名单拒（如吾妻
+        // touch_drag12 vs enable[touch_idle*]）＝数据疑点，仅仪表盘标注，不改代码绕过
+        const names = actionNamesOf(zone.rule);
+        const blockedEnable = names.length > 0 && names.every((n) => !this.actionAllowed(n));
+        return { ...base, status: 'G' as const, blockedEnable };
+      }
       if ((core?.getDrawableOpacity?.(i) ?? 1) <= OPACITY_CUTOFF) return { ...base, status: 'T' as const };
       const b = this.drawableBounds(i);
       if (
@@ -465,13 +482,6 @@ export class L2DRenderer implements CharacterRenderer {
           !(b.x + b.width > 0 && b.x < canvasW && b.y + b.height > 0 && b.y < canvasH))
       ) {
         return { ...base, status: 'O' as const };
-      }
-      if (!this.isRuleInteractive(zone.rule)) {
-        // blocked:enable 标注（spec stage6 §2.1/§2.3）：动作全被 ATA 白名单拒（如吾妻
-        // touch_drag12 vs enable[touch_idle*]）＝数据疑点，仅仪表盘标注，不改代码绕过
-        const names = actionNamesOf(zone.rule);
-        const blockedEnable = names.length > 0 && names.every((n) => !this.actionAllowed(n));
-        return { ...base, status: 'G' as const, blockedEnable };
       }
       return { ...base, status: 'ok' as const };
     });
@@ -624,8 +634,9 @@ export class L2DRenderer implements CharacterRenderer {
     if (pr.circleTarget !== undefined) return pr; // 点戳/画圈手势（type 2 + circle）
     if (mode === 1 && (at?.type === 1 || at?.type === 6 || at?.type === 7)) return pr; // 拖动型
     if (mode === 2 && (pr.reactPosX !== undefined || pr.reactPosY !== undefined)) return pr;
-    // slide 型（spec stage3 v2 §3.1.1）：无 actionTrigger 且 offset≠0，offsetX/Y 是拖拽轴灵敏度
-    if (!at && ((num(rule.offsetX) ?? 0) !== 0 || (num(rule.offsetY) ?? 0) !== 0)) {
+    // slide 型（spec stage3 v2 §3.1.1 + r3 §3.1/§5.1）：无 action（有无 actionTrigger 均可）且
+    // offset≠0，offsetX/Y 是拖拽轴灵敏度；typed-无action（如 feiteliedadi TouchDrag2/7）站点走线性拖动
+    if (!at?.action && ((num(rule.offsetX) ?? 0) !== 0 || (num(rule.offsetY) ?? 0) !== 0)) {
       return { ...pr, slide: { ox: num(rule.offsetX) || 0, oy: num(rule.offsetY) || 0 } };
     }
     return null; // 其余（动作组载体等）只走空间热区 → TouchChain
@@ -826,17 +837,17 @@ export class L2DRenderer implements CharacterRenderer {
     return [...set];
   }
 
-  /** 链步进找规则：parameter === 组名 | drawAbleName === 驼峰化组名 | action 含组名
-   *  （spec stage6 §2.1；空 parameter 规则如 TouchIdleN 靠驼峰化命中，修链推进断裂） */
+  /** 链步进找规则（r2 C3-①：action 含组名优先）：action 匹配=真链成员（如 TouchIdle20
+   *  播 touch_idle1）；驼峰化 drawAbleName 降为兜底——原数组序使 TouchIdle1 抢先匹配
+   *  touch_idle1，tap1 即 idleIndex 0→11 直跳（research r2 §2.2） */
   findChainRule(groupName: string): TouchRule | null {
-    const cap = groupName.replace(/^touch_/, 'Touch'); // 'touch_idle17' → 'TouchIdle17'
+    const cap = groupName.replace(/^touch_/, 'Touch');
     return (
+      this.touchRules?.find((r) => actionNamesOf(r).includes(groupName)) ??
       this.touchRules?.find(
-        (r) =>
-          r.parameter === groupName ||
-          (r.drawAbleName ?? '').toLowerCase() === cap.toLowerCase() ||
-          actionNamesOf(r).includes(groupName),
-      ) ?? null
+        (r) => r.parameter === groupName || (r.drawAbleName ?? '').toLowerCase() === cap.toLowerCase(),
+      ) ??
+      null
     );
   }
 
@@ -988,6 +999,8 @@ export class L2DRenderer implements CharacterRenderer {
     } catch (e) {
       console.error('resetTouchChain failed:', e);
     }
+    // 参数引擎复位（r3 §6.3 R-1/R-2/R-5）：清拖拽参数值与持久化残留，防刷新回填
+    this.paramDriver?.resetAll();
     this.playIdleOnce();
   }
 

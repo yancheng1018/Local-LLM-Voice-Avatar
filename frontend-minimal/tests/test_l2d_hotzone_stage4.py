@@ -45,18 +45,18 @@ def test_hold_value_api():
     assert "setHoldValue(" in l2d  # l2d.ts 每帧下传
 
 
-def test_no_opacity_cull():
+def test_opacity_cull_restored():
     src = read("src/renderer/l2d.ts")
-    # 命中路径无透明度剔除（<= OPACITY_CUTOFF) continue 的命中分支已删；
-    # OPACITY_CUTOFF 仅允许保留在叠加层状态用途
-    assert re.search(r"<= OPACITY_CUTOFF\) continue", src) is None
-    assert "getDrawableOpacity" in src  # 叠加层提示仍需读透明度
+    # r2 收回 D1：命中路径恢复透明度剔除（站点同款）；叠加层 T 判定同源阈值
+    assert re.search(r"<= OPACITY_CUTOFF\) continue", src)
+    assert re.search(r"<= OPACITY_CUTOFF\) return", src)
 
 
-def test_overlay_T_info():
+def test_overlay_T_not_interactive():
     src = read("src/renderer/l2d_touch_debug.ts")
-    assert "透明但可点" in src  # T 提示语义
-    assert re.search(r"a\.status === 'ok' \|\| a\.status === 'T'", src)  # T 仍填充
+    assert "透明剔除" in src  # r2：T=透明剔除，不再「可点」
+    assert "透明但可点" not in src
+    assert re.search(r"const interactive = a\.status === 'ok';", src)  # 仅 ok 填充
 
 
 def test_xinnong_data():
@@ -73,7 +73,7 @@ def test_regression_core():
         touch,
     )
     l2d = read("src/renderer/l2d.ts")
-    for s in ("playAction", "playIdleOnce", "OE_TYPES", "ataIdle !== this.chainIdleIndex()"):
+    for s in ("playAction", "playIdleOnce", "OE_TYPES", "ataIdle === this.chainIdleIndex()"):
         assert s in l2d
     assert "PARAM_STORAGE_PREFIX = 'l2d-param:'" in params
     assert "l2d-touch:" in read("src/main.ts")

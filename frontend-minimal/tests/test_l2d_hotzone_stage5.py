@@ -75,7 +75,7 @@ def test_idle_no_loop():
 
 
 def test_overlay_readout():
-    debug = read("src/renderer/l2d_touch_debug.ts")
+    debug = read("src/renderer/l2d_touch_debug_helpers.ts")
     assert "paramValue" in debug and "action=" in debug  # 标签读数
     l2d = read("src/renderer/l2d.ts")
     assert "paramDriver?.getValue(" in l2d  # ParamDriver 只读接口
@@ -90,7 +90,7 @@ def test_regression_core():
         touch,
     )
     l2d = read("src/renderer/l2d.ts")
-    for s in ("playAction", "OE_TYPES", "ataIdle !== this.chainIdleIndex()"):
+    for s in ("playAction", "OE_TYPES", "ataIdle === this.chainIdleIndex()"):
         assert s in l2d
     params = read("src/renderer/l2d_params.ts")
     assert "PARAM_STORAGE_PREFIX = 'l2d-param:'" in params
