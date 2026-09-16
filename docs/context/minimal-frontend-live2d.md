@@ -125,3 +125,16 @@
 - 调试滑条被 ParamDriver/眨眼/呼吸/物理/口型每帧回写覆盖**属预期行为**（调试工具，
   不做协调逻辑）；RAF 刷新跳过用户拖动中的行。⚠️ `l2d_debug_panel.ts` 恰 200 行
   零余量（纯类型已拆到 `_types.ts`），加功能前先决策拆分或 220 行例外（参照 l2d_params.ts 先例）
+
+**stage7 热区调试叠加层 + r2 系列修正（2026-09-16，已验收）**：
+
+- 叠加层 `l2d_touch_debug.ts`：区状态 ok/H/O/G/T 着色 + 参数读数 + idleIndex 读数（语义契约
+  见 spec-l2d-touch-engine.md §8）；纯渲染逻辑已拆 `l2d_touch_debug_helpers.ts`（106 行）
+- ⚠️ **行数上限例外：`l2d_touch_debug.ts` 220 行封顶**（原定 ≤200，r2 净减后实测 203 行仍超；
+  叠加层绘制与状态语义注释不可再压，再加功能先拆分而非续压，参照 l2d_params.ts 先例）
+- 调试栏滑条**指针捕获**（r4 §10.2-C）：pointerdown 即 `setPointerCapture`（try/catch 兜底），
+  拖出滑条外释放 pointerup 也必达，防 `active` 滞留导致该行永不回写（面板"不刷新"）
+- r2 系列（v1~v4）四轮修正定案已并入 spec-l2d-touch-engine.md（透明剔除收回/G 前移/
+  findChainRule action 优先/无 action 放行/ATA.idle 防重复方向/clampChain 三步链/resolve
+  触发时序/0 轴排除保留/起点锚定/resetAll）；站点取证与 D4~D7 遗留见
+  research_live2d-hotzone-touch-r4.md（已保留归档）

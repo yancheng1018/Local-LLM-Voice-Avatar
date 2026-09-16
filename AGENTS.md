@@ -72,6 +72,7 @@ legacy/                            上游遗留部件（本项目不用，详见
 | 查 l2d.su 热区/动作链引擎逆向 | docs/context/spec-l2dsu-engine.md |
 | 查 Live2D 触摸引擎设计 | docs/context/spec-l2d-touch-engine.md |
 | 查 git 仓库重组历程与施工踩坑 | docs/context/spec-git-reorganize.md |
+| 写规格书（断言盘点/锚点/基线/行数预检） | docs/context/spec-writing.md |
 
 ## 用户级工作流绑定
 
@@ -83,7 +84,7 @@ legacy/                            上游遗留部件（本项目不用，详见
 
 ## 当前进行中
 
-极简自研前端（frontend-minimal/）阶段一~五已完成并验收通过（2026-09-15；阶段五=一角色多模型 allowlist，含 fix2 跨角色残留修正）。
+极简自研前端（frontend-minimal/）主线阶段与热区触摸 r2 系列（含 stage7 调试叠加层）均已完成并验收通过（2026-09-16）。
 待办、下一步与细节见 docs/context/current-work.md。
 上下文文件已于 2026-09-13 重构，详见 docs/context/archive.md
 

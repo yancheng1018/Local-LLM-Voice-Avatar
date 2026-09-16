@@ -1,7 +1,8 @@
-# 规格书 · frontend-minimal 触摸规则引擎（l2d.su 复刻，stage1~6 合并版）
+# 规格书 · frontend-minimal 触摸规则引擎（l2d.su 复刻，stage1~6 + r2 系列合并版）
 
-> temp_spec_stage1~6 六份规格的精简合并。被后续 stage 推翻的语义**不在本文**，冲突处以本文为准。
-> 依据：spec-l2dsu-engine.md（站点引擎逆向）+ research_live2d_stage1.md（stage1a~1e 实测记录）。
+> temp_spec_stage1~6 六份 + r2 系列（v1~v4）规格的精简合并。被后续 stage 推翻的语义**不在本文**，
+> 冲突处以本文为准。依据：spec-l2dsu-engine.md（站点引擎逆向）+ research_live2d_stage1.md
+>（stage1a~1e 实测记录）+ research_live2d-hotzone-touch-r4.md（r2 系列定案取证，已保留归档）。
 > 开发未完结，遗留项见 §11。红线：不改 AGENTS.md、backend、官方 `frontend/`；不动 `l2d_touch.ts` 导出签名。
 
 ## 1. 范围与数据源
@@ -23,8 +24,12 @@
 | `renderer/l2d_touch_debug.ts` | 叠加层仪表盘（区状态/参数读数/idleIndex 读数） |
 | `src/main.ts` | 手势分发：规则命中走 TouchChain/playAction，否则启发式 |
 
-测试（pytest 静态断言 + `npm run build`，tsc strict）：`test_l2d_touch_chain.py`（TouchChain 契约）、
-`test_l2d_hotzone_stage2~6.py`（各阶段语义+regression_core）、`test_touch_debug_overlay.py`（叠加层接线）。
+测试（pytest 静态断言 + 运行时数值对拍 + `npm run build`，tsc strict）：`test_l2d_touch_chain.py`
+（TouchChain 契约）、`test_l2d_hotzone_stage2~7.py`（各阶段语义+regression_core）、
+`test_l2d_touch_redlines.py`（r2 红线：状态序/链 action 优先/兜底静默/行数契约）、
+`test_l2d_touch_param_semantics.py`（r2_v3/v4 参数语义：无 action 放行/slide 注册/轴排除/
+dragDirect 门控/resetAll）、`test_l2d_clamp_chain_runtime.py`（clampChain 与站点三步链
+运行时数值对拍）、`test_touch_debug_overlay.py`（叠加层接线）。
 
 ## 3. 规则注册（l2d.ts loadTouchRules）
 
@@ -32,7 +37,12 @@
   （吾妻 TouchIdle1 类：不进 ParamDriver，只走动作路径）。
 - 原始 rules 数组全量挂 `renderer.touchRules`（含未注册为区的规则，链查找用）。
 - 默认区伪规则：TouchSpecial/TouchHead/TouchBody（对应绘画件未被规则占用时）。
-- 剔除原因枚举：O=画布外、G=交互门槛拦截；**透明度不剔除**（偏离项 D1）。
+- 剔除原因枚举：O=画布外、G=交互门槛拦截、T=透明度 ≤ 阈值剔除（**r2 收回偏离项 D1**：
+  透明 Touch* 虚拟标记不进命中池，站点同款；阈值与叠加层 T 判定同源）；仪表盘状态判定序
+  **G 先于 T**（r2 C2：门槛锁死区不再误标「可点」）。
+- **isRuleInteractive**（交互门槛）：typed 规则只要求 type∈Oe；**无 action 规则直接放行**
+  （r2_v3：站点 live2DRulePointerEnabled 不要求 action，无 offset 的区可点但无效果）；
+  有 action 须过 ATA 白名单 actionAllowed；ATA.idle 防重复判定见 §5。
 - 诊断日志一行汇总：`[Touch] <模型> 注册 N/M：原因计数`；默认区绘画件缺失另有说明（站点同款非缺陷）。
 
 ## 4. 命中判定与择一（hitZoneAt）
@@ -48,7 +58,9 @@
 
 ## 5. 动作链（TouchChain）
 
-- `resolve(rule, kind, available)`：冷却命中未到期→null；有 ATA→applyActive；dispatch→null 则 null；
+- `resolve(rule, kind, available)`：冷却命中未到期→null；**dispatch 成功后才 applyActive/save**
+  （r4 §10.4.4 时序，D 级推断+站点实测锚点：白名单判定用触发前的全局 enable——先应用会把
+  规则自身 action 拒在自身 ATA.enable 外，核心区自锁；触发失败不推进链状态）；
   `limitTime>0` 记冷却（秒→毫秒）。
 - ATA 两形态：**形态A**（有 `idle_enable`/`idle_ignore`，含空数组）按当前 `idleIndex` 查表置
   enable/ignore（查表空→null）；**形态B**（`enable`/`ignore`/`idle:N`）直接设置，`idle` 数字写入
@@ -56,13 +68,17 @@
 - **enable/ignore 空数组 = 无该名单放行**（站点 `officialLive2DActionAllowed` 的 `length>0` 才启用；
   stage1e 修正，光辉 `enable:[]` 曾被当空白名单导致只涨 idleIndex 不播动作）。
 - 白名单**持续生效**直到下一条 ATA 覆盖（规则无 ATA 不清空）。
-- `idleIndex` 门槛为**等值判定**（`==N` 非 `≥N`，TouchIdle5 实证）；链步进逐级解锁（TouchIdle17
-  false→true 实证）。
+- **ATA.idle = 防重复**（r4 §4.3 站点 `live2DActiveDataRepeatsCurrentIdle` 源码直证）：目标
+  idle **== 当前链 idleIndex 时跳过**（防重复播同一 idle），非触发门槛——「不匹配即拒」方向
+  相反，会锁死 453/874 条 typed 规则；链推进后原被跳过的区自然解锁（ATA.idle=0 的区开局
+  显示 G 属预期）。
 - actionTrigger type 分发：1=拖动触发、2=触摸即发、6=链占位、7=拖动主控；1/6/7 只认 `kind='drag'`，
   2 只认非 drag；6/7 不直接播动作；`action` 数组随机取一；动作名 ∉ available → null。
 - 持久化 `localStorage['l2d-touch:<模型名>']`：`{idleIndex, activeRuleId, cooldowns}`（跨刷新/换模型保留）。
 - **链步进规则查找** `findChainRule(gname)`（main.ts body 链用，findRuleByParameter 的超集）：
-  `parameter===gname` ∥ `drawAbleName===驼峰化(gname)`（`touch_idle17→TouchIdle17`）∥ action 含 gname。
+  **action 含 gname 优先**（r2 C3：真链成员如 TouchIdle20 播 touch_idle1；数组序兜底会让
+  TouchIdle1 抢答致 tap1 即 0→11 跳号）；兜底 `parameter===gname` ∥ `drawAbleName===驼峰化(gname)`
+  （`touch_idle17→TouchIdle17`）。
 - **body 连点链**（偏离项 D2，游戏语义）：TouchBody 命中走 touch_idleN 编号递进（闲置 10s 重置、
   走完一轮冷却 60s、冷却期播 touch_body/touch_*、缺号自动跳过），resolve 应用 ATA → idleIndex 推进。
 
@@ -80,9 +96,12 @@
 
 - ParamRule 注册分支：circle 型（type2+circle）/ slide 型（无 actionTrigger 且 offset≠0）/ mode2 型
   （指针位置反应 reactSum/canvasNorm）/ type1/6/7 型。
-- **slide**：像素增量 `dxPx=e.clientX-prevX`（右正）、`dyPx=prevY-e.clientY`（**上正**，引擎
-  `interaction.y-currentY` 同构）；轴选择 `|accX/(ox||1)| ≥ |accY/(oy||1)|` 取大者；
-  `value=startValue+chosen/offset` → clampChain（dragDirect/rangeAbs/range/parameterRange）→ smooth。
+- **slide**：像素增量 `dxPx=e.clientX-prevX`（右正）、`dyPx=prevY-e.clientY`（**上正**，
+  引擎 `interaction.y-currentY` 同构）；轴选择 = **offset≠0 的轴才参与**（0 轴排除为本地
+  保留项 D4′，见 §9）；`value=holdBase+chosen/offset`（**holdBase=hold 起点当前值锚定**，
+  r3 定案：拖拽从当前值续算，非 startValue 重锚）→ clampChain **三步链：dragDirect 方向
+  门控 → rangeAbs 取绝对值 → range 钳幅**（r4 §3.1c 站点 fixLive2DParameterTargetValue
+  次序源码直证，`test_l2d_clamp_chain_runtime.py` 运行时对拍钉死）→ smooth 趋近。
   无 DRAG_VALUE_SCALE（像素即引擎单位）。offset 数据按像素标定（如 wuqi_3 TouchDrag2=-150=全程）。
 - **circle 按住=转盘**：`deg=atan2(curX-cx, cy-curY)*180/π`；`angle=((deg+360-start)%360+360)%360`；
   `dialValue=rangeMax*angle/360`。cx/cy=区**屏幕**包围盒中心（modelRectToScreen），指针=clientX/Y；
@@ -90,6 +109,9 @@
 - **circle 单击=翻转开关**：poke 目标=circleTarget；到位（|v-target|<0.05）后**停留不自动回落**；
   下次 poke 按当前值翻回 startValue（吾妻 TouchDrag8 面板开/关实证）。
 - type1/4：拖拽结束触发一次其 action。释放 `revert===-1` 值保留；持久化 `l2d-param:<模型名>`。
+- **resetAll**（r3 R-1/R-2/R-5）：全部状态回 startValue、清 dirty/saved/hold/poke、删
+  localStorage 持久化键（防「复位→刷新」残留回填）；接入「复位模型」序列
+  （resetTouchChain → paramDriver.resetAll → playIdleOnce）。
 
 ## 8. 仪表盘（l2d_touch_debug.ts）
 
@@ -100,9 +122,10 @@
 
 ## 9. 偏离站点项（有意为之，勿"修回"）
 
-- D1 命中判定不按透明度剔除（站点剔除；本地 Touch* 辅助件透明度随姿态抖动是净伤害，stage4）。
 - D2 body 连点链 touch_idleN 递进（游戏语义；站点引擎无点击计数器，stage1b Q3 实证站点无递进）。
-- D3 T 状态区仍可交互（D1 的叠加层呈现）。
+- D4′ stepSlide 0 轴排除（站点源码实为 `||1` 兜底；用户实测站点纯垂直拖无误触发，r4 疑点 1
+  未决，观感优先保留排除式，待站点数值取证后统一）。
+- r2 已收回 D1/D3：透明度剔除与 T 区不可交互恢复为站点同款（原 stage4 超越项实测为净伤害）。
 
 ## 10. 明确不做
 
@@ -114,16 +137,20 @@ tips/dragRate/ignoreDrag（全站 JS 0 命中死数据）、逐像素 alpha、AT
 
 - **C4（BLOCKED·几何）**：光辉 TouchIdle17 门槛可解锁（interactive true）但绘画件屏幕投影
   y≈−4654 视口外，物理不可点。无代码解，除非改姿态/视口。
-- **C6（BLOCKED·数据疑点）**：吾妻 TouchIdle1 的 action `touch_drag12` ∉ 自身 enable 白名单
-  （enable 全文录于 research §12），按数据行事不绕过。
 - 信浓链跳号（1→3→6）：model3.json 缺 touch_idle2/4/5/14 组，数据事实非缺陷。
+- **D5**（slide 闸门边界）：offsetX=Y=0 且带 offsetCircle 的样本未普查（r4 疑点 4）。
+- **D6/D7**（r4 §5.2 优先级 4）：touch_drag7 棘轮三函数（stableLive2DDragValue /
+  snapLive2DTouchParameter / live2DDragStartedAtTarget）与 triggerConditionMet 常量表未实现，
+  需下载其余 chunk 反查常量；取证入口与已直证源码见 research_live2d-hotzone-touch-r4.md。
+- §5 resolve 触发时序为 D 级推断（行为锚点=站点实测播放）；若站点取证推翻须修正顺序。
 - 待办：live2d.md 的 stage1 实测修正（§1/§5.1 矛盾点、数据接口"已失效"结论已被 stage1b 推翻、
   光辉 shipSkinId 疑点已核销）合并回 spec-l2dsu-engine.md / live2d.md。
-- 代码债：l2d.ts 981 行远超「单模块 ≤200」上限，待功能收口后按注册/命中/播放/参数职责拆分。
+- 代码债：l2d.ts 1030 行远超「单模块 ≤200」上限，待功能收口后按注册/命中/播放/参数职责拆分。
 
 ## 12. 验收方式（改引擎必读）
 
-- 静态 pytest 断言有局限（曾连续两轮全绿但实际不可用）→ **实测协议强制**：
+- 静态 pytest 断言有局限（曾连续两轮全绿但实际不可用）→ **实测协议强制**（clampChain 已有
+  运行时数值对拍补上一个洞，其余行为仍靠实测）：
   - stage5 §5 表 T1~T13（像素拖拽算式/转盘/翻转/默认区/idle 单次化）
   - stage6 §5 表 C1~C9（链推进/门槛解锁/渲染序择序）+ stage1e 补充（ATA.enable=[]）
   - 两表基准与逐行实测记录在 research_live2d_stage1.md §11/§12；改引擎必须重跑相关行并记录。

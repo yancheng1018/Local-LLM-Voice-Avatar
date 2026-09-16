@@ -107,6 +107,8 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
 - 提交前跑 `git diff --cached --stat`，确认没有 `models/`、`live2d-models/` 大文件混入。
 - Git Bash 下 grep 输出反斜杠路径（`docs\context\...`），`grep -v "^docs/context/..."` 这类
   正斜杠前缀过滤**恒不命中**、形同虚设；要按路径排除用 `grep -rn --exclude="<模式>"`。
+- grep pattern 以 `/` 开头（如 `/finalize`）会被 Git Bash 的 MSYS 路径转换改写成
+  Windows 路径，结果**伪 0**；用 `[/]finalize` 写法或 `MSYS_NO_PATHCONV=1` 规避。
 
 ### 相关工具
 
