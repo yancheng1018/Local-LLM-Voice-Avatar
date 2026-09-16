@@ -89,12 +89,31 @@ except ImportError:  # 非 Windows 平台
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QFont, QPixmap
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QComboBox, QPushButton, QTextEdit, QFormLayout,
-    QGroupBox, QMessageBox, QFileDialog, QLineEdit, QSpinBox,
-    QDoubleSpinBox, QCheckBox, QInputDialog, QListWidget,
-    QListWidgetItem, QScrollArea,
-    QDialog, QDialogButtonBox, QPlainTextEdit, QTabWidget
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QComboBox,
+    QPushButton,
+    QTextEdit,
+    QFormLayout,
+    QGroupBox,
+    QMessageBox,
+    QFileDialog,
+    QLineEdit,
+    QSpinBox,
+    QDoubleSpinBox,
+    QCheckBox,
+    QInputDialog,
+    QListWidget,
+    QListWidgetItem,
+    QScrollArea,
+    QDialog,
+    QDialogButtonBox,
+    QPlainTextEdit,
+    QTabWidget,
 )
 
 from ruamel.yaml import YAML
@@ -132,8 +151,13 @@ AVATAR_DIR_CANDIDATES = ["avatars", "avatar"]
 
 ASR_ENGINE_KEY = "asr_model"
 ASR_ENGINES = [
-    "faster_whisper", "whisper_cpp", "whisper", "fun_asr",
-    "azure_asr", "groq_whisper_asr", "sherpa_onnx_asr"
+    "faster_whisper",
+    "whisper_cpp",
+    "whisper",
+    "fun_asr",
+    "azure_asr",
+    "groq_whisper_asr",
+    "sherpa_onnx_asr",
 ]
 
 VAD_ENGINE_KEY = "vad_model"
@@ -152,8 +176,11 @@ LANGUAGE_CHOICES = [
 LANGUAGE_CODE_TO_LABEL = {code: label for label, code in LANGUAGE_CHOICES}
 # 后端语言代码 -> 该语言自称，用于提示文案
 LANGUAGE_NATIVE_NAMES = {
-    "zh": "中文", "ja": "日本語", "en": "English",
-    "ko": "한국어", "yue": "粤语",
+    "zh": "中文",
+    "ja": "日本語",
+    "en": "English",
+    "ko": "한국어",
+    "yue": "粤语",
 }
 
 # 角色下拉框首项：不指定默认角色，直接用 conf.yaml 自身的 character_config
@@ -163,6 +190,7 @@ BASE_CONFIG_ENTRY = "（使用 conf.yaml 基础配置）"
 # ----------------------------------------------------------------------
 # 工具函数
 # ----------------------------------------------------------------------
+
 
 def find_project_root(start: Path):
     for p in [start] + list(start.parents):
@@ -187,7 +215,9 @@ def query_ollama_models(timeout: float = 3.0):
     try:
         with urllib.request.urlopen(OLLAMA_API_TAGS, timeout=timeout) as r:
             data = json.loads(r.read().decode("utf-8"))
-        return sorted([m.get("name", "") for m in data.get("models", []) if m.get("name")])
+        return sorted(
+            [m.get("name", "") for m in data.get("models", []) if m.get("name")]
+        )
     except Exception:
         return None
 
@@ -253,10 +283,14 @@ def query_gpu_info() -> str:
     try:
         creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         result = subprocess.run(
-            ["nvidia-smi",
-             "--query-gpu=memory.used,memory.total,utilization.gpu,temperature.gpu",
-             "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=2,
+            [
+                "nvidia-smi",
+                "--query-gpu=memory.used,memory.total,utilization.gpu,temperature.gpu",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=2,
             creationflags=creationflags,
         )
         if result.returncode != 0:
@@ -440,13 +474,15 @@ def coerce_back(original, text: str):
 # 主窗口
 # ----------------------------------------------------------------------
 
+
 class CharEntry(NamedTuple):
     """角色列表中的一项。"""
-    display: str    # 下拉框显示文本："{角色名} ({文件名})"
-    stem: str       # 角色 YAML 的文件名（不含扩展名）
-    name: str       # character_name —— 与 Web UI 显示的一致
-    avatar: str     # 头像文件名
-    uid: str        # conf_uid —— 唯一标识，聊天记录按它分目录
+
+    display: str  # 下拉框显示文本："{角色名} ({文件名})"
+    stem: str  # 角色 YAML 的文件名（不含扩展名）
+    name: str  # character_name —— 与 Web UI 显示的一致
+    avatar: str  # 头像文件名
+    uid: str  # conf_uid —— 唯一标识，聊天记录按它分目录
 
 
 class CodeCombo(QComboBox):
@@ -523,7 +559,9 @@ def _write_voice_json(target_dir: Path, data: dict):
 class VoiceDialog(QDialog):
     """新建 / 编辑声音模型：权重对 + 参考音频 + 提示文本。"""
 
-    def __init__(self, parent, gpt_items: list, sovits_items: list, initial: dict = None):
+    def __init__(
+        self, parent, gpt_items: list, sovits_items: list, initial: dict = None
+    ):
         super().__init__(parent)
         self._editing = initial is not None
         self.setWindowTitle("编辑声音模型" if self._editing else "新建声音模型")
@@ -557,7 +595,9 @@ class VoiceDialog(QDialog):
         form.addRow("参考音频：", audio_row)
 
         self.edit_prompt = QPlainTextEdit()
-        self.edit_prompt.setPlaceholderText("参考音频中说的原话（GPT-SoVITS 需要它来对齐音色）")
+        self.edit_prompt.setPlaceholderText(
+            "参考音频中说的原话（GPT-SoVITS 需要它来对齐音色）"
+        )
         self.edit_prompt.setMaximumHeight(90)
         form.addRow("参考文本：", self.edit_prompt)
 
@@ -607,8 +647,10 @@ class VoiceDialog(QDialog):
 
     def _pick_audio(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "选择参考音频", "",
-            "音频文件 (*.wav *.mp3 *.flac *.ogg *.m4a);;所有文件 (*)"
+            self,
+            "选择参考音频",
+            "",
+            "音频文件 (*.wav *.mp3 *.flac *.ogg *.m4a);;所有文件 (*)",
         )
         if path:
             self.edit_audio.setText(path)
@@ -635,9 +677,11 @@ class VoiceDialog(QDialog):
             return
         if not self.edit_prompt.toPlainText().strip():
             reply = QMessageBox.question(
-                self, "参考文本为空",
+                self,
+                "参考文本为空",
                 "参考文本为空会导致音色对齐效果变差，仍要继续吗？",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
             )
             if reply != QMessageBox.Yes:
                 return
@@ -834,7 +878,9 @@ class LauncherWindow(QMainWindow):
         sel_btn_row = QHBoxLayout()
         sel_btn_row.addStretch(1)
         btn_apply_models = QPushButton("应用并保存")
-        btn_apply_models.setToolTip("把以上模型选择立即写入 conf.yaml（不含此处未列出的其他参数）")
+        btn_apply_models.setToolTip(
+            "把以上模型选择立即写入 conf.yaml（不含此处未列出的其他参数）"
+        )
         btn_apply_models.clicked.connect(self._save_config)
         sel_btn_row.addWidget(btn_apply_models)
         sel_form.addRow("", sel_btn_row)
@@ -931,7 +977,11 @@ class LauncherWindow(QMainWindow):
         info_box = QGroupBox("显示信息")
         info_form = QFormLayout(info_box)
         for key, label, tip in [
-            ("character_name", "角色名", "界面（含 Web UI 角色列表）显示的名字，需保持唯一。\n留空保存时会用 conf_uid 兜底"),
+            (
+                "character_name",
+                "角色名",
+                "界面（含 Web UI 角色列表）显示的名字，需保持唯一。\n留空保存时会用 conf_uid 兜底",
+            ),
             ("human_name", "对用户的称呼", "角色对话时对你的称呼。留空表示不作要求"),
         ]:
             w = QLineEdit()
@@ -956,7 +1006,9 @@ class LauncherWindow(QMainWindow):
 
         # 头像：下拉 + 刷新 + 导入
         w_avatar = EditableCombo()
-        w_avatar.setToolTip("从 avatars/ 目录自动扫描，或点「导入」添加图片。留空表示不使用头像")
+        w_avatar.setToolTip(
+            "从 avatars/ 目录自动扫描，或点「导入」添加图片。留空表示不使用头像"
+        )
         row_avatar = QHBoxLayout()
         row_avatar.addWidget(w_avatar, stretch=1)
         btn_refresh_avatar = QPushButton("↻")
@@ -1016,7 +1068,11 @@ class LauncherWindow(QMainWindow):
         id_box = QGroupBox("内部标识（一般无需修改）")
         id_form = QFormLayout(id_box)
         for key, label, tip in [
-            ("conf_uid", "conf_uid", "角色唯一标识；同时用作 chat_history/<conf_uid>/ 的目录名，需唯一"),
+            (
+                "conf_uid",
+                "conf_uid",
+                "角色唯一标识；同时用作 chat_history/<conf_uid>/ 的目录名，需唯一",
+            ),
         ]:
             w = QLineEdit()
             w.setMinimumWidth(200)
@@ -1080,13 +1136,15 @@ class LauncherWindow(QMainWindow):
         self.chk_think = QCheckBox("启用 thinking（Qwen 等模型）")
 
         self.combo_keep_alive = QComboBox()
-        self.combo_keep_alive.addItems([
-            "-1（永久驻留）",
-            "0（立即卸载）",
-            "60（1 分钟）",
-            "300（5 分钟）",
-            "600（10 分钟）",
-        ])
+        self.combo_keep_alive.addItems(
+            [
+                "-1（永久驻留）",
+                "0（立即卸载）",
+                "60（1 分钟）",
+                "300（5 分钟）",
+                "600（10 分钟）",
+            ]
+        )
         self.combo_keep_alive.setEditable(True)
 
         llm_param_layout.addRow("Temperature：", self.spin_temperature)
@@ -1107,7 +1165,9 @@ class LauncherWindow(QMainWindow):
         mi_layout = QVBoxLayout(self.model_info_box)
         self.model_info_label = QLabel("（选择模型后显示）")
         self.model_info_label.setWordWrap(True)
-        self.model_info_label.setStyleSheet("font-family: Consolas, monospace; color: #333;")
+        self.model_info_label.setStyleSheet(
+            "font-family: Consolas, monospace; color: #333;"
+        )
         mi_layout.addWidget(self.model_info_label)
         tab_llm_layout.addWidget(self.model_info_box)
 
@@ -1150,7 +1210,9 @@ class LauncherWindow(QMainWindow):
 
         voice_btn_row = QHBoxLayout()
         self.btn_apply_voice = QPushButton("应用声音")
-        self.btn_apply_voice.setToolTip("把该声音的参考音频写入 conf.yaml，并切换对应权重")
+        self.btn_apply_voice.setToolTip(
+            "把该声音的参考音频写入 conf.yaml，并切换对应权重"
+        )
         self.btn_apply_voice.clicked.connect(self._apply_voice_model)
         btn_new_voice = QPushButton("新建...")
         btn_new_voice.setToolTip("选择权重对 + 参考音频，创建新的声音模型")
@@ -1293,13 +1355,16 @@ class LauncherWindow(QMainWindow):
         self._set_project_root(root)
 
     def _pick_project(self):
-        folder = QFileDialog.getExistingDirectory(self, "选择 Open-LLM-VTuber 项目根目录")
+        folder = QFileDialog.getExistingDirectory(
+            self, "选择 Open-LLM-VTuber 项目根目录"
+        )
         if not folder:
             return
         p = Path(folder)
         if not (p / "conf.yaml").exists() or not (p / "run_server.py").exists():
-            QMessageBox.warning(self, "路径无效",
-                                "该目录下没有同时找到 conf.yaml 和 run_server.py。")
+            QMessageBox.warning(
+                self, "路径无效", "该目录下没有同时找到 conf.yaml 和 run_server.py。"
+            )
             return
         self._set_project_root(p)
 
@@ -1342,7 +1407,7 @@ class LauncherWindow(QMainWindow):
         try:
             self._launcher_config_path().write_text(
                 json.dumps(self.launcher_cfg, indent=2, ensure_ascii=False),
-                encoding="utf-8"
+                encoding="utf-8",
             )
         except Exception as e:
             self._log(f"[启动器] ⚠ 保存 launcher_config.json 失败：{e}")
@@ -1413,9 +1478,13 @@ class LauncherWindow(QMainWindow):
             inferred = self._infer_gsv_dir_from_conf()
             if inferred and inferred.is_dir():
                 self._set_gsv_dir(inferred, save=True)
-                self._log("[启动器] 已从 conf.yaml 的 ref_audio_path 推断 GPT-SoVITS 根目录")
+                self._log(
+                    "[启动器] 已从 conf.yaml 的 ref_audio_path 推断 GPT-SoVITS 根目录"
+                )
             else:
-                self._log("[启动器] ⚠ 未自动找到 GPT-SoVITS 根目录，请点击「选择目录...」")
+                self._log(
+                    "[启动器] ⚠ 未自动找到 GPT-SoVITS 根目录，请点击「选择目录...」"
+                )
 
         self._loading_config = False
         # 触发一次面板切换
@@ -1435,11 +1504,15 @@ class LauncherWindow(QMainWindow):
         self.combo_character.clear()
         self._character_entries = []
 
-        alts_dir = self.config.get("system_config", {}).get("config_alts_dir", "characters")
+        alts_dir = self.config.get("system_config", {}).get(
+            "config_alts_dir", "characters"
+        )
         chars_dir = self.project_root / alts_dir
 
         if chars_dir.is_dir():
-            files = sorted(list(chars_dir.glob("*.yaml")) + list(chars_dir.glob("*.yml")))
+            files = sorted(
+                list(chars_dir.glob("*.yaml")) + list(chars_dir.glob("*.yml"))
+            )
             for f in files:
                 stem = f.stem
                 char_name = stem
@@ -1465,9 +1538,7 @@ class LauncherWindow(QMainWindow):
 
         # 首位固定为「使用 conf.yaml 基础配置」——此时不指定默认角色
         self.combo_character.insertItem(0, BASE_CONFIG_ENTRY)
-        self._character_entries.insert(
-            0, CharEntry(BASE_CONFIG_ENTRY, "", "", "", "")
-        )
+        self._character_entries.insert(0, CharEntry(BASE_CONFIG_ENTRY, "", "", "", ""))
 
         # default_character 指针是"应用了哪个角色文件"的唯一依据。
         # 指针为空 → 基础配置项；指针缺失/指向不存在的文件 → 同样回落基础配置项，
@@ -1554,10 +1625,7 @@ class LauncherWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _get_alts_dir(self) -> Path:
-        alts = (
-            self.config.get("system_config", {})
-            .get("config_alts_dir", "characters")
-        )
+        alts = self.config.get("system_config", {}).get("config_alts_dir", "characters")
         return self.project_root / alts
 
     def _new_character(self):
@@ -1565,14 +1633,13 @@ class LauncherWindow(QMainWindow):
             QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
             return
         name, ok = QInputDialog.getText(
-            self, "新建角色",
-            "角色文件名（英文标识，将生成 <名称>.yaml）："
+            self, "新建角色", "角色文件名（英文标识，将生成 <名称>.yaml）："
         )
         if not ok or not name.strip():
             return
         name = name.strip()
         if re.search(r'[\\/:*?"<>|]', name):
-            QMessageBox.warning(self, "名称无效", "文件名不能包含 \\ / : * ? \" < > |")
+            QMessageBox.warning(self, "名称无效", '文件名不能包含 \\ / : * ? " < > |')
             return
         chars_dir = self._get_alts_dir()
         target = chars_dir / f"{name}.yaml"
@@ -1650,9 +1717,7 @@ class LauncherWindow(QMainWindow):
         # 角色名是后端必填项，留空会让服务起不来。按约定用 conf_uid 兜底。
         if not cc.get("character_name"):
             cc["character_name"] = cc["conf_uid"]
-            self._log(
-                f"[启动器] ⚠ 角色名为空，已用 conf_uid「{cc['conf_uid']}」兜底"
-            )
+            self._log(f"[启动器] ⚠ 角色名为空，已用 conf_uid「{cc['conf_uid']}」兜底")
 
         # 人设是后端必填项（空值触发 CharacterConfig 校验失败，服务起不来）；
         # 无合理自动兜底值，留空直接阻止保存
@@ -1671,7 +1736,9 @@ class LauncherWindow(QMainWindow):
             with open(char_file, "w", encoding="utf-8") as f:
                 self.yaml.dump(char_data, f)
             self._log(
-                f"[启动器] ✔ 已保存角色：{stem}" if stem else "[启动器] ✔ 已保存基础配置角色"
+                f"[启动器] ✔ 已保存角色：{stem}"
+                if stem
+                else "[启动器] ✔ 已保存基础配置角色"
             )
             # 刷新列表但保持选中
             old_stem = stem
@@ -1693,7 +1760,8 @@ class LauncherWindow(QMainWindow):
         entry = self._character_entries[idx]
         stem, char_name = entry.stem, entry.name
         reply = QMessageBox.question(
-            self, "确认删除",
+            self,
+            "确认删除",
             f"确定要删除角色「{char_name}」（{stem}.yaml）吗？\n\n此操作不可撤销。",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
@@ -1749,8 +1817,10 @@ class LauncherWindow(QMainWindow):
             QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
             return
         path, _ = QFileDialog.getOpenFileName(
-            self, "选择头像图片", "",
-            "图片文件 (*.png *.jpg *.jpeg *.webp *.gif);;所有文件 (*)"
+            self,
+            "选择头像图片",
+            "",
+            "图片文件 (*.png *.jpg *.jpeg *.webp *.gif);;所有文件 (*)",
         )
         if not path:
             return
@@ -1762,9 +1832,11 @@ class LauncherWindow(QMainWindow):
             target = target_dir / path.name
             if target.exists() and target.resolve() != path.resolve():
                 reply = QMessageBox.question(
-                    self, "文件已存在",
+                    self,
+                    "文件已存在",
                     f"avatars/ 中已存在「{path.name}」，覆盖吗？",
-                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No,
                 )
                 if reply != QMessageBox.Yes:
                     return
@@ -1792,11 +1864,13 @@ class LauncherWindow(QMainWindow):
                 p = self.project_root / d
                 if p.is_dir():
                     names += [
-                        f.name for f in sorted(p.iterdir())
+                        f.name
+                        for f in sorted(p.iterdir())
                         if f.is_file()
-                        and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif")
+                        and f.suffix.lower()
+                        in (".png", ".jpg", ".jpeg", ".webp", ".gif")
                     ]
-        w.addItem("")   # 空选项 = 不使用头像，避免默认选中第一个文件
+        w.addItem("")  # 空选项 = 不使用头像，避免默认选中第一个文件
         w.addItems(sorted(set(names)))
         w.setText(current if current else "")
 
@@ -1885,13 +1959,11 @@ class LauncherWindow(QMainWindow):
             try:
                 with zipfile.ZipFile(z) as zf:
                     names = [
-                        n for n in zf.namelist()
+                        n
+                        for n in zf.namelist()
                         if n.lower().endswith((".png", ".jpg"))
                         and "texture" in n.lower()
-                    ] or [
-                        n for n in zf.namelist()
-                        if n.lower().endswith(".png")
-                    ]
+                    ] or [n for n in zf.namelist() if n.lower().endswith(".png")]
                     if names:
                         return "zip", (z, sorted(names)[0])
             except Exception:
@@ -1908,7 +1980,9 @@ class LauncherWindow(QMainWindow):
         if model_dir is None:
             self.l2d_preview.setPixmap(QPixmap())
             self.l2d_preview.setText(
-                f"（未找到模型文件夹）\n{model_name}" if model_name else "（未选择模型）"
+                f"（未找到模型文件夹）\n{model_name}"
+                if model_name
+                else "（未选择模型）"
             )
             self.l2d_preview_tip.setText("模型贴图静态预览，实际动画以前端为准")
             self.l2d_preview_tip.setStyleSheet("color: #888; font-size: 11px;")
@@ -1992,8 +2066,11 @@ class LauncherWindow(QMainWindow):
           kind = None      → 未找到入口
         优先取层级最浅的 .model3.json。
         """
+
         def shallow(paths):
-            return sorted(paths, key=lambda p: (len(p.relative_to(model_dir).parts), str(p)))
+            return sorted(
+                paths, key=lambda p: (len(p.relative_to(model_dir).parts), str(p))
+            )
 
         m3 = shallow(list(model_dir.rglob("*.model3.json")))
         if m3:
@@ -2014,18 +2091,20 @@ class LauncherWindow(QMainWindow):
                 item["url"] = url
                 break
         else:
-            entries.append({
-                "name": name,
-                "description": "",
-                "url": url,
-                "kScale": 0.5,
-                "initialXshift": 0,
-                "initialYshift": 0,
-                "kXOffset": 1150,
-                "idleMotionGroupName": "Idle",
-                "emotionMap": {},
-                "tapMotions": {},
-            })
+            entries.append(
+                {
+                    "name": name,
+                    "description": "",
+                    "url": url,
+                    "kScale": 0.5,
+                    "initialXshift": 0,
+                    "initialYshift": 0,
+                    "kXOffset": 1150,
+                    "idleMotionGroupName": "Idle",
+                    "emotionMap": {},
+                    "tapMotions": {},
+                }
+            )
 
         p = self._model_dict_path()
         try:
@@ -2073,13 +2152,15 @@ class LauncherWindow(QMainWindow):
             candidates = [src]
         else:
             subdirs = [
-                d for d in sorted(src.iterdir())
+                d
+                for d in sorted(src.iterdir())
                 if d.is_dir() and self._find_model_entry(d)[1]
             ]
             if not subdirs:
                 QMessageBox.warning(
-                    self, "未找到模型",
-                    f"在 {src} 及其子目录中没有找到 .model3.json / .model.json 入口文件。"
+                    self,
+                    "未找到模型",
+                    f"在 {src} 及其子目录中没有找到 .model3.json / .model.json 入口文件。",
                 )
                 return
             candidates = subdirs
@@ -2089,9 +2170,11 @@ class LauncherWindow(QMainWindow):
             target = models_dir / d.name
             if target.exists():
                 reply = QMessageBox.question(
-                    self, "已存在",
+                    self,
+                    "已存在",
                     f"live2d-models/ 中已存在「{d.name}」，覆盖吗？",
-                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No,
                 )
                 if reply != QMessageBox.Yes:
                     skipped.append(d.name)
@@ -2111,8 +2194,7 @@ class LauncherWindow(QMainWindow):
 
     def _import_live2d_zip(self):
         files, _ = QFileDialog.getOpenFileNames(
-            self, "选择 Live2D 模型压缩包", "",
-            "压缩包 (*.zip);;所有文件 (*)"
+            self, "选择 Live2D 模型压缩包", "", "压缩包 (*.zip);;所有文件 (*)"
         )
         if not files:
             return
@@ -2126,9 +2208,11 @@ class LauncherWindow(QMainWindow):
             target = models_dir / name
             if target.exists():
                 reply = QMessageBox.question(
-                    self, "已存在",
+                    self,
+                    "已存在",
                     f"live2d-models/ 中已存在「{name}」，覆盖吗？",
-                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No,
                 )
                 if reply != QMessageBox.Yes:
                     skipped.append(name)
@@ -2164,7 +2248,9 @@ class LauncherWindow(QMainWindow):
     def _finish_import(self, registered, skipped, failed, sources):
         n_src = len(sources)
         if registered:
-            self._log(f"[启动器] ✔ 导入成功 {len(registered)} 个：{', '.join(registered)}")
+            self._log(
+                f"[启动器] ✔ 导入成功 {len(registered)} 个：{', '.join(registered)}"
+            )
         for name in skipped:
             self._log(f"[启动器] 已跳过（用户取消）：{name}")
         for item in failed:
@@ -2174,7 +2260,9 @@ class LauncherWindow(QMainWindow):
 
         lines = [f"共处理 {n_src} 项："]
         if registered:
-            lines.append(f"✔ 成功 {len(registered)} 个：\n   " + "\n   ".join(registered))
+            lines.append(
+                f"✔ 成功 {len(registered)} 个：\n   " + "\n   ".join(registered)
+            )
         if skipped:
             lines.append(f"— 跳过 {len(skipped)} 个：\n   " + "\n   ".join(skipped))
         if failed:
@@ -2217,10 +2305,7 @@ class LauncherWindow(QMainWindow):
 
     def _populate_tts(self):
         self.combo_tts.clear()
-        tts_config = (
-            self.config.get("character_config", {})
-            .get("tts_config", {})
-        )
+        tts_config = self.config.get("character_config", {}).get("tts_config", {})
         names = [k for k in tts_config.keys() if k != "tts_model"]
         self.combo_tts.addItems(names)
 
@@ -2240,10 +2325,7 @@ class LauncherWindow(QMainWindow):
         self.combo_asr_model.clear()
         self.combo_asr_model.addItems(["（禁用）"] + ASR_ENGINES)
 
-        asr_config = (
-            self.config.get("character_config", {})
-            .get("asr_config", {})
-        )
+        asr_config = self.config.get("character_config", {}).get("asr_config", {})
         current = asr_config.get(ASR_ENGINE_KEY, "")
         if current in ASR_ENGINES:
             self.combo_asr_model.setCurrentText(current)
@@ -2257,10 +2339,7 @@ class LauncherWindow(QMainWindow):
         self.combo_vad_model.clear()
         self.combo_vad_model.addItems(["（禁用）", "silero_vad"])
 
-        vad_config = (
-            self.config.get("character_config", {})
-            .get("vad_config", {})
-        )
+        vad_config = self.config.get("character_config", {}).get("vad_config", {})
         current = vad_config.get(VAD_ENGINE_KEY)
         if current == "silero_vad":
             self.combo_vad_model.setCurrentText("silero_vad")
@@ -2280,10 +2359,7 @@ class LauncherWindow(QMainWindow):
         self._generic_asr_editors.clear()
         self._generic_asr_originals.clear()
 
-        asr_config = (
-            self.config.get("character_config", {})
-            .get("asr_config", {})
-        )
+        asr_config = self.config.get("character_config", {}).get("asr_config", {})
 
         if model_text == "（禁用）" or not model_text:
             lbl = QLabel("ASR 已禁用")
@@ -2316,10 +2392,7 @@ class LauncherWindow(QMainWindow):
         self._generic_vad_editors.clear()
         self._generic_vad_originals.clear()
 
-        vad_config = (
-            self.config.get("character_config", {})
-            .get("vad_config", {})
-        )
+        vad_config = self.config.get("character_config", {}).get("vad_config", {})
 
         if model_text == "（禁用）" or not model_text:
             lbl = QLabel("VAD 已禁用")
@@ -2478,7 +2551,9 @@ class LauncherWindow(QMainWindow):
         except Exception:
             return {}
 
-    def _fill_generic_form(self, form: QFormLayout, cfg: dict, editors: dict, originals: dict):
+    def _fill_generic_form(
+        self, form: QFormLayout, cfg: dict, editors: dict, originals: dict
+    ):
         """根据 cfg 内容动态生成 form 里的编辑控件。editors / originals 会被清空后填充"""
         clear_layout(form)
         editors.clear()
@@ -2721,9 +2796,7 @@ class LauncherWindow(QMainWindow):
         matched = self._voice_from_conf()
         if matched:
             self.lbl_active_voice.setText(f"当前使用：{matched} ✓")
-            self.lbl_active_voice.setStyleSheet(
-                "color: #1a7f37; font-weight: bold;"
-            )
+            self.lbl_active_voice.setStyleSheet("color: #1a7f37; font-weight: bold;")
             self.lbl_active_voice.setToolTip(
                 f"ref_audio_path = {ref_path}\n"
                 f"prompt_lang = {gsv.get('prompt_lang', '')} | "
@@ -2733,9 +2806,7 @@ class LauncherWindow(QMainWindow):
             self.lbl_active_voice.setText(
                 f"当前使用：（不在 voices/ 中）{Path(str(ref_path)).name}"
             )
-            self.lbl_active_voice.setStyleSheet(
-                "color: #b8860b; font-weight: bold;"
-            )
+            self.lbl_active_voice.setStyleSheet("color: #b8860b; font-weight: bold;")
             self.lbl_active_voice.setToolTip(
                 f"conf.yaml 指向：{ref_path}\n"
                 "该参考音频不属于 voices/ 下的任何声音模型。"
@@ -2746,8 +2817,9 @@ class LauncherWindow(QMainWindow):
         stop_audio()
         _, _, _, ref = self._current_voice_meta()
         if ref is None:
-            QMessageBox.warning(self, "无参考音频",
-                                "当前声音模型没有 ref.* 音频文件可试听。")
+            QMessageBox.warning(
+                self, "无参考音频", "当前声音模型没有 ref.* 音频文件可试听。"
+            )
             return
         ok, msg = play_audio(ref)
         self._log(f"[启动器] {'♪' if ok else '⚠'} 试听 {ref.name}：{msg}")
@@ -2761,12 +2833,16 @@ class LauncherWindow(QMainWindow):
             QMessageBox.warning(self, "未选择声音", "请先选择一个声音模型。")
             return
         if not meta:
-            QMessageBox.warning(self, "元数据缺失",
-                                f"未找到 {voice_dir / 'voice.json'}\n无法应用该声音模型。")
+            QMessageBox.warning(
+                self,
+                "元数据缺失",
+                f"未找到 {voice_dir / 'voice.json'}\n无法应用该声音模型。",
+            )
             return
         if ref_audio is None:
-            QMessageBox.warning(self, "缺少参考音频",
-                                f"{voice_dir} 中没有 ref.* 音频文件。")
+            QMessageBox.warning(
+                self, "缺少参考音频", f"{voice_dir} 中没有 ref.* 音频文件。"
+            )
             return
 
         # 权重若已指定，先校验版本兼容性
@@ -2832,8 +2908,11 @@ class LauncherWindow(QMainWindow):
             )
 
         reply = QMessageBox.question(
-            self, "同步角色语言", question,
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes,
+            self,
+            "同步角色语言",
+            question,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes,
         )
         if reply != QMessageBox.Yes:
             self._log(
@@ -2851,16 +2930,19 @@ class LauncherWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _voice_weight_items(self):
-        return self._gpt_weight_items(silent=True), self._sovits_weight_items(silent=True)
+        return self._gpt_weight_items(silent=True), self._sovits_weight_items(
+            silent=True
+        )
 
     def _open_voice_dialog(self, name=None):
         """打开新建/编辑声音对话框。name 为 None 表示新建。返回 True 表示已保存。"""
         gpt_items, sovits_items = self._voice_weight_items()
         if not gpt_items or not sovits_items:
             QMessageBox.warning(
-                self, "未找到权重",
+                self,
+                "未找到权重",
                 "没有扫描到 GPT/SoVITS 权重文件。\n"
-                "请先在 TTS 页设置 GPT-SoVITS 根目录，并确认权重目录里有模型。"
+                "请先在 TTS 页设置 GPT-SoVITS 根目录，并确认权重目录里有模型。",
             )
             return False
 
@@ -2894,7 +2976,9 @@ class LauncherWindow(QMainWindow):
                 target_dir.mkdir(parents=True, exist_ok=True)
                 _copy_in_ref(data["ref_audio"], target_dir)
                 _write_voice_json(target_dir, data)
-                self._log(f"[启动器] ✔ 已{'更新' if old_name else '创建'}声音模型「{new_name}」")
+                self._log(
+                    f"[启动器] ✔ 已{'更新' if old_name else '创建'}声音模型「{new_name}」"
+                )
         except Exception as e:
             QMessageBox.critical(self, "保存失败", f"写入声音模型时出错：\n{e}")
             return False
@@ -2919,9 +3003,12 @@ class LauncherWindow(QMainWindow):
             QMessageBox.warning(self, "未选择声音", "请先选择一个声音模型。")
             return
         if not meta:
-            QMessageBox.warning(self, "元数据缺失",
-                                f"voices/{name}/voice.json 不存在，无法编辑。\n"
-                                f"可以改用「新建...」重新创建一个声音模型。")
+            QMessageBox.warning(
+                self,
+                "元数据缺失",
+                f"voices/{name}/voice.json 不存在，无法编辑。\n"
+                f"可以改用「新建...」重新创建一个声音模型。",
+            )
             return
         self._open_voice_dialog(name)
 
@@ -2933,11 +3020,13 @@ class LauncherWindow(QMainWindow):
             QMessageBox.warning(self, "未选择声音", "请先选择一个声音模型。")
             return
         reply = QMessageBox.question(
-            self, "确认删除",
+            self,
+            "确认删除",
             f"确定要删除声音模型「{name}」吗？\n\n"
             f"将删除目录：{voice_dir}\n（不影响 GPT-SoVITS 里的权重文件）\n\n"
             f"此操作不可撤销。",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
         )
         if reply != QMessageBox.Yes:
             return
@@ -2998,8 +3087,10 @@ class LauncherWindow(QMainWindow):
         saved = self.launcher_cfg.get("gpt_sovits_model", {})
         gpt_name = saved.get("gpt") or "（未选）"
         sovits_name = saved.get("sovits") or "（未选）"
+
         def short(s):
             return s if len(s) <= 34 else s[:31] + "..."
+
         self.lbl_current_weights.setText(
             f"GPT: {short(gpt_name)}\nSoVITS: {short(sovits_name)}"
         )
@@ -3018,10 +3109,14 @@ class LauncherWindow(QMainWindow):
         gpt_path = find_weight_path(root, GPT_WEIGHTS_PREFIX, gpt_text)
         sovits_path = find_weight_path(root, SOVITS_WEIGHTS_PREFIX, sovits_text)
         if not gpt_path or not sovits_path:
-            return None, None, (
-                f"找不到权重文件：\n"
-                f"GPT: {gpt_path or gpt_text}\n"
-                f"SoVITS: {sovits_path or sovits_text}"
+            return (
+                None,
+                None,
+                (
+                    f"找不到权重文件：\n"
+                    f"GPT: {gpt_path or gpt_text}\n"
+                    f"SoVITS: {sovits_path or sovits_text}"
+                ),
             )
         return gpt_path, sovits_path, ""
 
@@ -3031,7 +3126,8 @@ class LauncherWindow(QMainWindow):
         for label, path in (("GPT", gpt_path), ("SoVITS", sovits_path)):
             if path.parent.name not in ("GPT_weights_v4", "SoVITS_weights_v4"):
                 reply = QMessageBox.warning(
-                    parent, "版本不匹配",
+                    parent,
+                    "版本不匹配",
                     f"{label} 权重「{path.name}」属于 {path.parent.name}，"
                     f"但当前 API 以 v4 模式启动，混用可能导致合成失败或音质异常。\n"
                     f"仍要使用吗？",
@@ -3056,8 +3152,10 @@ class LauncherWindow(QMainWindow):
         self._update_current_weights_label()
 
         if not is_port_open(GPT_SOVITS_HOST, GPT_SOVITS_PORT):
-            self._log("[启动器] ⚠ GPT-SoVITS 未运行，已记录权重；"
-                      "启动时会自动切换（或启动后重新点「应用声音」）")
+            self._log(
+                "[启动器] ⚠ GPT-SoVITS 未运行，已记录权重；"
+                "启动时会自动切换（或启动后重新点「应用声音」）"
+            )
             return
         threading.Thread(
             target=self._apply_weights_worker,
@@ -3066,7 +3164,9 @@ class LauncherWindow(QMainWindow):
         ).start()
 
     def _apply_weights_worker(self, gpt_path: Path, sovits_path: Path):
-        self.oneclick_progress_signal.emit(f"[启动器] ⏳ 正在切换 GPT 权重：{gpt_path.name}")
+        self.oneclick_progress_signal.emit(
+            f"[启动器] ⏳ 正在切换 GPT 权重：{gpt_path.name}"
+        )
         ok, msg = gpt_sovits_set_weights("set_gpt_weights", gpt_path)
         if ok:
             self.oneclick_progress_signal.emit("[启动器] ✔ GPT 权重切换成功")
@@ -3074,7 +3174,9 @@ class LauncherWindow(QMainWindow):
             self.oneclick_progress_signal.emit(f"[启动器] ✘ GPT 权重切换失败：{msg}")
             return
 
-        self.oneclick_progress_signal.emit(f"[启动器] ⏳ 正在切换 SoVITS 权重：{sovits_path.name}")
+        self.oneclick_progress_signal.emit(
+            f"[启动器] ⏳ 正在切换 SoVITS 权重：{sovits_path.name}"
+        )
         ok, msg = gpt_sovits_set_weights("set_sovits_weights", sovits_path)
         if ok:
             self.oneclick_progress_signal.emit("[启动器] ✔ SoVITS 权重切换成功")
@@ -3217,7 +3319,9 @@ class LauncherWindow(QMainWindow):
 
         sections["_角色选择"] = f"char={self.combo_character.currentText()}"
 
-        char_parts = [f"{k}={w.text()}" for k, w in sorted(self.char_edit_fields.items())]
+        char_parts = [
+            f"{k}={w.text()}" for k, w in sorted(self.char_edit_fields.items())
+        ]
         char_parts.append(f"persona={self.char_edit_persona.toPlainText()}")
         sections["_角色字段"] = "\n".join(char_parts)
 
@@ -3344,8 +3448,9 @@ class LauncherWindow(QMainWindow):
             cc.setdefault("agent_config", {})
             cc["agent_config"].setdefault("agent_settings", {})
             cc["agent_config"]["agent_settings"].setdefault("basic_memory_agent", {})
-            cc["agent_config"]["agent_settings"]["basic_memory_agent"]["llm_provider"] = \
-                self.combo_llm.currentText()
+            cc["agent_config"]["agent_settings"]["basic_memory_agent"][
+                "llm_provider"
+            ] = self.combo_llm.currentText()
 
             # TTS model
             cc.setdefault("tts_config", {})
@@ -3354,7 +3459,9 @@ class LauncherWindow(QMainWindow):
             # LLM 参数：Ollama 用专用面板，其他用通用面板
             llm_configs = cc["agent_config"].setdefault("llm_configs", {})
 
-            if OLLAMA_PROVIDER_KEY in llm_configs and isinstance(llm_configs[OLLAMA_PROVIDER_KEY], dict):
+            if OLLAMA_PROVIDER_KEY in llm_configs and isinstance(
+                llm_configs[OLLAMA_PROVIDER_KEY], dict
+            ):
                 ol = llm_configs[OLLAMA_PROVIDER_KEY]
                 ol["model"] = self.combo_model.currentText().strip()
                 ol["temperature"] = round(self.spin_temperature.value(), 2)
@@ -3503,8 +3610,9 @@ class LauncherWindow(QMainWindow):
                 creationflags=creationflags,
             )
         except FileNotFoundError:
-            QMessageBox.critical(self, "启动失败",
-                                 "找不到 `uv` 命令。请确认 uv 已安装并在 PATH 中。")
+            QMessageBox.critical(
+                self, "启动失败", "找不到 `uv` 命令。请确认 uv 已安装并在 PATH 中。"
+            )
             return
 
         self._log(f"[启动器] ▶ 启动 Open-LLM-VTuber (PID={self.llm_process.pid})")
@@ -3569,7 +3677,9 @@ class LauncherWindow(QMainWindow):
             webbrowser.open(url)
             self._log(f"[启动器] ✔ 已用默认浏览器打开 {url}")
         except Exception as e:
-            self._log(f"[启动器] ⚠ 打开浏览器失败：{e}（可手动访问 {self._web_ui_url()}）")
+            self._log(
+                f"[启动器] ⚠ 打开浏览器失败：{e}（可手动访问 {self._web_ui_url()}）"
+            )
 
     def _read_llm_output(self):
         proc = self.llm_process
@@ -3644,12 +3754,13 @@ class LauncherWindow(QMainWindow):
     def _stop_llm(self):
         if self.llm_process is None or self.llm_process.poll() is not None:
             return
-        self._web_open_token += 1   # 让等待中的自动打开线程失效
+        self._web_open_token += 1  # 让等待中的自动打开线程失效
         self._log("[启动器] ⏹ 正在停止 Open-LLM-VTuber...")
         pid = self.llm_process.pid
         try:
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)],
-                           capture_output=True)
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True
+            )
         except Exception as e:
             self._log(f"[启动器] taskkill 失败：{e}")
 
@@ -3676,15 +3787,15 @@ class LauncherWindow(QMainWindow):
 
         gsv_root = self.launcher_cfg.get("gpt_sovits_root")
         if not gsv_root or not Path(gsv_root).is_dir():
-            QMessageBox.warning(self, "未设置 GPT-SoVITS 目录",
-                                "请先在「GPT-SoVITS」区域选择根目录。")
+            QMessageBox.warning(
+                self, "未设置 GPT-SoVITS 目录", "请先在「GPT-SoVITS」区域选择根目录。"
+            )
             return
 
         gsv_dir = Path(gsv_root)
         bat_path = gsv_dir / DEFAULT_GPT_BAT
         if not bat_path.exists():
-            QMessageBox.critical(self, "启动失败",
-                                 f"找不到启动脚本：\n{bat_path}")
+            QMessageBox.critical(self, "启动失败", f"找不到启动脚本：\n{bat_path}")
             return
 
         creationflags = 0
@@ -3701,7 +3812,9 @@ class LauncherWindow(QMainWindow):
             QMessageBox.critical(self, "启动失败", f"启动 GPT-SoVITS 时出错：\n{e}")
             return
 
-        self._log(f"[启动器] ▶ 启动 GPT-SoVITS (PID={self.gsv_process.pid}) → {bat_path.name}")
+        self._log(
+            f"[启动器] ▶ 启动 GPT-SoVITS (PID={self.gsv_process.pid}) → {bat_path.name}"
+        )
         self.btn_start_gsv.setEnabled(False)
         self.btn_stop_gsv.setEnabled(True)
 
@@ -3720,8 +3833,9 @@ class LauncherWindow(QMainWindow):
         self._log("[启动器] ⏹ 正在停止 GPT-SoVITS...")
         pid = self.gsv_process.pid
         try:
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)],
-                           capture_output=True)
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True
+            )
         except Exception as e:
             self._log(f"[启动器] taskkill 失败：{e}")
 
@@ -3790,7 +3904,7 @@ class LauncherWindow(QMainWindow):
                 self.oneclick_progress_signal.emit(
                     "[启动器] ✔ Open-LLM-VTuber 已在运行"
                 )
-                self.web_ready_signal.emit()   # 已在运行也打开一次界面
+                self.web_ready_signal.emit()  # 已在运行也打开一次界面
             else:
                 self.oneclick_progress_signal.emit("[启动器] ★ 启动 Open-LLM-VTuber...")
                 self._start_llm_threadsafe()
@@ -3803,7 +3917,10 @@ class LauncherWindow(QMainWindow):
                     if is_port_open(LLM_HOST, LLM_PORT):
                         ok = True
                         break
-                    if self.llm_process is not None and self.llm_process.poll() is not None:
+                    if (
+                        self.llm_process is not None
+                        and self.llm_process.poll() is not None
+                    ):
                         self.oneclick_progress_signal.emit(
                             "[启动器] ✘ Open-LLM-VTuber 进程意外退出，中止一键启动。"
                         )
@@ -3847,11 +3964,15 @@ class LauncherWindow(QMainWindow):
 
         ok1, msg1 = gpt_sovits_set_weights("set_gpt_weights", gpt_path)
         if not ok1:
-            self.oneclick_progress_signal.emit(f"[启动器] ⚠ GPT 权重自动切换失败：{msg1}")
+            self.oneclick_progress_signal.emit(
+                f"[启动器] ⚠ GPT 权重自动切换失败：{msg1}"
+            )
             return
         ok2, msg2 = gpt_sovits_set_weights("set_sovits_weights", sovits_path)
         if not ok2:
-            self.oneclick_progress_signal.emit(f"[启动器] ⚠ SoVITS 权重自动切换失败：{msg2}")
+            self.oneclick_progress_signal.emit(
+                f"[启动器] ⚠ SoVITS 权重自动切换失败：{msg2}"
+            )
             return
         self.oneclick_progress_signal.emit("[启动器] ✔ 声音模型自动切换完成")
 
@@ -3882,6 +4003,7 @@ class LauncherWindow(QMainWindow):
                 except Exception:
                     code = -1
                 self.gsv_finished_signal.emit(code)
+
             threading.Thread(target=_wait, daemon=True).start()
         except Exception as e:
             self.oneclick_progress_signal.emit(f"[启动器] ✘ 启动 GPT-SoVITS 失败：{e}")
@@ -3916,7 +4038,9 @@ class LauncherWindow(QMainWindow):
             )
             self._llm_reader_thread.start()
         except Exception as e:
-            self.oneclick_progress_signal.emit(f"[启动器] ✘ 启动 Open-LLM-VTuber 失败：{e}")
+            self.oneclick_progress_signal.emit(
+                f"[启动器] ✘ 启动 Open-LLM-VTuber 失败：{e}"
+            )
 
     # ------------------------------------------------------------------
     # 全部停止
@@ -3936,7 +4060,8 @@ class LauncherWindow(QMainWindow):
         if gsv_running:
             running_list.append("GPT-SoVITS")
         reply = QMessageBox.question(
-            self, "确认全部停止",
+            self,
+            "确认全部停止",
             "确定要停止以下服务吗？\n\n  · " + "\n  · ".join(running_list),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
@@ -3966,7 +4091,8 @@ class LauncherWindow(QMainWindow):
         try:
             subprocess.run(
                 ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                capture_output=True, timeout=10
+                capture_output=True,
+                timeout=10,
             )
         except Exception:
             pass
@@ -4030,9 +4156,11 @@ class LauncherWindow(QMainWindow):
             running_list.append("GPT-SoVITS")
 
         reply = QMessageBox.question(
-            self, "确认退出",
-            "以下服务仍在运行：\n\n  · " + "\n  · ".join(running_list) +
-            "\n\n退出前会自动停止它们。是否继续？",
+            self,
+            "确认退出",
+            "以下服务仍在运行：\n\n  · "
+            + "\n  · ".join(running_list)
+            + "\n\n退出前会自动停止它们。是否继续？",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -4103,12 +4231,14 @@ class LauncherWindow(QMainWindow):
 # 入口
 # ----------------------------------------------------------------------
 
+
 def _force_foreground(win: "LauncherWindow"):
     try:
         win.raise_()
         win.activateWindow()
         if sys.platform == "win32":
             import ctypes
+
             hwnd = int(win.winId())
             ctypes.windll.user32.ShowWindow(hwnd, 9)
             ctypes.windll.user32.SetForegroundWindow(hwnd)
@@ -4124,8 +4254,12 @@ def _report_startup_failure(message: str):
     """
     try:
         import ctypes
+
         ctypes.windll.user32.MessageBoxW(
-            None, message, "Open-LLM-VTuber 启动器", 0x10  # MB_ICONERROR
+            None,
+            message,
+            "Open-LLM-VTuber 启动器",
+            0x10,  # MB_ICONERROR
         )
     except Exception:
         pass
@@ -4139,6 +4273,7 @@ def main():
         _force_foreground(win)
     except Exception:
         import traceback
+
         detail = traceback.format_exc()
         # 有控制台时也打印一份，方便 debug 模式查看
         print(detail, file=sys.stderr)
