@@ -32,6 +32,10 @@ const OPACITY_CUTOFF = 0.01;
 /** 动作结束事件等待的死锁保护（motionFinish 事件丢失时按此上限放行） */
 const MOTION_FINISH_TIMEOUT_MS = 15000;
 
+/** 参数引擎帧驱动挂点：动作曲线写完后、saveParameters 快照前（beforeModelUpdate 的
+ *  写入会被帧末 loadParameters() 用快照还原，touch 参数恒 0——研究报告 §5.0） */
+const PARAM_DRIVE_EVENT = 'afterMotionUpdate';
+
 /** 动作名归一化（stage1b §9.7 口径）：剥路径与 .motion3.json 等扩展名 → trim → [-\s]+→_ → lowercase */
 function normalizeMotionName(s: string): string {
   return s
@@ -677,6 +681,10 @@ export class L2DRenderer implements CharacterRenderer {
     const model = await Live2DModel.from(modelInfo.url, {
       autoHitTest: false,
       autoFocus: true,
+      // 关闭库的 Idle 组自动随机播放（xinnong_6 的 Idle 组 15 条，静置自动跳——研究报告 §5.5）。
+      // 只能是非空字面量：库仅在 truthy 时覆盖 groups.idle（cubism4.es.js:8540）；不存在的组名
+      // 使 startRandomMotion 安全返回 false（:8683）。idle 播放统一走本地 playIdleOnce()。
+      idleMotionGroup: '__no_auto_idle__',
     });
     this.model = model;
     model.anchor.set(0.5);
@@ -899,7 +907,10 @@ export class L2DRenderer implements CharacterRenderer {
     this.lipSyncHandler = null;
   }
 
-  /** 参数引擎帧驱动：挂在与口型同步相同的 beforeModelUpdate 挂点（每帧 model.update 前） */
+  /** 参数引擎帧驱动：挂在动作曲线写完后、saveParameters 快照前的 afterMotionUpdate
+   *  （库 update 次序 motionManager.update → emit('afterMotionUpdate') → saveParameters →
+   *  眨眼/物理/姿势 → emit('beforeModelUpdate') → model.update → loadParameters 还原；
+   *  挂 beforeModelUpdate 的写入会被帧末快照覆盖，参数恒 0——研究报告 §5.0） */
   private attachParamDriver(): void {
     if (!this.paramDriver) return;
     const im = this.model?.internalModel as unknown as {
@@ -918,7 +929,7 @@ export class L2DRenderer implements CharacterRenderer {
       const core = (this.model?.internalModel as unknown as { coreModel?: ParamCore })?.coreModel;
       if (core) this.paramDriver.update(dt, core, this.pointerNorm);
     };
-    im.on('beforeModelUpdate', this.paramHandler);
+    im.on(PARAM_DRIVE_EVENT, this.paramHandler);
   }
 
   private detachParamDriver(): void {
@@ -927,7 +938,7 @@ export class L2DRenderer implements CharacterRenderer {
       this.model?.internalModel as unknown as {
         off?: (event: string, fn: () => void) => void;
       }
-    )?.off?.('beforeModelUpdate', this.paramHandler);
+    )?.off?.(PARAM_DRIVE_EVENT, this.paramHandler);
     this.paramHandler = null;
   }
 

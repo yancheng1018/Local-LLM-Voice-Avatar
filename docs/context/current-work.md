@@ -1,16 +1,21 @@
 ## 当前阶段
 
 ### 阶段状态
-> **leftover-triage_stage2** 已完成并验收通过（2026-09-17）。B 类遗留清理：
-> launcher 排版重排（N04，AST 等价）+ 调试叠加层拆分达标（N08，195/115/200）
-> + 热区 D 族四条合并为 [hotzone-arch] + [repo-format] 新遗留入档。全量
-> 132 passed。**当前无既定下一阶段，等待新需求**；清理进度见「待处理遗留」。
+> **live2d动作链条修正**：阶段 0+A（ParamDriver 挂点迁 afterMotionUpdate / 关库 idle
+> 自动播放 / 9 模型 touch.json 重下）已完成并验收通过（2026-09-17），收尾完成
+> （契约降级入档、过程文档清理、逆向资产归档）。当前无既定下一阶段，等待新需求；
+> 阶段 B/C 延后候选见待处理遗留。
 
 ### 收尾待办
 > 无
 
 ### 待处理遗留
 
+- [live2d动作链条] 阶段 B（参数权威层/type104/revertIdleIndex/revertActionIndex——
+  G2「动作后热区恢复」与 F2「drag3 后不复位维持」的完整语义）与阶段 C（type12 裁决/
+  形态A 查表/冷却先记/链循环）延后未立项。前置：B 须先更新 spec-l2d-touch-engine.md
+  §10 并经人工批准（研究 §8-1 站点面板↔模型双路径未取证）；S3/F1 已裁不修（站点同款
+  非缺陷，研究 §6.4）。依据：research_live2d动作链条修正.md §7/§8
 - [live2d] 40 个模型 emotionMap 为空（情绪关键词不触发表情）：同样按需补
 - [repo-format] 全仓 25 文件未 ruff format（leftover-triage_stage2 规划实测：
   `ruff format --check .` 报 26 文件，stage2 已清 launcher 1 个，余 25）：15 个

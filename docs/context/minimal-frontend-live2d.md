@@ -138,3 +138,22 @@
   findChainRule action 优先/无 action 放行/ATA.idle 防重复方向/clampChain 三步链/resolve
   触发时序/0 轴排除保留/起点锚定/resetAll）；站点取证与 D4~D7 遗留见
   research_live2d-hotzone-touch-r4.md（已保留归档）
+
+**动作链条修正阶段 0+A（2026-09-17，已验收）**：
+
+- ⚠️ **硬性约定：ParamDriver 挂点必须是 `afterMotionUpdate`**（l2d.ts 常量
+  `PARAM_DRIVE_EVENT`）。库 cubism4.es.js InternalModel.update 帧内次序：动作曲线写
+  参数 → `afterMotionUpdate` → saveParameters 快照 → 眨眼/物理/姿势 →
+  `beforeModelUpdate` → model.update → loadParameters **用快照覆盖**——挂
+  beforeModelUpdate 的写入帧末被还原，touch 参数恒 0。口型 attachLipSync 保持
+  beforeModelUpdate 不迁移（无动作曲线竞争）。守护：`tests/test_l2d_param_hook.py`
+  （静态锚点 + 200 帧运行时对拍写入值收敛）
+- ⚠️ **硬性约定：库的 idle 自动播放必须关闭**——`Live2DModel.from` 传非空哨兵
+  `idleMotionGroup:'__no_auto_idle__'`（库仅在 truthy 时覆盖 groups.idle，空串无效；
+  不存在的组名使 startRandomMotion 安全返回 false）。idle 只能由本地 `playIdleOnce()`
+  按 idleIndex 驱动，否则 Idle 组多的模型（xinnong_6 15 条）静置自发乱跳。附带效果：
+  motionPreload:'IDLE' 不再预载任何组，动作首次播放懒加载（可接受）。守护：
+  `tests/test_l2d_idle_autoplay.py`
+- 数据面：9/36 模型 touch.json 曾为站点**前一编号皮肤**数据（系统性错配），已重下修复
+  （数据源校验规则见 docs/assets/README.md）；根因详情 research_live2d动作链条修正.md。
+  阶段 B（参数权威层/type104/恢复索引）与 C（type12 裁决等）延后未立项，见状态入口遗留
