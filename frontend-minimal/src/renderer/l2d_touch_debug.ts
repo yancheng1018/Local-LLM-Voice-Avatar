@@ -1,17 +1,9 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import type { Ticker } from 'pixi.js';
-import { firstModelPoint, modelRectToScreen, selfCheckConversion, collectHitAreas, zoneLabelParts } from './l2d_touch_debug_helpers';
-import type { TouchDebugModel, TouchZoneState } from './l2d_touch_debug_helpers';
+import { firstModelPoint, modelRectToScreen, selfCheckConversion, collectHitAreas, zoneLabelParts, TEXT_STYLE } from './l2d_touch_debug_helpers';
+import type { TouchDebugModel, TouchZoneState, Region } from './l2d_touch_debug_helpers';
 export type { TouchDebugModel };
 export type { TouchZoneState };
-
-/** 屏幕坐标下的一个待画区域；fill=false 只描边（被剔除区）；dim=非交互区（O/H/G）标签降透明度（research §7 候选 B） */
-interface Region { x: number; y: number; w: number; h: number; color: number; label: string; fill: boolean; dim: boolean }
-
-const TEXT_STYLE = {
-  fontSize: 12, fill: '#ffffff', stroke: '#000000', strokeThickness: 3,
-  fontFamily: "'Segoe UI', 'Microsoft YaHei', sans-serif",
-};
 
 const HINT_TEXT = '未命中可交互热区';
 const HINT_MS = 1200;

@@ -104,3 +104,12 @@ export function zoneLabelParts(a: TouchZoneState): { mark: string; readout: stri
         : '';
   return { mark, readout };
 }
+
+/** 屏幕坐标下的一个待画区域；fill=false 只描边（被剔除区）；dim=非交互区（O/H/G）标签降透明度（research §7 候选 B）（自 l2d_touch_debug.ts 迁入，字段原样不改） */
+export interface Region { x: number; y: number; w: number; h: number; color: number; label: string; fill: boolean; dim: boolean }
+
+/** 标签/提示文本样式（自 l2d_touch_debug.ts 迁入，内容原样不改） */
+export const TEXT_STYLE = {
+  fontSize: 12, fill: '#ffffff', stroke: '#000000', strokeThickness: 3,
+  fontFamily: "'Segoe UI', 'Microsoft YaHei', sans-serif",
+};

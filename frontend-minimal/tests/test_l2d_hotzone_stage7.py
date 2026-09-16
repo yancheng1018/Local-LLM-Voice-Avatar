@@ -45,7 +45,7 @@ def test_empty_not_label_prefix():
 
 def test_dim_noninteractive_labels():
     main = read(MAIN)
-    assert "dim: boolean" in main
+    assert "dim: boolean" in read(HELPERS)  # Region 声明已迁 helpers（leftover-triage_stage2 §B1）
     assert "dim: !fill" in main
     assert "alpha = r.dim ? 0.45 : 1" in main
 
