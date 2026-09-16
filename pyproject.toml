@@ -45,6 +45,9 @@ bilibili = [
     "Brotli~=1.1.0",
     "yarl~=1.9.3",
 ]
+test = [
+    "pytest~=8.0",
+]
 
 [tool.pixi.project]
 channels = ["conda-forge"]
