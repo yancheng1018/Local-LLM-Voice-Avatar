@@ -31,7 +31,10 @@ def test_release_passes_downhit():
     src = read("src/renderer/l2d.ts")
     lines = src.split("\n")
     idx = next(i for i, ln in enumerate(lines) if "'pointerup'" in ln)
-    window = "\n".join(lines[idx : idx + 31])  # 锚点后 30 行内
+    # 整个 pointerup handler 块：锚点行到 addEventListener 闭合 "    });"
+    # （原「锚点后 30 行」窗口会随 handler 扩码漂移误报，research3 impl_report §6）
+    end = next(j for j in range(idx, len(lines)) if lines[j] == "    });")
+    window = "\n".join(lines[idx : end + 1])
     assert "downHit," in window  # emitInteraction 第 4 实参
     call = window[window.index("this.emitInteraction(") :]
     call = call[: call.index(");")]
