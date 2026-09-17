@@ -132,8 +132,12 @@
 
 - 叠加层 `l2d_touch_debug.ts`：区状态 ok/H/O/G/T 着色 + 参数读数 + idleIndex 读数（语义契约
   见 spec-l2d-touch-engine.md §8）；纯渲染逻辑已拆 `l2d_touch_debug_helpers.ts`（106 行）
-- ⚠️ **行数上限例外：`l2d_touch_debug.ts` 220 行封顶**（原定 ≤200，r2 净减后实测 203 行仍超；
-  叠加层绘制与状态语义注释不可再压，再加功能先拆分而非续压，参照 l2d_params.ts 先例）
+- ⚠️ **行数上限例外：`l2d_touch_debug.ts` 实际守护 = 200 行**（`test_l2d_debug_line_budget`
+  LIMIT=200；本条目旧「220 封顶」为过时口径）。research2 实施后实测 199 行，零余量，
+  再加功能先拆分而非续压（参照 l2d_params.ts 先例）
+- ⚠️ **行数上限例外：`l2d.ts` 1081 行**（仓内最大源文件、核心渲染器；research3 收尾
+  裁决 2026-09-18：拆分属重构工程另立项，登记例外不设 LIMIT 守护，下次对其加新功能
+  前先决策拆分）
 - 调试栏滑条**指针捕获**（r4 §10.2-C）：pointerdown 即 `setPointerCapture`（try/catch 兜底），
   拖出滑条外释放 pointerup 也必达，防 `active` 滞留导致该行永不回写（面板"不刷新"）
 - r2 系列（v1~v4）四轮修正定案已并入 spec-l2d-touch-engine.md（透明剔除收回/G 前移/
@@ -158,4 +162,45 @@
   `tests/test_l2d_idle_autoplay.py`
 - 数据面：9/36 模型 touch.json 曾为站点**前一编号皮肤**数据（系统性错配），已重下修复
   （数据源校验规则见 docs/assets/README.md）；根因详情 research_live2d动作链条修正.md。
-  阶段 B（参数权威层/type104/恢复索引）与 C（type12 裁决等）延后未立项，见状态入口遗留
+  阶段 B 已完成验收（2026-09-18）；type12 裁决已随 research2 落地（见下节）；阶段 C
+  其余项见状态入口遗留
+
+**live2d动作链条-research2 实施（2026-09-18，已完成验收）**：
+
+- **type12 全局动作裁决**（模块约定 R2-a，2026-09-18 验收定案）：判定值源 = ParamDriver 内部值（本地参数
+  权威层，不得读 core 实时值），半开区间 `lo<v<=hi`；扩展判定**优先于** ATA 全局名单
+  （返回布尔即短路，v2 spec §3.2）。入口：`l2d_touch.ts type12Decision()` +
+  `TouchChain.paramGate`（main.ts 注入渲染器实现）；l2d.ts 命中门槛与叠加层
+  blockedEnable 走 `actionAllowedWithParamGate` 组合闸
+- **默认热区伪规则过闸**（模块约定 R2-b，2026-09-18 验收定案）：touchhead/touchbody/touchspecial 与 gname
+  直播兜底过同一动作闸；**只受约束、不产生约束**——不推进链状态/冷却（站点默认区
+  仅过闸语义，v2 spec §2.5）
+- **idle 循环化方案A′**（模块约定 R2-c，2026-09-18 验收定案；初版方案A 已被人工验收证伪）：本地库
+  解析 Meta.Loop 但不接线（pixi-live2d-display cubism4.es.js :3283→:3822 存
+  _motionData.loop 无消费者，播放判定只读 _isLoop 默认 false）——「尊重数据标志」须
+  playIdleOnce 播放成功后显式 `enableIdleLoop`（setIsLoop(true)）落实，**仅 idle 路径**
+  （全库动作数据 Loop=true 而站点动作单次，循环不得外溢）；库自动播放哨兵
+  `'__no_auto_idle__'` 保留（禁随机跳，非禁循环）。自愈分层表述废止（research3 F3/F8 证伪）：drag4/5 为 slide 型 mode-1 注册参数，同样被
+  ParamDriver 每帧钉死；idle 曲线 touch_drag3/4/5 首末值均 0 且被钉死层覆盖，无自愈层；
+  drag4/5 热区可见性由 touch_drag3 值驱动美术层（opacity=值/10，值=10 才入画布）——值卡中值
+  则三连锁（卡值/type12 门死锁/热区不出现），详见 research_live2d动作链条-research3.md。
+- v2 修正说明（2026-09-18）：上行原方案A 表述「循环由 motion3.json Meta.Loop=true 数据
+  标志驱动」为验收失败根因（库解析 Loop 但无消费者，须显式 enableIdleLoop；证据与
+  修订原 temp_spec_v2 §0，过程文档已清理，摘要见 archive.md 2026-09-18 research2 条目；
+  研究文档 research2 §3.3 机制归因同步作废，以本条为准）
+- **叠加层 core 写入值列**：`TouchZoneState.coreValue`（core.getParameterValueById，
+  旧 core 无此 API 自动降级单显）；标签 |内-核|>0.05 双显 `内→核`；持续 60 帧
+  idleText 追加 ⚠写入失效（写入失效=动作曲线残留/层间混淆定位仪，research2 §5-Q5）
+- **touch.json 清库**（模块约定 R2-d，2026-09-18 验收定案）：全库对照站点快照（su_ships-CN.json +
+  _ships_cache），确认「站点无规则而本地有」2 例——shengluyisi_4（54 条 = _5 错配）
+  与 chaijun_4（17 条），已清空 rules=[]（文件保留，默认三区靠代码合成仍可用）；
+  shi_3 同型嫌疑排除（71==71 与站点同源）。守护：test_l2d_touch_data.py CLEARED
+
+**research3 修正（2026-09-18，已完成验收）**：
+- F1 根因：pointerup 重命中失配 → poke 丢失 → 值冻在按下点角度派生中值（4.76/7.73 类）；
+  值→几何自反馈（F2：值 0→10 时 TouchDrag3 模型坐标 x 1675→−14418）使抬起命中必然失配。
+- 修复：emitInteraction 增 pressedZone 回退参数（抬起命中失败→用按下区；drag 不回退），
+  tap/longpress 的 poke 与动作分发均落在按下区。
+- F5 死锁链（修复后解除入口）：值卡 (0.01,10] → type12 门关 → touchbody 链不推进 →
+  idleIndex 恒 0 → revertOnIdle 不触发。修复后首次点击即收敛到 10，drag4/5 入画布可拖，
+  复位路径恢复可达。

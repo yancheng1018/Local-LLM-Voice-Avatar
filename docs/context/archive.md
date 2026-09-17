@@ -2,6 +2,27 @@
 
 > 压缩格式：日期 + 做了什么 + 留下的契约/文件。过程性叙述不复述，事实以代码与 git log 为准。
 
+## 2026-09-18 Live2D 动作链条 research2_v2 + research3（type12 裁决 + tap 抬起命中回退）
+- 依 temp_spec_live2d动作链条-research2.md（v1）+ _v2.md + _research3.md 实施（原文已删）。
+  v1→v2 验收失败根因：方案A 假设「idle 循环由 motion3.json Meta.Loop 数据标志驱动」——库
+  解析 Loop 但无消费者（cubism4.es.js _isLoop 默认 false），须 playIdleOnce 后显式
+  enableIdleLoop（setIsLoop(true)），且仅 idle 路径防循环外溢；v2「自愈分层」前提又被
+  research3 F3/F8 证伪（drag4/5 亦 mode-1 每帧钉死，无自愈层），分层表述废止订正
+- 落地：type12 全局动作裁决（值源=ParamDriver 内部值、半开区间 lo<v<=hi、优先 ATA 名单）；
+  默认热区伪规则过闸（只受约束不产生约束）；idle 循环方案A′；touch.json 清库 2 例
+  （shengluyisi_4/chaijun_4 rules=[]，守护 test_l2d_touch_data.py CLEARED）；tap 抬起
+  命中回退（emitInteraction 增 pressedZone，修复 drag3 卡中值/type12 门死锁/drag4-5
+  热区不出现三连锁——根因 pointerup 重命中失配→poke 丢失，值→几何自反馈所致）
+- 新增回归：test_l2d_type12_gate / test_l2d_release_fallback / test_l2d_core_value_readout；
+  全量 170 全绿 + npm build 通过
+- 契约候选终判（五问①均模块级降级）：R2-a/b/c/d 定案为模块约定入
+  minimal-frontend-live2d.md；R2-e 分层半句维持废止、「mode-1 不归零」并入 R2-a 域；
+  research3 候选（抬起回退语义）驳回——测试逐字锚定自守
+- 验收（2026-09-18 用户宣告通过）：guanghui_9 点 drag3 收敛 10/type12 门/drag4-5 可拖/
+  复位回基线 + §7-4 回归四步全过
+- 过程文档清理：temp_spec/impl_report ×6 删除；research_live2d动作链条-research2/3.md
+  与 research_plan ×2 留存（取证链，模块文档引用）
+
 ## 2026-09-18 Live2D 动作链条修正 阶段B（live2d动作链条修正2 + v2 修复轮）
 - 依 temp_spec_live2d动作链条修正2.md（v1）+ _v2.md 实施：TouchChain 链步状态机
   （action_list (si+1)%len 循环推进/ATA active_list 覆盖/形态A 目标 idle 查表/steps
