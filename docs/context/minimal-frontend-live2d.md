@@ -59,11 +59,13 @@
 - `src/renderer/l2d_params.ts`：l2d.su 同款规则驱动参数引擎（mode1 circle/drag 状态机 +
   mode2 指针反应 + type103 查表 + localStorage 持久化）。契约与测试口径已并入
   `spec-l2d-touch-engine.md`（原 temp_spec_stage2.md），逆向结论见 `spec-l2dsu-engine.md`
-- ⚠️ **行数上限例外：该文件 220 行封顶（规格书原定 ≤200，实现 215 行）**。
+- ⚠️ **行数上限例外：该文件 390 行封顶（2026-09-18 阶段B 关系预设层后实测 390；
+  stage2 时为 215/220 封顶）**。
   理由：4 轮压缩（242→215）已删尽全部可删排版，剩余超标全是逆向语义契约注释，
   删了丢可读性；拆分方案已否决——纯函数与状态机共享 ParamRule 域模型，
   且 test_params_module_exists 按文件路径断言四个 export function 位置（测试语义不得改）。
   若 stage3 后续给引擎加 listenerData 等新职责导致明显超限，再按职责拆分（数学纯函数 vs 状态机）
+  （阶段B 已拆出关系预设纯函数 l2d_params_relations.ts，86 行）
 
 **stage3 一键复位（2026-09-14，Live2D 模型复位）**：
 

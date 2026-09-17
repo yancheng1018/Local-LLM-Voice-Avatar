@@ -19,7 +19,8 @@
 | 文件 | 职责 |
 |------|------|
 | `renderer/l2d_touch.ts` | `TouchChain`：ATA 白名单/链状态/冷却/localStorage（纯逻辑无 pixi） |
-| `renderer/l2d_params.ts` | `ParamDriver`：slide/circle/mode2/type103 参数驱动 + 持久化（220 行封顶例外，见 minimal-frontend.md） |
+| `renderer/l2d_params.ts` | `ParamDriver`：slide/circle/mode2/type103 参数驱动 + 持久化（390 行封顶例外，见 minimal-frontend.md） |
+| `renderer/l2d_params_relations.ts` | 关系预设纯函数：toRelationPresets / relationWrites / revertingOnIdle（无 pixi/localStorage 依赖） |
 | `renderer/l2d.ts` | 规则注册、命中判定、动作播放、idle、仪表盘数据源 |
 | `renderer/l2d_touch_debug.ts` | 叠加层仪表盘（区状态/参数读数/idleIndex 读数） |
 | `src/main.ts` | 手势分发：规则命中走 TouchChain/playAction，否则启发式 |
@@ -29,7 +30,9 @@
 `test_l2d_touch_redlines.py`（r2 红线：状态序/链 action 优先/兜底静默/行数契约）、
 `test_l2d_touch_param_semantics.py`（r2_v3/v4 参数语义：无 action 放行/slide 注册/轴排除/
 dragDirect 门控/resetAll）、`test_l2d_clamp_chain_runtime.py`（clampChain 与站点三步链
-运行时数值对拍）、`test_touch_debug_overlay.py`（叠加层接线）。
+运行时数值对拍）、`test_touch_debug_overlay.py`（叠加层接线）、
+`test_l2d_touch_chain_stepping.py`（链步状态机：循环/ATA 覆盖/形态A 目标 idle）、
+`test_l2d_param_relations.py`（关系预设层 + 驱动链同步/复位/carrier）。
 
 ## 3. 规则注册（l2d.ts loadTouchRules）
 
@@ -81,6 +84,9 @@ dragDirect 门控/resetAll）、`test_l2d_clamp_chain_runtime.py`（clampChain �
   （`touch_idle17→TouchIdle17`）。
 - **body 连点链**（偏离项 D2，游戏语义）：TouchBody 命中走 touch_idleN 编号递进（闲置 10s 重置、
   走完一轮冷却 60s、冷却期播 touch_body/touch_*、缺号自动跳过），resolve 应用 ATA → idleIndex 推进。
+- action_list 链步（v2 §3.1 ⑩）：(si+1)%len 循环推进、持久化于 l2d-touch:* 的 steps 字段；
+  dispatch 动作 = at.action ?? step.action（7 条全库死区由此激活）；ATA = active_list[si] ??
+  整条（全库 0 命中，语义就绪）；形态A 查表用目标 idle（v2 §3.2 修正；全库 0 命中）。
 
 ## 6. 动作播放与 idle
 
@@ -112,6 +118,16 @@ dragDirect 门控/resetAll）、`test_l2d_clamp_chain_runtime.py`（clampChain �
 - **resetAll**（r3 R-1/R-2/R-5）：全部状态回 startValue、清 dirty/saved/hold/poke、删
   localStorage 持久化键（防「复位→刷新」残留回填）；接入「复位模型」序列
   （resetTouchChain → paramDriver.resetAll → playIdleOnce）。
+- 关系预设层（l2d_params_relations.ts，阶段B）：type104 = idleIndex 匹配 rel.idle 时每帧写
+  rel.name = target ?? start ?? 0（feiteliedadi_3 维持语义）；type103 = relation_value[链步]
+  （v2 §4.4 修正，旧数值线性映射已废）；revertIdleIndex 1|'1' 于 idle 变化时复位（参数→startValue、
+  关系参数→start，55 条活数据）；revertActionIndex=1 于步差复位（全库数据死路，语义就绪）；
+  载体规则（carrier）仅承载预设、自身参数不做手势驱动。预设写在自身参数之后（同名时关系层胜出）。
+  数据事实（36 模型普查，2026-09-17）：**type103 表字段 = 蛇形 `relation_value`（6/6 条，
+  真实数据字段一律原样入 TS；驼峰错配曾致生产不生效+夹具同名全绿假象，测试夹具须与真实数据
+  同形）**；type104 9 条/仅 feiteliedadi_3；action_list 7 条/4 模型（全无 at.action，步进激活）；
+  active_list 全库 0 条（语义就绪）；revertIdleIndex 55 条/13 模型（全为 "1"）；形态A 全库 0 条。
+  ⚠️ shengluyisi_4/5 的 TouchDrag 规则因 moc3 无同名绘画件未注册（数据↔模型不匹配，待 research）。
 
 ## 8. 仪表盘（l2d_touch_debug.ts）
 
@@ -129,9 +145,11 @@ dragDirect 门控/resetAll）、`test_l2d_clamp_chain_runtime.py`（clampChain �
 
 ## 10. 明确不做
 
-type12（num 监听）、type7 listenerData（Limit_box）、relationParameter 超出 lookup103 部分、
+type12（num 监听）、type7 listenerData（Limit_box）、relationParameter type101/102（拖动线性/y 轴）、
 tips/dragRate/ignoreDrag（全站 JS 0 命中死数据）、逐像素 alpha、ATA 门槛自动解锁、dynamicFlags
-可见性启用。诊断中遇到按「未实现」标注。
+可见性启用、冷却先记（被拒也吃冷却）。诊断中遇到按「未实现」标注。
+（2026-09-17 修订：type104 idle 预设与 type103 链步查表已实现并移出本清单——
+live2d动作链条修正2 阶段，用户批准；依据 spec-l2dsu-engine-v2.md §4.4。）
 
 ## 11. 遗留问题与下一步
 

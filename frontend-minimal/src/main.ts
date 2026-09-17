@@ -118,6 +118,7 @@ ws.register('set-model-and-conf', (data) => {
     // 规则区交互门槛 + idle 回放组名需要链状态：注入只读回调（spec stage3 §3.2/§3.4）
     activeRenderer.actionAllowed = (n) => touchChain.isActionAllowed(n);
     activeRenderer.chainIdleIndex = () => touchChain.currentIndex;
+    activeRenderer.chainStepIndex = (rid) => touchChain.stepIndex(rid);
     activeRenderer.resetTouchChain = () => touchChain.reset();
     const chainGroups = () =>
       activeRenderer

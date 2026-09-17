@@ -1,6 +1,6 @@
 /**
- * Live2D 参数驱动引擎（纯逻辑 + localStorage，无 pixi 依赖，≤220 行，
- * 2026-09-13 放宽：逆向语义契约注释密度高，拆分会破坏单文件布局+测试断言，见 minimal-frontend.md）。
+ * Live2D 参数驱动引擎（纯逻辑 + localStorage，无 pixi 依赖，≤390 行，
+ * 2026-09-13 放宽至 220、2026-09-18 阶段B 后再放宽至 390（语义契约注释密、拆分破坏测试断言），见 minimal-frontend.md）。
  * l2d.su 参数侧语义：mode1 circle=按住绕区中心的「转盘」（l2d.ts 每帧按 atan2 角度算值经
  * setHoldValue 下传，hold 中平滑趋近、不回落；单击 poke=翻转开关：目标在 circleTarget/startValue
  * 间切换后到位停留，不自动回落）；slide（无 action 且 offset≠0，typed-无 action 同走线性）=拖拽轴灵敏度
@@ -9,8 +9,8 @@
  * mode1 drag(type1/6/7)=拖动累积值（type103 查表）驱动；mode2=指针归一化 × 增益求和。动作播放归 TouchChain。
  */
 
-/** relationParameter.list[].type === 103：查表驱动（relation_value）标记 */
-export const RELATION_LOOKUP_TYPE = 103;
+import { relationWrites, revertingOnIdle, type RelationPreset } from './l2d_params_relations';
+
 /** localStorage 存储键前缀（构建产物断言依赖，勿改字面量） */
 export const PARAM_STORAGE_PREFIX = 'l2d-param:';
 
@@ -21,10 +21,14 @@ export interface ParamRule {
   startValue: number; range: [number, number]; rangeAbs?: number; dragDirect?: number;
   /** smooth/revertSmooth=ms 时间常数；revert=-1 不自动归位；saveParameter≠-1 且 revert=-1 → 持久化 */
   smooth?: number; revertSmooth?: number; revert?: number; saveParameter?: number;
-  /** reactPosX/Y=mode2 增益；relationValue=type 103 查表；circleTarget={circle:true,target:N}
+  /** reactPosX/Y=mode2 增益；circleTarget={circle:true,target:N}
    *  slide=slide 型拖拽轴灵敏度（无 actionTrigger 且 offset≠0，offsetX/Y 是灵敏度非位置） */
-  reactPosX?: number; reactPosY?: number; relationValue?: number[]; circleTarget?: number;
+  reactPosX?: number; reactPosY?: number; circleTarget?: number;
   slide?: { ox: number; oy: number };
+  /** 关系预设（type103 链步查表 / type104 idle 预设）；revertOnIdle=revertIdleIndex 1|'1'；
+   *  revertOnStep=revertActionIndex===1（步差复位，全库死路）；carrier=载体规则（不做手势驱动） */
+  relations?: RelationPreset[];
+  revertOnIdle?: boolean; revertOnStep?: boolean; carrier?: boolean;
 }
 
 /** 防御式结构类型，调用方传 internalModel.coreModel（Cubism 4 core） */
@@ -58,14 +62,6 @@ export function clampChain(value: number, r: Pick<ParamRule, 'range' | 'rangeAbs
   return clamp(v, r.range[0], r.range[1]);
 }
 
-/** type 103 查表：value/rangeMax 线性映射到 relation_value 下标后取值 */
-export function lookup103(relationValue: number[], value: number, rangeMax: number): number {
-  const len = relationValue.length;
-  if (!len || !Number.isFinite(value)) return 0;
-  const rm = rangeMax > 0 ? rangeMax : 1;
-  return relationValue[clamp(Math.round((value / rm) * (len - 1)), 0, len - 1)] ?? 0;
-}
-
 /** mode2 目标值：同 parameter 只取最小 id（存在更小 id 的大 id 规则跳过），Σ(reactPosX×nx + reactPosY×ny) */
 export function reactSum(rules: ParamRule[], nx: number, ny: number): number {
   const best = new Map<string, ParamRule>();
@@ -97,6 +93,10 @@ export class ParamDriver {
   private holdAcc = { x: 0, y: 0 };
   /** hold 起点的当前值（r3 §5.1 站点 interaction.values 语义：拖拽从当前值续算，非 startValue 重锚） */
   private holdBase = 0;
+  /** 链上下文（paramHandler 每帧 syncChainState 下传）：当前 idle、步查询、步差检测、复位队列 */
+  private chainIdle: number | null = null;
+  private stepOf: (id: number) => number = () => 0; private prevSteps = new Map<number, number>();
+  private pendingResets: ParamRule[] = [];
 
   constructor(private readonly storagePrefix: string) {}
 
@@ -182,13 +182,12 @@ export class ParamDriver {
     const now = Date.now();
     for (const r of this.rules) {
       const st = this.states.get(r.id);
-      if (!st || r.mode === 2) continue;
+      if (!st || r.mode === 2 || r.carrier) continue;
       const holding = this.holdId === r.id;
       if (r.circleTarget !== undefined) this.stepCircle(r, st, dt, holding);
       else if (r.slide) this.stepSlide(r, st, dt, holding);
       else this.stepDrag(r, st, dt, now, holding);
-      const out = r.relationValue ? lookup103(r.relationValue, st.value, r.range[1]) : st.value;
-      this.writeParam(r, st, core, out);
+      this.writeParam(r, st, core, st.value);
     }
     // mode2：target = reactSum；同 parameter 取最小 id 者代表写参数
     const mode2 = this.rules.filter((r) => r.mode === 2);
@@ -203,6 +202,33 @@ export class ParamDriver {
       st.value += (target - st.value) * this.k(dt, r.smooth);
       this.writeParam(rep, st, core, st.value);
     }
+    // 关系预设层：复位队列落地 + 每帧覆写；预设写在自身参数之后（同名时关系层胜出，对齐站点目标层次序）
+    for (const r of this.pendingResets) {
+      this.resetRule(r);
+      for (const rel of r.relations ?? []) {
+        this.writePreset(rel.name, rel.start ?? r.startValue ?? 0, core);
+      }
+    }
+    this.pendingResets = [];
+    for (const w of relationWrites(this.rules, this.chainIdle ?? 0, this.stepOf)) {
+      this.writePreset(w.name, w.value, core);
+    }
+  }
+
+  /** 链上下文同步（l2d.ts paramHandler 每帧调用，先于 update）：idle 变化 → revertOnIdle
+   *  规则入复位队列（站点 resetLive2DRulesForIdle）；revertOnStep 规则步差入队（站点 ⑪） */
+  syncChainState(idle: number, stepOf: (id: number) => number): void {
+    if (this.chainIdle !== null && idle !== this.chainIdle) {
+      this.pendingResets.push(...revertingOnIdle(this.rules, this.chainIdle, idle));
+    }
+    for (const r of this.rules) {
+      if (!r.revertOnStep) continue;
+      const s = stepOf(r.id);
+      if (this.prevSteps.has(r.id) && this.prevSteps.get(r.id) !== s) this.pendingResets.push(r);
+      this.prevSteps.set(r.id, s);
+    }
+    this.chainIdle = idle;
+    this.stepOf = stepOf;
   }
 
   /** 只读：按参数名取当前内部值（叠加层验收仪表盘用，spec stage5 §2.6）；无此参数返回 undefined */
@@ -337,6 +363,24 @@ export class ParamDriver {
       st.saved = out;
       st.dirty = true;
     }
+  }
+
+  /** 单规则复位（站点 resetLive2DTouchRuleParameters）：状态回 startValue；关系参数复位值由调用处 writePreset 写 */
+  private resetRule(r: ParamRule): void {
+    const st = this.states.get(r.id);
+    if (!st) return;
+    st.value = st.dragAccum = st.saved = r.startValue;
+    st.dirty = r.revert === -1 && r.saveParameter !== -1;
+    st.phase = 'idle';
+    st.pokeTarget = r.startValue;
+    st.holdValue = undefined;
+  }
+
+  /** 关系参数直写（无状态机）：模型级 parameterRange 钳制后写 core */
+  private writePreset(name: string, v: number, core: ParamCore): void {
+    const pr = this.parameterRange[name];
+    const out = pr ? clamp(v, pr[0], pr[1]) : v;
+    if (Number.isFinite(out)) core.setParameterValueById?.(name, out);
   }
 
   /** 指数趋近系数：k = 1 - exp(-dt / smooth) */

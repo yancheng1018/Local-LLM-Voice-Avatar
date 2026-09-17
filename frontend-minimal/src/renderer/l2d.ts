@@ -4,8 +4,9 @@ import { TouchDebugOverlay } from './l2d_touch_debug';
 import type { TouchDebugModel, TouchZoneState } from './l2d_touch_debug';
 import type { ModelInfo, CharacterRenderer } from './types';
 import type { TouchRule, TouchData, TouchActionStep } from './l2d_touch';
-import { ParamDriver, canvasNorm, PARAM_STORAGE_PREFIX, RELATION_LOOKUP_TYPE } from './l2d_params';
+import { ParamDriver, canvasNorm, PARAM_STORAGE_PREFIX } from './l2d_params';
 import type { ParamRule, ParamCore } from './l2d_params';
+import { toRelationPresets } from './l2d_params_relations';
 import { DebugPanel } from './l2d_debug_panel';
 
 /** 空间热区条目：touch.json 规则（或默认热区伪规则）+ 对应绘画件索引。
@@ -109,6 +110,8 @@ export class L2DRenderer implements CharacterRenderer {
   actionAllowed: (name: string) => boolean = () => true;
   /** main.ts 注入：触摸链当前 idleIndex（ATA.idle 门槛 + idle 回放组名用） */
   chainIdleIndex: () => number = () => 0;
+  /** 规则链步只读回调（main.ts 注入 TouchChain.stepIndex；未注入恒 0 = 站点 || 0 缺省） */
+  chainStepIndex: (ruleId: number) => number = () => 0;
   /** main.ts 注入：触摸链状态归零（复位时用，不持有 TouchChain 实例） */
   resetTouchChain: (() => void) | null = null;
 
@@ -612,9 +615,6 @@ export class L2DRenderer implements CharacterRenderer {
     if (!param) return null;
     const at = rule.actionTrigger;
     const mode = typeof rule.mode === 'number' ? rule.mode : 1;
-    const rel = (
-      rule.relationParameter as { list?: { type?: number; relation_value?: unknown }[] } | undefined
-    )?.list?.[0];
     const num = (v: unknown): number | undefined => (typeof v === 'number' ? v : undefined);
     const pr: ParamRule = {
       id: num(rule.id) ?? 0,
@@ -631,10 +631,11 @@ export class L2DRenderer implements CharacterRenderer {
       reactPosX: num(rule.reactPosX),
       reactPosY: num(rule.reactPosY),
     };
+    const relations = toRelationPresets(rule);
+    if (relations) pr.relations = relations;
+    if (rule.revertIdleIndex === 1 || rule.revertIdleIndex === '1') pr.revertOnIdle = true;
+    if (rule.revertActionIndex === 1) pr.revertOnStep = true;
     if (at?.circle) pr.circleTarget = num(at.target) ?? 1;
-    if (rel?.type === RELATION_LOOKUP_TYPE && Array.isArray(rel.relation_value)) {
-      pr.relationValue = rel.relation_value as number[];
-    }
     if (pr.circleTarget !== undefined) return pr; // 点戳/画圈手势（type 2 + circle）
     if (mode === 1 && (at?.type === 1 || at?.type === 6 || at?.type === 7)) return pr; // 拖动型
     if (mode === 2 && (pr.reactPosX !== undefined || pr.reactPosY !== undefined)) return pr;
@@ -643,7 +644,9 @@ export class L2DRenderer implements CharacterRenderer {
     if (!at?.action && ((num(rule.offsetX) ?? 0) !== 0 || (num(rule.offsetY) ?? 0) !== 0)) {
       return { ...pr, slide: { ox: num(rule.offsetX) || 0, oy: num(rule.offsetY) || 0 } };
     }
-    return null; // 其余（动作组载体等）只走空间热区 → TouchChain
+    // 载体规则：自身无手势驱动面但携带关系预设（如 feiteliedadi_3 TouchDrag1/3/4/5 等
+    // type2 无 circle/offset），必须登记进 ParamDriver 预设层才能每帧覆写
+    return relations ? { ...pr, carrier: true } : null;
   }
 
   /** 绘画件当前包围盒（canvas 空间，顶点实时随姿势更新） */
@@ -927,7 +930,10 @@ export class L2DRenderer implements CharacterRenderer {
       const dt = Math.min(now - this.lastParamAt, 100);
       this.lastParamAt = now;
       const core = (this.model?.internalModel as unknown as { coreModel?: ParamCore })?.coreModel;
-      if (core) this.paramDriver.update(dt, core, this.pointerNorm);
+      if (core) {
+        this.paramDriver.syncChainState(this.chainIdleIndex(), this.chainStepIndex);
+        this.paramDriver.update(dt, core, this.pointerNorm);
+      }
     };
     im.on(PARAM_DRIVE_EVENT, this.paramHandler);
   }

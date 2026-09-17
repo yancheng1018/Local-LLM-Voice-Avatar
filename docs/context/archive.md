@@ -2,6 +2,27 @@
 
 > 压缩格式：日期 + 做了什么 + 留下的契约/文件。过程性叙述不复述，事实以代码与 git log 为准。
 
+## 2026-09-18 Live2D 动作链条修正 阶段B（live2d动作链条修正2 + v2 修复轮）
+- 依 temp_spec_live2d动作链条修正2.md（v1）+ _v2.md 实施：TouchChain 链步状态机
+  （action_list (si+1)%len 循环推进/ATA active_list 覆盖/形态A 目标 idle 查表/steps
+  持久化）；新建 `l2d_params_relations.ts` 关系预设纯函数层（type104=idleIndex 匹配
+  每帧写 target??start??0；type103=relation_value[链步]，v2 修正蛇形字段错配——v1
+  规格伪代码写驼峰 relationValue 致生产不生效+夹具同名全绿假象）；ParamDriver
+  syncChainState+复位队列（revertIdleIndex 1|'1' / revertActionIndex=1 步差）+预设
+  覆写+载体规则 carrier；l2d.ts/main.ts 接线 chainStepIndex
+- 测试：新增 test_l2d_touch_chain_stepping.py / test_l2d_param_relations.py（13 用例，
+  夹具与真实数据同形）；stage2 两处语义随迁；param_hook/clamp_chain esbuild --bundle
+  修复。全量 152 全绿
+- 契约沉淀（均降级模块文档）：B2-B4 语义入 spec-l2d-touch-engine.md §5/§7（含蛇形
+  字段数据事实）；B5（esbuild 必 --bundle）与「夹具字段名与真实数据同形」入
+  minimal-frontend-foundation.md；l2d_params.ts 行数上限 220→390 订正
+- 验收（2026-09-18 用户宣告通过）：feiteliedadi_3 F2 维持语义、aerbien_3 TouchDrag17
+  死区激活、wuqi_3/xinnong_6 回归、guandao_3 恒表[0]（清缓存后确认——hash 资产更新
+  依赖 index.html 不被缓存，验收前清缓存）
+- 转 research（[live2d动作链条-research2]，见 current-work.md）：guanghui_9 touchhead
+  门控/结束后无热区卡死、idle 不循环静置冻结、shengluyisi_4/5 moc3 无 TouchDrag 绘画件
+- temp_spec/impl_report（v1+v2）已删除；research_live2d动作链条修正.md 等研究报告留存
+
 ## 2026-09-16 遗留清理第一批（leftover-triage_stage1，A 类机械项）
 - 按 research_leftover-triage.md §5.1/§5.3 清 4 条：新增 `fix_live2d_idle_groups.py`
   （幂等补 model3.json 的大小写精确 Idle 别名组，只在需新增时写回并留 .bak；实测修 37 模型，

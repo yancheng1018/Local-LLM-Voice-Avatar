@@ -1,21 +1,39 @@
 ## 当前阶段
 
 ### 阶段状态
-> **live2d动作链条修正**：阶段 0+A（ParamDriver 挂点迁 afterMotionUpdate / 关库 idle
-> 自动播放 / 9 模型 touch.json 重下）已完成并验收通过（2026-09-17），收尾完成
-> （契约降级入档、过程文档清理、逆向资产归档）。当前无既定下一阶段，等待新需求；
-> 阶段 B/C 延后候选见待处理遗留。
+> **live2d动作链条修正2（含 v2 修复轮）已完成并验收通过（2026-09-18 用户宣告）**。
+> 范围：阶段 B——type104 idle 预设 + revertIdleIndex/revertActionIndex 复位 + 形态A 查表
+> 修正 + action_list 链步（循环步进/active_list 覆盖/type103 链步语义）+ spec §10 边界修订；
+> v2 修正 type103 蛇形 relation_value 字段错配。全量 152 全绿；验收通过项：feiteliedadi_3
+> F2、aerbien_3 死区激活、wuqi_3/xinnong_6 回归、guandao_3 恒表[0]（清缓存后确认）。
+> 未过项转 research（见待处理遗留 [live2d动作链条-research2]）。归档：archive.md 2026-09-18 条目。
 
 ### 收尾待办
-> 无
+> 无（live2d动作链条修正2 收尾已执行完毕：git 提交、契约/文档订正入模块文档、
+> temp_spec/impl_report 过程文档清理——2026-09-18，详见 archive.md）
 
 ### 待处理遗留
 
-- [live2d动作链条] 阶段 B（参数权威层/type104/revertIdleIndex/revertActionIndex——
-  G2「动作后热区恢复」与 F2「drag3 后不复位维持」的完整语义）与阶段 C（type12 裁决/
-  形态A 查表/冷却先记/链循环）延后未立项。前置：B 须先更新 spec-l2d-touch-engine.md
-  §10 并经人工批准（研究 §8-1 站点面板↔模型双路径未取证）；S3/F1 已裁不修（站点同款
-  非缺陷，研究 §6.4）。依据：research_live2d动作链条修正.md §7/§8
+- [live2d动作链条-research2] 聚焦研究立项候选（live2d动作链条修正2 验收分诊沉淀，
+  2026-09-18；细节见 archive.md 2026-09-18 条目）：①站点 touchhead 场景语义——动作
+  播放期参数规则门控（嫌疑=type12 num 监听：guanghui_9 23703161 监听
+  touch_drag3∈[0.01,10]+大 ignore 名单+limitTime 0.1）、动作结束后的 idle/热区恢复
+  （本地实测：结束后无热区+模型卡死+drag3 滞留 2.61）；②idle 生命周期——本地 idle
+  不循环（playIdleOnce，stage1b §0.4；pixi 官方 idle 随机已禁用）致清缓存静置数秒后
+  动态停止（aerbien_3 实测，视线跟随仍正常）vs 站点行为对照与循环化裁决；③
+  shengluyisi_4/5 热区定位——moc3 零 TouchDrag 绘画件（仅 TouchBody/Head/Special），
+  touch.json 的 TouchDrag14 等规则不可达，站点如何为无对应绘画件的规则定热区/模型
+  版本差异；④验收仪表补强——调试叠加层补 core 写入值列（与 ParamDriver 内部值区分，
+  本阶段两次验收栽在仪表上；已有控制台句柄 window.__vtuber 可临时读 core）
+- [live2d动作链条] 阶段 B 已完成并验收（2026-09-18，归档见 archive.md）；剩余延后项：
+  阶段 B 尾巴——type2+target 非 circle 点按写参（v2 §3.1 ⑧，811 条 type2 爆炸半径大，
+  F2 验收不足时另立）；阶段 C——type12 裁决、type9/11/15 条件门槛、冷却先记（被拒也吃
+  冷却）、dynamicFlag 可见性、tips 显隐、type5/10/13、参数权威层全量化（前置：研究
+  §8-1 站点面板↔模型双路径未取证）；链循环 vs D2 取舍待权威层阶段一并裁决。
+  S3/F1 已裁不修（站点同款非缺陷，研究 §6.4）。依据：research_live2d动作链条修正.md §7/§8
+- [spec-writing] 检查项补充候选（live2d动作链条修正2 impl_report §6）：既有运行时测试的
+  esbuild 编译方式（bundle 与否）入断言盘点；规格代码块行数逐块累加替代估算；测试叙事
+  与实现先自演（首同步守卫/次帧可见时序/save 触发方）
 - [live2d] 40 个模型 emotionMap 为空（情绪关键词不触发表情）：同样按需补
 - [repo-format] 全仓 25 文件未 ruff format（leftover-triage_stage2 规划实测：
   `ruff format --check .` 报 26 文件，stage2 已清 launcher 1 个，余 25）：15 个

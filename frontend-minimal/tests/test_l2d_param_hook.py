@@ -56,6 +56,7 @@ def test_param_driver_write_reaches_core_runtime():
                 "node",
                 str(ESBUILD),
                 str(FM / "src" / "renderer" / "l2d_params.ts"),
+                "--bundle",
                 "--format=esm",
                 f"--outfile={out}",
             ],

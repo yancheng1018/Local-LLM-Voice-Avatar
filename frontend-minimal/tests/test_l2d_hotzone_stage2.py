@@ -3,6 +3,7 @@
 
 用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage2 章节，原 temp_spec_stage2.md 已并入；不得增减语义）。
 """
+
 import re
 import subprocess
 import sys
@@ -21,7 +22,7 @@ def test_params_module_exists():
     for s in (
         "export class ParamDriver",
         "export function clampChain",
-        "export function lookup103",
+        "syncChainState(idle: number",
         "export function reactSum",
         "export function canvasNorm",
         "PARAM_STORAGE_PREFIX",
@@ -80,9 +81,10 @@ def test_circle_gesture():
 
 
 def test_relation103():
-    src = read("src/renderer/l2d_params.ts")
-    assert "relationValue" in src
-    assert "103" in src
+    src = read("src/renderer/l2d_params_relations.ts")
+    assert "relation_value" in src
+    assert "RELATION_STEP_TYPE = 103" in src
+    assert "relationWrites" in read("src/renderer/l2d_params.ts")  # 接线证明
 
 
 def test_param_range_clamp():

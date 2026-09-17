@@ -4,6 +4,7 @@
 esbuild 编译 l2d_params.ts → node 导入执行 clampChain → 与站点原文复刻实现对拍。
 参考实现 = 站点反混淆原文（r4 §3.1c）：dragDirect 门控 → rangeAbs → range 钳幅。
 """
+
 import json
 import subprocess
 import tempfile
@@ -41,9 +42,16 @@ def test_clamp_chain_site_parity_runtime():
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "l2d_params_rt.mjs"
         r = subprocess.run(
-            ["node", str(ESBUILD), str(FM / "src" / "renderer" / "l2d_params.ts"),
-             "--format=esm", f"--outfile={out}"],
-            capture_output=True, text=True,
+            [
+                "node",
+                str(ESBUILD),
+                str(FM / "src" / "renderer" / "l2d_params.ts"),
+                "--bundle",
+                "--format=esm",
+                f"--outfile={out}",
+            ],
+            capture_output=True,
+            text=True,
         )
         assert r.returncode == 0, (r.stdout or "")[-500:] + (r.stderr or "")[-2000:]
         vectors = ",".join(
