@@ -120,6 +120,8 @@ ws.register('set-model-and-conf', (data) => {
     activeRenderer.chainIdleIndex = () => touchChain.currentIndex;
     activeRenderer.chainStepIndex = (rid) => touchChain.stepIndex(rid);
     activeRenderer.resetTouchChain = () => touchChain.reset();
+    // type12 扩展判定注入（research2 §3.1）：闸值源=渲染器 ParamDriver 内部值（R2-a）
+    touchChain.paramGate = (n) => activeRenderer.type12DecisionOf(n);
     const chainGroups = () =>
       activeRenderer
         .getMotionGroups()
@@ -158,12 +160,17 @@ ws.register('set-model-and-conf', (data) => {
       if (rule) {
         const param = String(rule.parameter ?? '');
         // 默认热区伪规则（spec stage3 §3.6）：Head/Special 直连 playAction 不进链；
-        // Body 走 touch_idleN 编号递进链
+        // Body 走 touch_idleN 编号递进链。
+        // 伪规则同样过动作闸（research2 §3.1 站点默认区 officialLive2DActionAllowed；
+        // 契约候选 R2-b：只受约束、不产生约束——不推进链状态/冷却）
         if (param === 'touchhead' || param === 'touchspecial') {
-          play(param === 'touchhead' ? 'touch_head' : 'touch_special', rule.id);
+          const canonical = param === 'touchhead' ? 'touch_head' : 'touch_special';
+          if (!activeRenderer.actionAllowedWithParamGate(canonical)) return;
+          play(canonical, rule.id);
           return;
         }
         if (param === 'touchbody') {
+          if (!activeRenderer.actionAllowedWithParamGate('touch_body')) return;
           const now = Date.now();
           if (now - chain.lastAt > CHAIN_RESET_MS) chain.index = 0; // 闲置太久重置
           if (chain.exhaustedAt && now - chain.exhaustedAt < CHAIN_COOLDOWN_MS) return;
@@ -180,7 +187,12 @@ ws.register('set-model-and-conf', (data) => {
             //（空 parameter 规则如 TouchIdleN）| action 含组名；走 TouchChain 自动应用
             // ATA.idle/enable/ignore 与 limitTime 冷却；找不到规则则直接 playAction(gname)
             const chainRule = activeRenderer.findChainRule(gname);
-            const action = chainRule ? touchChain.resolve(chainRule, kind, available) : gname;
+            // chainRule 未命中的直播兜底也过闸（否则绕过 type12/ATA 名单，R2-b）
+            const action = chainRule
+              ? touchChain.resolve(chainRule, kind, available)
+              : activeRenderer.actionAllowedWithParamGate(gname)
+                ? gname
+                : null;
             if (action !== null) play(action, chainRule?.id);
           } else {
             play(byPattern(/^touch_body$/) ?? byPattern(/^touch_/));

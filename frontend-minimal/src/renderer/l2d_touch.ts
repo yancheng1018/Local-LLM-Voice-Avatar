@@ -27,6 +27,8 @@ export interface TouchActionTrigger {
   action?: string | string[];
   action_list?: TouchActionStep[];
   num?: number;
+  /** type12 监听参数（与 num 配对：parameter 值 ∈ 半开区间 num 时规则生效） */
+  parameter?: string;
   time?: number;
   circle?: boolean;
   target?: number;
@@ -50,6 +52,29 @@ export interface TouchData {
   [key: string]: unknown;
 }
 
+/** type12 扩展判定（站点 live2DExtendActionDecision，v2 spec §3.2；research2 §3.1）：
+ *  遍历全部规则，type12 且带 parameter/num 时读 valueOf(parameter)，半开区间
+ *  lo<v<=hi 命中 → 该规则 ATA.ignore 含 actionName 拒 / enable 含则放行（首个命中
+ *  即返回）；无命中返回 undefined（交回全局 ATA 名单）。值源=参数权威层内部值，
+ *  不得读 core 实时值（契约候选 R2-a）。 */
+export function type12Decision(
+  rules: TouchRule[],
+  actionName: string,
+  valueOf: (parameter: string) => number | undefined,
+): boolean | undefined {
+  for (const rule of rules) {
+    const at = rule.actionTrigger;
+    if (!at || at.type !== 12 || !at.parameter || !Array.isArray(at.num)) continue;
+    const [lo, hi] = at.num;
+    const v = valueOf(at.parameter);
+    if (typeof v === 'number' && lo < v && v <= hi) {
+      if (rule.actionTriggerActive?.ignore?.includes(actionName)) return false;
+      if (rule.actionTriggerActive?.enable?.includes(actionName)) return true;
+    }
+  }
+  return undefined;
+}
+
 export class TouchChain {
   private idleIndex = 0;
   private activeRuleId: number | null = null;
@@ -62,6 +87,10 @@ export class TouchChain {
   constructor(private readonly storageKey: string) {
     this.restore();
   }
+
+  /** type12 扩展判定注入（main.ts 提供渲染器侧实现）；未注入 = 无 type12 约束。
+   *  不持久化：判定值源是易变参数值，进 localStorage 无意义（契约候选 R2-a） */
+  paramGate: ((name: string) => boolean | undefined) | null = null;
 
   /** 当前链 idleIndex（只读；stage3 规则区 ATA.idle 门槛与 idle 回放组名使用，纯增量不改既有逻辑） */
   get currentIndex(): number {
@@ -200,7 +229,11 @@ export class TouchChain {
     const name = this.pickAction(t.action) ?? this.pickAction(stepAction);
     if (!name) return null;
     if (!available.includes(name)) return null; // 模型缺该动作组则跳过
-    if (!this.isActionAllowed(name)) return null;
+    // type12 扩展判定优先于全局名单（站点 officialLive2DActionAllowed 顺序：扩展判定
+    // 返回布尔即短路——true 时连全局 ignore 都越过，v2 spec §3.2）；undefined 才回落
+    const ext = this.paramGate?.(name);
+    if (ext === false) return null;
+    if (ext !== true && !this.isActionAllowed(name)) return null;
     return name;
   }
 

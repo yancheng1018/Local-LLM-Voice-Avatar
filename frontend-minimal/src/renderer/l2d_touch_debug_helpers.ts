@@ -74,14 +74,16 @@ export function collectHitAreas(m: TouchDebugModel): { name: string; drawIndex: 
 
 /** 区状态（l2d.ts 每帧提供，spec stage3 v2 §3.3.1）：
  *  ok=可用；H=不可见；T=透明度≤0.01（透明剔除，不可交互；r2 收回 D1/D3）；O=画布外/包围盒无效；G=交互门槛拦截。
- *  paramValue=参数实时值（验收仪表盘）；actionName=无参数区的动作名（spec stage5 §2.6）；
- *  blockedEnable=G 且动作全被 ATA 白名单拒（spec stage6 §2.3 标注 blocked:enable） */
+ *  paramValue=参数实时值（验收仪表盘）；coreValue=core 实际写入值（research2 §5-Q5，
+ *  层间分歧可视化）；actionName=无参数区的动作名（spec stage5 §2.6）；
+ *  blockedEnable=G 且动作全被动作闸拒（spec stage6 §2.3 标注 blocked:enable） */
 export interface TouchZoneState {
   drawIndex: number;
   group: string;
   name: string;
   status: 'ok' | 'H' | 'T' | 'O' | 'G';
   paramValue?: number;
+  coreValue?: number;
   actionName?: string;
   blockedEnable?: boolean;
 }
@@ -96,9 +98,17 @@ export function zoneLabelParts(a: TouchZoneState): { mark: string; readout: stri
         : a.blockedEnable
           ? ' [blocked:enable]'
           : ` [${a.status}]`;
+  // 双显（research2 §5-Q5）：|内部值-core值|>0.05 时 `内部→core`，层间分歧一眼可见
+  //（ε 与 ParamDriver POKE_EPSILON 同源语义）；core 值缺失（旧 core 无 API）只显内部值
+  const dual =
+    a.paramValue !== undefined &&
+    a.coreValue !== undefined &&
+    Math.abs(a.paramValue - a.coreValue) > 0.05;
   const readout =
     a.paramValue !== undefined
-      ? ` ${a.group}=${a.paramValue.toFixed(1)}`
+      ? dual
+        ? ` ${a.group}=${a.paramValue.toFixed(1)}→${a.coreValue!.toFixed(1)}`
+        : ` ${a.group}=${a.paramValue.toFixed(1)}`
       : a.actionName
         ? ` action=${a.actionName}`
         : '';

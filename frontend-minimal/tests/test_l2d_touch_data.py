@@ -50,3 +50,19 @@ def test_ship_skin_id_single_skin():
     assert shi == {205162}, (
         f"shi_3 皮肤号应为 205162（研究 §5.1 实证），实得 {sorted(shi)}"
     )
+
+
+# research2 §6 全库对照（2026-09-18，docs/assets/_ships_cache 快照口径）确认的
+# 「站点无规则而本地有」错配模型，已清空为 {"rules": []}（契约候选 R2-d）
+CLEARED = ["shengluyisi_4", "chaijun_4"]
+
+
+def test_shengluyisi4_rules_empty():
+    """shengluyisi_4 站点 rules=0（research2 §3.4），本地 54 条为 _5 错配数据。"""
+    assert load("shengluyisi_4").get("rules") == []
+
+
+def test_cleared_models_empty():
+    """全部确认错配模型保持 rules=[]；若重新挂规则须走站点同源重下流程。"""
+    for name in CLEARED:
+        assert load(name).get("rules") == [], f"{name} 应保持清空（站点无规则）"

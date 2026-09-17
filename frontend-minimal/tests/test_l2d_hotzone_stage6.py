@@ -83,7 +83,7 @@ def test_regression_core():
         r"Math\.abs\(st\.value - r\.circleTarget\) < POKE_EPSILON \? r\.startValue : r\.circleTarget",
         params,
     )  # poke 翻转停留
-    assert "setIsLoop(false)" in l2d  # Meta.Loop 单次化
+    assert "setIsLoop(false)" not in l2d  # Meta.Loop 单次化废止（research2 §3.3 方案A）
     load = section(l2d, "private async loadTouchRules(")
     assert "group: param || name" in load  # 空参数区注册
     assert "ataIdle === this.chainIdleIndex()" in l2d  # ATA.idle 防重复（r4 §4.3 方向翻转）

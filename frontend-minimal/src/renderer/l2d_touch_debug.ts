@@ -19,6 +19,8 @@ export class TouchDebugOverlay {
   private idleText: Text | null = null;
   private hintText: Text | null = null; // 无命中点击轻提示（research §7 候选 C）
   private hintUntil = 0;
+  /** 写入失效计数（research2 §5-Q5）：内≠核 >0.05 持续 ≥60 帧（≈1s）→ ⚠写入失效；无分歧归零 */
+  private writeFailFrames = 0;
   private hitAreas: { name: string; drawIndex: number }[] = [];
   private warned = false; // 坐标自检失败：只警告一次，后续帧跳过依赖换算的框
 
@@ -107,7 +109,9 @@ export class TouchDebugOverlay {
         : null;
       const gone =
         !!eb && (eb.y + eb.h < 0 || eb.y > window.innerHeight || eb.x + eb.w < 0 || eb.x > window.innerWidth);
-      this.idleText.text = `idleIndex=${this.getChainIdleIndex()}${gone ? ' ⚠链入口出视口' : ''}`;
+      const diverged = (this.getZoneStates() ?? []).some((z) => z.paramValue !== undefined && z.coreValue !== undefined && Math.abs(z.paramValue - z.coreValue) > 0.05);
+      this.writeFailFrames = diverged ? this.writeFailFrames + 1 : 0;
+      this.idleText.text = `idleIndex=${this.getChainIdleIndex()}${gone ? ' ⚠链入口出视口' : ''}${this.writeFailFrames >= 60 ? ' ⚠写入失效' : ''}`;
     }
     this.updateHint();
     this.draw(this.collectRegions(m));

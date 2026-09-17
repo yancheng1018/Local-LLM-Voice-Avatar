@@ -68,10 +68,18 @@ def test_empty_param_registered():
     assert "if (!param) return null" in prule  # ParamDriver 仍不收空参数（仅动作路径）
 
 
-def test_idle_no_loop():
+def test_idle_loop_by_data():
+    """research2 v2 §3 方案A′（2026-09-18 replan）：本地库解析 Meta.Loop 但不接线
+    （cubism4.es.js _motionData.loop 无消费者），循环须 playIdleOnce 后显式 setIsLoop(true)
+    落实，仅 idle 路径；idle 单次化机制废止——「站点播一次即冻结终帧」判定为误观察。"""
     src = read("src/renderer/l2d.ts")
-    assert "setIsLoop(false)" in src  # 机制 2：已加载 motion 置非循环
-    assert "disableIdleLoop" in src
+    assert "setIsLoop(false)" not in src  # 机制 2 已删：不再强制置非循环
+    assert "disableIdleLoop" not in src
+    assert "Meta.Loop" in src  # 库不消费该标志的根因注释必须留档（A′ 依据）
+    assert "setIsLoop(true)" in src  # A′：循环须显式落实（数据标志在本地库是死数据）
+    assert "enableIdleLoop" in src
+    assert src.count("enableIdleLoop(pick.group, pick.index)") == 1  # 接线唯一点=播放回调
+    assert ".then((started)" in src  # 播放成功（started）才置循环，被抢占不置
 
 
 def test_overlay_readout():

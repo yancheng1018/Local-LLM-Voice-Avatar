@@ -4,6 +4,7 @@ import { TouchDebugOverlay } from './l2d_touch_debug';
 import type { TouchDebugModel, TouchZoneState } from './l2d_touch_debug';
 import type { ModelInfo, CharacterRenderer } from './types';
 import type { TouchRule, TouchData, TouchActionStep } from './l2d_touch';
+import { type12Decision } from './l2d_touch';
 import { ParamDriver, canvasNorm, PARAM_STORAGE_PREFIX } from './l2d_params';
 import type { ParamRule, ParamCore } from './l2d_params';
 import { toRelationPresets } from './l2d_params_relations';
@@ -209,7 +210,12 @@ export class L2DRenderer implements CharacterRenderer {
       this.prevDragPx = null;
       if (g.dragging) return; // 拖动已在超过阈值时触发过
       const dur = Date.now() - g.t;
-      this.emitInteraction(dur >= L2DRenderer.LONGPRESS_MS ? 'longpress' : 'tap', e.clientX, e.clientY);
+      this.emitInteraction(
+        dur >= L2DRenderer.LONGPRESS_MS ? 'longpress' : 'tap',
+        e.clientX,
+        e.clientY,
+        downHit,
+      );
     });
   }
 
@@ -279,6 +285,7 @@ export class L2DRenderer implements CharacterRenderer {
   private touchCore(): {
     getDrawableVisibility?(i: number): boolean;
     getDrawableOpacity?(i: number): number;
+    getParameterValueById?(id: string): number;
     getDrawableRenderOrder?(i: number): number;
     getDrawableRenderOrders?(): Int32Array;
     drawables?: { renderOrders?: Int32Array; dynamicFlags?: Int32Array };
@@ -289,11 +296,24 @@ export class L2DRenderer implements CharacterRenderer {
     ) as {
       getDrawableVisibility?(i: number): boolean;
       getDrawableOpacity?(i: number): number;
+      getParameterValueById?(id: string): number;
       getDrawableRenderOrder?(i: number): number;
       getDrawableRenderOrders?(): Int32Array;
       drawables?: { renderOrders?: Int32Array; dynamicFlags?: Int32Array };
       _model?: { drawables?: { renderOrders?: Int32Array; dynamicFlags?: Int32Array } };
     } | null;
+  }
+
+  /** type12 扩展判定（读 ParamDriver 内部值 = 本地参数权威层，契约候选 R2-a；research2 §3.1） */
+  type12DecisionOf(name: string): boolean | undefined {
+    return type12Decision(this.touchRules ?? [], name, (p) => this.paramDriver?.getValue(p));
+  }
+
+  /** 站点 officialLive2DActionAllowed 同构组合闸：type12 优先，回落注入的 ATA 全局名单 */
+  actionAllowedWithParamGate(name: string): boolean {
+    const ext = this.type12DecisionOf(name);
+    if (typeof ext === 'boolean') return ext;
+    return this.actionAllowed(name);
   }
 
   /** 规则区交互门槛（引擎全套，spec stage3 §3.2；默认热区伪规则豁免=站点可交互面） */
@@ -311,7 +331,7 @@ export class L2DRenderer implements CharacterRenderer {
     // 无 action 规则直接放行（r3 §3.1.1）：站点 live2DRulePointerEnabled 对 typed 规则只要求
     // type∈Oe（上文已判），不要求 action；无 offset 的该类区站点同样可点但无效果（语义一致）
     if (names.length === 0) return true;
-    return names.some((n) => this.actionAllowed(n));
+    return names.some((n) => this.actionAllowedWithParamGate(n));
   }
 
   /**
@@ -391,7 +411,12 @@ export class L2DRenderer implements CharacterRenderer {
     );
   }
 
-  private emitInteraction(kind: 'tap' | 'drag' | 'longpress', clientX: number, clientY: number): void {
+  private emitInteraction(
+    kind: 'tap' | 'drag' | 'longpress',
+    clientX: number,
+    clientY: number,
+    pressedZone?: TouchZone | null,
+  ): void {
     const rect = (this.app.view as HTMLCanvasElement).getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
@@ -403,7 +428,10 @@ export class L2DRenderer implements CharacterRenderer {
       region = y < b.top + b.height * 0.3 ? 'head' : 'body';
       // 规则热区命中（l2d.su 判据见 hitZoneAt）：完整 rule 交给 TouchChain 分发动作，
       // circle 型（点戳）同时驱动参数引擎
-      const hit = this.hitZoneAt(clientX, clientY);
+      // 抬起命中回退（research3 F1，2026-09-18）：circle 按下即写角度派生值，值驱动 drawable
+      // 几何（值→几何自反馈），抬起时重命中常失配 → poke 丢失 → 值冻在中值、type12 门死锁。
+      // 抬起命中失败时回退到按下区（站点 pressedRules 语义=手势作用于按下区）；drag 不回退。
+      const hit = this.hitZoneAt(clientX, clientY) ?? (kind !== 'drag' ? (pressedZone ?? null) : null);
       if (hit) {
         rule = hit.rule;
         if (kind !== 'drag' && hit.rule.actionTrigger?.circle) {
@@ -462,19 +490,22 @@ export class L2DRenderer implements CharacterRenderer {
       const param = (zone.rule.parameter ?? '') as string;
       const hasParam = !!param && param !== 'empty';
       const paramValue = hasParam ? this.paramDriver?.getValue(param) : undefined;
+      // core 写入值列（research2 §5-Q5）：ParamDriver 内部值 vs core 实际值层间分歧可视化
+      const coreValue = hasParam ? core?.getParameterValueById?.(param) : undefined;
       const actionName =
         hasParam || paramValue !== undefined
           ? undefined
           : (actionNamesOf(zone.rule)[0] ??
             (zone.rule.actionTrigger?.action as string | undefined));
-      const base = { ...zone, paramValue, actionName };
+      const base = { ...zone, paramValue, coreValue, actionName };
       if (!(core?.getDrawableVisibility?.(i) ?? true)) return { ...base, status: 'H' as const };
       if (!this.isRuleInteractive(zone.rule)) {
         // G 前移（r2 C2）：透明+门槛锁死区原显示 T「可点」，系统性高估可点性
         // blocked:enable 标注（spec stage6 §2.1/§2.3）：动作全被 ATA 白名单拒（如吾妻
         // touch_drag12 vs enable[touch_idle*]）＝数据疑点，仅仪表盘标注，不改代码绕过
         const names = actionNamesOf(zone.rule);
-        const blockedEnable = names.length > 0 && names.every((n) => !this.actionAllowed(n));
+        const blockedEnable =
+          names.length > 0 && names.every((n) => !this.actionAllowedWithParamGate(n));
         return { ...base, status: 'G' as const, blockedEnable };
       }
       if ((core?.getDrawableOpacity?.(i) ?? 1) <= OPACITY_CUTOFF) return { ...base, status: 'T' as const };
@@ -697,7 +728,7 @@ export class L2DRenderer implements CharacterRenderer {
     this.layout();
     this.attachLipSync(model);
     this.buildMotionIndex();
-    this.playIdleOnce(); // 加载完成播一次 idle（stage1b §0.4；不循环）
+    this.playIdleOnce(); // 加载完成播一次 idle（stage1b §0.4；循环由 Meta.Loop 数据驱动）
     void this.loadTouchRules(modelInfo); // 游戏同款触摸规则（可 404）
   }
 
@@ -763,7 +794,7 @@ export class L2DRenderer implements CharacterRenderer {
       }
     } finally {
       this.touchPlay = { active: false, ruleId: null };
-      this.playIdleOnce(); // 官方触摸动作结束后回放一次 idle（不循环）
+      this.playIdleOnce(); // 官方触摸动作结束后回放一次 idle（循环由 Meta.Loop 数据驱动）
     }
     return true;
   }
@@ -800,23 +831,26 @@ export class L2DRenderer implements CharacterRenderer {
     return idx > 0 ? 'idle' + idx : 'idle';
   }
 
-  /** 从 idle 组随机播一条，仅一次；组不存在静默跳过。无 setInterval 等循环排程 */
+  /**
+   * 从 idle 组随机播一条；循环由 enableIdleLoop 显式 setIsLoop(true) 落实（A′，research2
+   * v2 §0：本地库不消费 Meta.Loop，站点行为=仅 idle 循环）。库自动随机播放仍由
+   * '__no_auto_idle__' 哨兵禁用（test_l2d_idle_autoplay）。组不存在静默跳过。
+   */
   private playIdleOnce(): void {
     const gname = this.idleGroupName();
     const list = this.motionEntries.filter((e) => e.group === gname);
     if (!list.length || !this.model) return;
     const pick = list[Math.floor(Math.random() * list.length)];
     void this.model.motion(pick.group, pick.index, 2).then((started) => {
-      if (started) this.disableIdleLoop(pick.group, pick.index);
+      if (started) this.enableIdleLoop(pick.group, pick.index);
     });
   }
 
-  /**
-   * idle 单次化（spec stage5 §2.5，机制 2）：motion3.json Meta.Loop=true 会让库循环播放、
-   * 区集随动画漂移（站点播一次即冻结终帧）。机制 1（改 definitions.Meta）不适用——
-   * definitions 是 model3.json 条目无 Meta；这里对**已加载**的 CubismMotion 置 setIsLoop(false)。
-   */
-  private disableIdleLoop(group: string, index: number): void {
+  /** idle 循环（A′，2026-09-18 replan）：本地库解析 Meta.Loop 但不接线（cubism4.es.js
+   *  :3283→3822 存 _motionData.loop 无消费者，播放判定只读 _isLoop 默认 false），「尊重
+   *  数据标志」须显式 setIsLoop 落实；仅 idle 路径调用——全库动作数据 Loop=true 而站点
+   *  动作单次（v2 §0-2），循环不得外溢到触摸/主线动作。 */
+  private enableIdleLoop(group: string, index: number): void {
     const motion = (
       this.model?.internalModel as unknown as {
         motionManager?: { motionGroups?: Record<string, (unknown | null)[]> };
@@ -825,7 +859,7 @@ export class L2DRenderer implements CharacterRenderer {
       | { setIsLoop?: (loop: boolean) => void }
       | null
       | undefined;
-    motion?.setIsLoop?.(false);
+    motion?.setIsLoop?.(true);
   }
 
   /** 播放门控状态查询（main.ts 互动分发用，spec stage3 §3.4.1） */
