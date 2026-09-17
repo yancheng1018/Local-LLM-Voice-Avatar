@@ -48,8 +48,7 @@ def fix_entry(entry_path: str) -> list[str]:
 def main() -> None:
     """遍历 MODELS_DIR 全部模型子目录，逐行打印结果并汇总（fixed/skipped/no-variant/no-entry）。"""
     dir_names = sorted(
-        d for d in os.listdir(MODELS_DIR)
-        if os.path.isdir(os.path.join(MODELS_DIR, d))
+        d for d in os.listdir(MODELS_DIR) if os.path.isdir(os.path.join(MODELS_DIR, d))
     )
     fixed: list[str] = []
     skipped: list[str] = []
@@ -89,8 +88,10 @@ def main() -> None:
             print(f"{name}: skipped")
 
     print()
-    print(f"汇总: fixed={len(fixed)} skipped={len(skipped)} "
-          f"no-variant={len(no_variant)} no-entry={len(no_entry)} error={len(errors)}")
+    print(
+        f"汇总: fixed={len(fixed)} skipped={len(skipped)} "
+        f"no-variant={len(no_variant)} no-entry={len(no_entry)} error={len(errors)}"
+    )
     print(f"fixed: {', '.join(fixed) or '无'}")
     print(f"skipped: {', '.join(skipped) or '无'}")
     print(f"no-variant: {', '.join(no_variant) or '无'}")

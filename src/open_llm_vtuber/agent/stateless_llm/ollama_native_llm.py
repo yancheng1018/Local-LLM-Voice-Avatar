@@ -100,7 +100,9 @@ class AsyncLLM(StatelessLLMInterface):
         return str(content)
 
     @classmethod
-    def _normalize_messages(cls, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _normalize_messages(
+        cls, messages: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         normalized: List[Dict[str, Any]] = []
         for message in messages:
             item: Dict[str, Any] = {
@@ -124,12 +126,14 @@ class AsyncLLM(StatelessLLMInterface):
                             arguments = json.loads(arguments)
                         except json.JSONDecodeError:
                             arguments = {"_raw_arguments": arguments}
-                    native_calls.append({
-                        "function": {
-                            "name": function.get("name", ""),
-                            "arguments": arguments,
+                    native_calls.append(
+                        {
+                            "function": {
+                                "name": function.get("name", ""),
+                                "arguments": arguments,
+                            }
                         }
-                    })
+                    )
                 item["tool_calls"] = native_calls
 
             normalized.append(item)

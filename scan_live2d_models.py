@@ -69,8 +69,7 @@ def main() -> None:
     registered = {m["name"]: m for m in model_dict}
 
     dir_names = sorted(
-        d for d in os.listdir(MODELS_DIR)
-        if os.path.isdir(os.path.join(MODELS_DIR, d))
+        d for d in os.listdir(MODELS_DIR) if os.path.isdir(os.path.join(MODELS_DIR, d))
     )
 
     lines = [
@@ -97,7 +96,9 @@ def main() -> None:
         lines.append(f"## {name}")
         lines.append("")
         if scan is None:
-            lines.append("- ⚠️ 未找到 `.model3.json` 入口文件（可能是 Cubism 2.1 或缺文件）")
+            lines.append(
+                "- ⚠️ 未找到 `.model3.json` 入口文件（可能是 Cubism 2.1 或缺文件）"
+            )
         elif "error" in scan:
             lines.append(f"- ⚠️ {scan['entry']} {scan['error']}")
         else:
@@ -112,31 +113,40 @@ def main() -> None:
             lines.append(
                 f"- 表情 ({n_exp}): {', '.join(scan['expressions']) if n_exp else '无'}"
             )
-            lines.append(f"- 动作组 ({len(scan['motions'])}): "
-                         + ", ".join(f"{g}({c})" for g, c in scan["motions"].items()))
+            lines.append(
+                f"- 动作组 ({len(scan['motions'])}): "
+                + ", ".join(f"{g}({c})" for g, c in scan["motions"].items())
+            )
             if scan["idle_exact"]:
                 lines.append("- Idle 组: ✅")
             elif scan["idle_actual"]:
-                lines.append(f"- Idle 组: ⚠️ 大小写不匹配（实际为 `{scan['idle_actual']}`），"
-                             "空闲动作不会播放，可加 `Idle` 别名组")
+                lines.append(
+                    f"- Idle 组: ⚠️ 大小写不匹配（实际为 `{scan['idle_actual']}`），"
+                    "空闲动作不会播放，可加 `Idle` 别名组"
+                )
             else:
                 lines.append("- Idle 组: ❌ 缺失，空闲时模型静止")
             if scan["talk_exact"]:
                 lines.append("- Talk 组: ✅")
             elif scan["talk_actual"]:
-                lines.append(f"- Talk 组: ⚠️ 大小写不匹配（实际为 `{scan['talk_actual']}`），"
-                             "说话动作不会播放，可加 `Talk` 别名组")
+                lines.append(
+                    f"- Talk 组: ⚠️ 大小写不匹配（实际为 `{scan['talk_actual']}`），"
+                    "说话动作不会播放，可加 `Talk` 别名组"
+                )
             else:
                 lines.append("- Talk 组: ❌ 缺失，说话时无伴随动作")
             if scan["hit_areas"]:
                 lines.append(f"- HitAreas: {', '.join(scan['hit_areas'])}")
             else:
-                lines.append("- HitAreas: 无（tapMotions 走「未命中热区→合并权重」分支）")
+                lines.append(
+                    "- HitAreas: 无（tapMotions 走「未命中热区→合并权重」分支）"
+                )
             if info is not None:
                 emo = info.get("emotionMap") or {}
                 tap = info.get("tapMotions") or {}
                 lines.append(
-                    f"- emotionMap: {len(emo)} 个键" + ("（空，情绪关键词不会触发表情）" if not emo else "")
+                    f"- emotionMap: {len(emo)} 个键"
+                    + ("（空，情绪关键词不会触发表情）" if not emo else "")
                 )
                 lines.append(
                     f"- tapMotions: {'已配置' if tap else '未配置（点击无动作反应）'}"

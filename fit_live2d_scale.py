@@ -60,7 +60,7 @@ def find_moc3(model3_rel_url: str) -> str | None:
     # 回退：在模型目录里找同名或任意 moc3（取层级最浅）
     best = None
     for dirpath, _dirs, files in os.walk(base):
-        depth = dirpath[len(base):].count(os.sep)
+        depth = dirpath[len(base) :].count(os.sep)
         for fn in files:
             if fn.endswith(".moc3") and (fn == name + ".moc3" or best is None):
                 if best is None or depth < best[0]:
@@ -87,9 +87,10 @@ def main() -> None:
 
     # 备份当前 model_dict.json
     bak = MODEL_DICT_PATH + ".bak"
-    with open(MODEL_DICT_PATH, encoding="utf-8") as src, open(
-        bak, "w", encoding="utf-8"
-    ) as dst:
+    with (
+        open(MODEL_DICT_PATH, encoding="utf-8") as src,
+        open(bak, "w", encoding="utf-8") as dst,
+    ):
         dst.write(src.read())
 
     print(

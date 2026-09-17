@@ -10,6 +10,7 @@ docs/context/research_live2d动作链条修正.md §5.1b。
 用法：python su_survey_touch_json.py <repo_root> [--fetch]
       --fetch 时对缺失的站点 ship json 现场下载（需网络；否则只用本地缓存 site_<group>.json）
 """
+
 import json
 import os
 import sys
@@ -82,13 +83,17 @@ def main():
     root = sys.argv[1]
     allow_fetch = "--fetch" in sys.argv
     base = os.path.join(root, "live2d-models")
-    ships_cn = os.path.join(os.path.dirname(os.path.abspath(__file__)), "su_ships-CN.json")
+    ships_cn = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "su_ships-CN.json"
+    )
     if not os.path.exists(ships_cn):
         ships_cn = "ships-CN.json"
     idx = load_prefab_index(ships_cn)
     models = sorted(
-        n for n in os.listdir(base)
-        if os.path.isdir(os.path.join(base, n)) and os.path.exists(os.path.join(base, n, "touch.json"))
+        n
+        for n in os.listdir(base)
+        if os.path.isdir(os.path.join(base, n))
+        and os.path.exists(os.path.join(base, n, "touch.json"))
     )
     ok, bad = [], []
     for m in models:
@@ -107,7 +112,14 @@ def main():
         if not cands:
             bad.append((m, g, "SITE_NO_RULES", len(lr)))
             continue
-        hit = next((sid for sid, lt in cands if json.dumps(lt, sort_keys=True) == json.dumps(loc, sort_keys=True)), None)
+        hit = next(
+            (
+                sid
+                for sid, lt in cands
+                if json.dumps(lt, sort_keys=True) == json.dumps(loc, sort_keys=True)
+            ),
+            None,
+        )
         if hit:
             ok.append((m, g, hit, len(lr)))
         else:
@@ -115,7 +127,14 @@ def main():
             for s in ship.get("skins", []):
                 if s.get("id") in lsid:
                     src = (s.get("id"), s.get("prefab"))
-            bad.append((m, g, "MISMATCH", (len(lr), lsid, src, [(c[0], len(c[1]["rules"])) for c in cands])))
+            bad.append(
+                (
+                    m,
+                    g,
+                    "MISMATCH",
+                    (len(lr), lsid, src, [(c[0], len(c[1]["rules"])) for c in cands]),
+                )
+            )
     print("OK: %d/%d" % (len(ok), len(models)))
     print("%-20s %-8s %-14s %s" % ("model", "group", "status", "detail"))
     for r in bad:

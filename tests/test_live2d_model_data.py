@@ -74,7 +74,11 @@ def test_inuse_models_have_exact_idle_group() -> None:
         groups = motion_groups(name)
         if "Idle" not in groups:
             variants = sorted(g for g in groups if g.lower() == "idle")
-            violations.append(f"{name}: 无精确 Idle 组（大小写变体: {variants or '无'}）")
+            violations.append(
+                f"{name}: 无精确 Idle 组（大小写变体: {variants or '无'}）"
+            )
         elif not groups["Idle"]:
             violations.append(f"{name}: Idle 组为空")
-    assert not violations, "在用模型缺少可用 Idle 组（空闲动作不会播放）：\n" + "\n".join(violations)
+    assert not violations, (
+        "在用模型缺少可用 Idle 组（空闲动作不会播放）：\n" + "\n".join(violations)
+    )

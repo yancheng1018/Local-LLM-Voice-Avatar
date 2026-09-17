@@ -98,8 +98,7 @@ class TTSTaskManager:
                 continue
 
             logger.debug(
-                f"🏃Generating TTS sequence #{sequence_number}: "
-                f"'''{tts_text}'''"
+                f"🏃Generating TTS sequence #{sequence_number}: '''{tts_text}'''"
             )
 
             tts_start = asyncio.get_running_loop().time()
@@ -134,9 +133,7 @@ class TTSTaskManager:
                 buffered_payloads[sequence_number] = payload
 
                 while self._next_sequence_to_send in buffered_payloads:
-                    next_payload = buffered_payloads.pop(
-                        self._next_sequence_to_send
-                    )
+                    next_payload = buffered_payloads.pop(self._next_sequence_to_send)
                     await websocket_send(json.dumps(next_payload))
                     self._next_sequence_to_send += 1
 
@@ -181,9 +178,7 @@ class TTSTaskManager:
                 actions=actions,
             )
 
-            await self._payload_queue.put(
-                (payload, sequence_number)
-            )
+            await self._payload_queue.put((payload, sequence_number))
 
         except Exception as e:
             logger.error(f"Error preparing audio payload: {e}")
@@ -194,9 +189,7 @@ class TTSTaskManager:
                 actions=actions,
             )
 
-            await self._payload_queue.put(
-                (payload, sequence_number)
-            )
+            await self._payload_queue.put((payload, sequence_number))
 
         finally:
             if audio_file_path:
@@ -214,8 +207,7 @@ class TTSTaskManager:
         result = await tts_engine.async_generate_audio(
             text=text,
             file_name_no_ext=(
-                f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_"
-                f"{str(uuid.uuid4())[:8]}"
+                f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:8]}"
             ),
         )
 

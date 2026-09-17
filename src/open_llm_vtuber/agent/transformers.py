@@ -90,9 +90,7 @@ def actions_extractor(live2d_model: Live2dModel):
                     actions = Actions()
                     # Skip think content entirely (boundary and inside),
                     # aligning with the tts_filter muting condition
-                    if not any(
-                        tag.name == "think" for tag in sentence.tags
-                    ):
+                    if not any(tag.name == "think" for tag in sentence.tags):
                         expressions = live2d_model.extract_emotion(sentence.text)
                         if expressions:
                             actions.expressions = expressions

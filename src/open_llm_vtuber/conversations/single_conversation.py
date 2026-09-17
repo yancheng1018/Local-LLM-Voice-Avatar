@@ -154,9 +154,7 @@ async def process_single_conversation(
             )
 
         if skip_history:
-            logger.debug(
-                "Skipping storing user input to history (proactive speak)"
-            )
+            logger.debug("Skipping storing user input to history (proactive speak)")
 
         logger.info(f"User input: {input_text}")
 
@@ -184,12 +182,8 @@ async def process_single_conversation(
                     isinstance(output_item, dict)
                     and output_item.get("type") == "tool_call_status"
                 ):
-                    output_item["name"] = (
-                        context.character_config.character_name
-                    )
-                    logger.debug(
-                        f"Sending tool status update: {output_item}"
-                    )
+                    output_item["name"] = context.character_config.character_name
+                    logger.debug(f"Sending tool status update: {output_item}")
                     await websocket_send(json.dumps(output_item))
 
                 elif isinstance(
@@ -207,9 +201,7 @@ async def process_single_conversation(
                     )
 
                     response_part_str = (
-                        str(response_part)
-                        if response_part is not None
-                        else ""
+                        str(response_part) if response_part is not None else ""
                     )
                     full_response += response_part_str
 
@@ -218,22 +210,16 @@ async def process_single_conversation(
                         "Received unexpected item type from agent chat "
                         f"stream: {type(output_item)}"
                     )
-                    logger.debug(
-                        f"Unexpected item content: {output_item}"
-                    )
+                    logger.debug(f"Unexpected item content: {output_item}")
 
         except Exception as e:
-            logger.exception(
-                f"Error processing agent response stream: {e}"
-            )
+            logger.exception(f"Error processing agent response stream: {e}")
 
             await websocket_send(
                 json.dumps(
                     {
                         "type": "error",
-                        "message": (
-                            f"Error processing agent response: {str(e)}"
-                        ),
+                        "message": (f"Error processing agent response: {str(e)}"),
                     }
                 )
             )
@@ -246,9 +232,7 @@ async def process_single_conversation(
         await tts_manager.process_pending()
 
         if tts_manager._sequence_counter > 0:
-            await websocket_send(
-                json.dumps({"type": "backend-synth-complete"})
-            )
+            await websocket_send(json.dumps({"type": "backend-synth-complete"}))
 
         await finalize_conversation_turn(
             tts_manager=tts_manager,
@@ -270,9 +254,7 @@ async def process_single_conversation(
         return full_response
 
     except asyncio.CancelledError:
-        logger.info(
-            f"🤡👍 Conversation {session_emoji} cancelled because interrupted."
-        )
+        logger.info(f"🤡👍 Conversation {session_emoji} cancelled because interrupted.")
         raise
 
     except Exception as e:

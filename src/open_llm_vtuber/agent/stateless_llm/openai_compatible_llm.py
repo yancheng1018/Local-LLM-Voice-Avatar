@@ -16,7 +16,6 @@ from .stateless_llm_interface import StatelessLLMInterface
 from ...mcpp.types import ToolCallObject
 
 
-
 class AsyncLLM(StatelessLLMInterface):
     """
     Diagnostic transport for OpenAI-compatible LLM endpoints.
@@ -241,9 +240,7 @@ class AsyncLLM(StatelessLLMInterface):
                             continue
 
                         if data == "[DONE]":
-                            logger.debug(
-                                f"HTTP-LLM[{request_id}] received [DONE]"
-                            )
+                            logger.debug(f"HTTP-LLM[{request_id}] received [DONE]")
                             break
 
                         try:
@@ -266,15 +263,11 @@ class AsyncLLM(StatelessLLMInterface):
                             )
 
                         if len(chunk.choices) == 0:
-                            logger.debug(
-                                f"HTTP-LLM[{request_id}] Empty chunk received"
-                            )
+                            logger.debug(f"HTTP-LLM[{request_id}] Empty chunk received")
                             continue
 
                         delta = chunk.choices[0].delta
-                        has_tool_calls = bool(
-                            getattr(delta, "tool_calls", None)
-                        )
+                        has_tool_calls = bool(getattr(delta, "tool_calls", None))
 
                         if self.support_tools and has_tool_calls:
                             tool_chunk_count += 1
@@ -299,39 +292,31 @@ class AsyncLLM(StatelessLLMInterface):
                                         },
                                     }
 
-                                if (
-                                    hasattr(tool_call, "id")
-                                    and tool_call.id
-                                ):
+                                if hasattr(tool_call, "id") and tool_call.id:
                                     accumulated_tool_calls[index]["id"] = tool_call.id
 
-                                if (
-                                    hasattr(tool_call, "type")
-                                    and tool_call.type
-                                ):
-                                    accumulated_tool_calls[index]["type"] = tool_call.type
+                                if hasattr(tool_call, "type") and tool_call.type:
+                                    accumulated_tool_calls[index]["type"] = (
+                                        tool_call.type
+                                    )
 
                                 if hasattr(tool_call, "function"):
                                     function = tool_call.function
-                                    if (
-                                        hasattr(function, "name")
-                                        and function.name
-                                    ):
-                                        accumulated_tool_calls[index][
-                                            "function"
-                                        ]["name"] = function.name
+                                    if hasattr(function, "name") and function.name:
+                                        accumulated_tool_calls[index]["function"][
+                                            "name"
+                                        ] = function.name
 
                                     if (
                                         hasattr(function, "arguments")
                                         and function.arguments
                                     ):
-                                        accumulated_tool_calls[index][
-                                            "function"
-                                        ]["arguments"] += function.arguments
+                                        accumulated_tool_calls[index]["function"][
+                                            "arguments"
+                                        ] += function.arguments
 
                             logger.debug(
-                                f"HTTP-LLM[{request_id}] tool chunk: "
-                                f"{delta.tool_calls}"
+                                f"HTTP-LLM[{request_id}] tool chunk: {delta.tool_calls}"
                             )
                             continue
 
@@ -395,31 +380,21 @@ class AsyncLLM(StatelessLLMInterface):
                 yield complete_tool_calls
 
         except httpx.ConnectTimeout as e:
-            logger.error(
-                f"🧪 HTTP-LLM connection timeout: {e}"
-            )
+            logger.error(f"🧪 HTTP-LLM connection timeout: {e}")
             yield "Error calling the chat endpoint: Connection timeout. See the logs for details."
 
         except httpx.ConnectError as e:
-            logger.error(
-                f"🧪 HTTP-LLM connection error: {e}"
-            )
+            logger.error(f"🧪 HTTP-LLM connection error: {e}")
             yield "Error calling the chat endpoint: Connection error. See the logs for details."
 
         except httpx.ReadTimeout as e:
-            logger.error(
-                f"🧪 HTTP-LLM read timeout: {e}"
-            )
+            logger.error(f"🧪 HTTP-LLM read timeout: {e}")
             yield "Error calling the chat endpoint: Read timeout. See the logs for details."
 
         except httpx.HTTPError as e:
-            logger.error(
-                f"🧪 HTTP-LLM HTTP error: {e}"
-            )
+            logger.error(f"🧪 HTTP-LLM HTTP error: {e}")
             yield "Error calling the chat endpoint: HTTP error. See the logs for details."
 
         except Exception as e:
-            logger.exception(
-                f"🧪 HTTP-LLM unexpected error: {e}"
-            )
+            logger.exception(f"🧪 HTTP-LLM unexpected error: {e}")
             yield "Error calling the chat endpoint: Error occurred while generating response. See the logs for details."
