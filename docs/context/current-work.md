@@ -1,15 +1,11 @@
 ## 当前阶段
 
 ### 阶段状态
-> **清理待处理遗留-批2 已完成并验收通过（2026-09-27）**。test-sweep 五问裁决：7 文件
-> 转正改名、11 个重复/墓碑函数删除、__tsout__ 停跟踪+全仓排版清零（[test-sweep]/
-> [repo-format] 关账）；提交 f1831cb/708f241，全量 162 测试绿，ruff format --check
-> 全仓 0 files。批3（hotzone-arch 复审研究）/批4（l2d.ts 重构立项）待各自立项；
-> 当前无既定下一阶段，等待新需求。
+> **hotzone-arch裁决落地 已完成并验收通过（2026-09-27）。当前无既定下一阶段，等待新需求。**
 
 ### 收尾待办
-> 无（清理待处理遗留-批2 收尾已执行完毕：temp_spec/impl_report 删除+pytest 调用
-> 契约入档 AGENTS.md+终态写入——2026-09-27）。
+
+> 无。
 
 ### 待处理遗留
 
@@ -28,20 +24,15 @@
 - [stage6] l2d.ts `load()` 先销毁后加载、失败不恢复旧模型：本阶段只修状态机
   （清空模型名，重选任意模型即可恢复），失败后舞台仍短暂空白直到用户重选。
   是否收敛为统一「重建回滚」模式（与 ensureRenderer 同属先销毁无回滚）另立项
-- [hotzone-arch] 热区触摸逆向待裁决项（leftover-triage_stage2 合并自 round1 §7 /
-  r2 §9 / r2_v3 / r2_v4 四条，依据 research_leftover-triage.md §5.4；锚点：
-  spec-l2d-touch-engine.md；待后续重新研究逐项裁决）：① type 9/10/11 未实现清单
-  入档、OE_TYPES 含 7 vs dispatch 拒 6/7、empty 占比差异（游戏数据生成侧）；
-  ② guanghui 点名 5 区来源未复现（research2 §5-Q1 候选解释：type12 名单+TouchIdle
-  名单重复点名，原始观察待用户补充）、tips 新 schema（idleBlackList/animWhiteList）
-  消费与否（type12 已实现于 live2d动作链条-research2 阶段）；③ 叠加层显示策略（r3 §7.1 方案 A/B/C + 退化区门槛）、
-  forEach vs 择一（站点已证 forEach，改属规格变更）、TouchBody 链自毁与
-  feiteliedadi 可玩性、stepDrag 起点锚定未扩面；④ D4 offset=0 语义（站点源码 ||1
-  直证 vs 用户实测无误触发，待站点数值取证统一，本地保留 0 轴排除）、D5 slide
-  闸门边界（offsetCircle 样本未普查）、D6 棘轮三函数/D7 triggerConditionMet 常量表
-  （需下载 chunk 反查）、§2.2 触发时序为 D 级推断（若站点取证推翻须修正 resolve
-  顺序）。已裁决定案存档：forEach=站点逐区分发、C6=数据事实非实现顺序（r3 裁决，
-  原文档已失，以此为准）；findChainRule 匹配面一项已吸收进 r2 规格 §2.3
+- [hotzone-arch] 复审裁决落地后剩余（2026-09-27，裁决子项已全部回写 spec-l2d-touch-engine.md
+  并随本阶段验收关账；依据 research_hotzone-arch复审.md §11）：
+  ① TouchBody 链几何退化+复位不可逆，建议优先立项（跨模型普遍、非单模型问题：feiteliedadi_3
+  链第 3 步后、aerbien_3 第 1 步后 TouchBody 全画布不可命中——命中区退化 7×6px @模型坐标
+  y≈20545，touch_idleN 末帧姿态出视口；paramDriver.resetAll+playIdleOnce 不恢复；body 链
+  实际被截断在 1~3 步、用户感知强。白名单锁已由 hotzone-arch裁决落地阶段修复，几何层待立项）；
+  ② stepDrag 起点锚定未扩面（站点=交互起点 startValues 锚定，本地 startValue 重锚+幅值累积，
+  10 条/5 模型，待症状驱动再议）；③ TouchChain+main.ts 运行时测试候选（aerbien_3 直调
+  onInteraction 链推进演示可固化为运行时回归，补静态断言之不足）
 - [live2d] 新模型入库完整性检测：将 scan_live2d_models.py →
   fix_live2d_idle_groups.py → fit_live2d_scale.py 脚本链内嵌进启动器导入流程
   （自动检测 + 一键修复 + 报告展示）；轻量版工作流（导入后手动跑脚本链）随

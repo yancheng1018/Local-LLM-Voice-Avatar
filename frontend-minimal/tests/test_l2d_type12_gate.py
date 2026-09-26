@@ -176,3 +176,21 @@ def test_type12_wiring_static():
     assert (
         "actionAllowedWithParamGate(gname)" in fallback
     )  # 直播兜底不过闸=绕过名单，禁止
+
+
+def test_body_entry_gate_fallback_only():
+    main_src = read("src/main.ts")
+    body = section(main_src, "param === 'touchbody'")
+    # 入口闸只护无链回退：touch_body 闸必须位于链分支（idleList.length > 0）之后——
+    # 固定入口前置闸会被链步骤 ATA.enable 锁死（research_hotzone-arch复审.md §11.1）
+    assert body.index("idleList.length > 0") < body.index(
+        "actionAllowedWithParamGate('touch_body')"
+    )
+
+
+def test_body_chain_action_gates_kept():
+    main_src = read("src/main.ts")
+    body = section(main_src, "param === 'touchbody'")
+    # 链路径动作闸不得被顺手删除：resolve 链闸 + gname 直播兜底闸
+    assert "touchChain.resolve(chainRule, kind, available)" in body
+    assert "actionAllowedWithParamGate(gname)" in body

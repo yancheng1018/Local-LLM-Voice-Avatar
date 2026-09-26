@@ -36,6 +36,7 @@ dragDirect 门控/resetAll）、`test_l2d_clamp_chain_runtime.py`（clampChain �
 运行时数值对拍）、`test_touch_debug_overlay.py`（叠加层接线）、
 `test_l2d_touch_chain_stepping.py`（链步状态机：循环/ATA 覆盖/形态A 目标 idle）、
 `test_l2d_param_relations.py`（关系预设层 + 驱动链同步/复位/carrier）。
+`test_l2d_type12_gate.py`（type12 门控接线 + touchbody 分支静态契约）。
 
 ## 3. 规则注册（l2d.ts loadTouchRules）
 
@@ -67,7 +68,9 @@ dragDirect 门控/resetAll）、`test_l2d_clamp_chain_runtime.py`（clampChain �
 - `resolve(rule, kind, available)`：冷却命中未到期→null；**dispatch 成功后才 applyActive/save**
   （r4 §10.4.4 时序，D 级推断+站点实测锚点：白名单判定用触发前的全局 enable——先应用会把
   规则自身 action 拒在自身 ATA.enable 外，核心区自锁；触发失败不推进链状态）；
-  `limitTime>0` 记冷却（秒→毫秒）。
+  `limitTime>0` 记冷却（秒→毫秒）。触发时序已升级 **A 级**（2026-09-27 站点
+  triggerLive2DTouchArea 源码：80ms 防抖→冷却→条件→防重复→复核→写冷却→白名单→参数写入→
+  链步进→save→播放；唯白名单拒时站点已写冷却、本地维持不写，见 §10）。
 - ATA 两形态：**形态A**（有 `idle_enable`/`idle_ignore`，含空数组）按当前 `idleIndex` 查表置
   enable/ignore（查表空→null）；**形态B**（`enable`/`ignore`/`idle:N`）直接设置，`idle` 数字写入
   idleIndex。
@@ -86,7 +89,10 @@ dragDirect 门控/resetAll）、`test_l2d_clamp_chain_runtime.py`（clampChain �
   TouchIdle1 抢答致 tap1 即 0→11 跳号）；兜底 `parameter===gname` ∥ `drawAbleName===驼峰化(gname)`
   （`touch_idle17→TouchIdle17`）。
 - **body 连点链**（偏离项 D2，游戏语义）：TouchBody 命中走 touch_idleN 编号递进（闲置 10s 重置、
-  走完一轮冷却 60s、冷却期播 touch_body/touch_*、缺号自动跳过），resolve 应用 ATA → idleIndex 推进。
+  走完一轮冷却 60s（**冷却期静默早退**；2026-09-27 订正：原文「冷却期播 touch_body/touch_*」
+  与 main.ts 实现不符）、缺号自动跳过），resolve 应用 ATA → idleIndex 推进。
+  链路径入口不固定闸 touch_body（动作闸在 resolve/gname 实际动作），touch_body 闸仅护
+  无链回退——固定入口闸会被链步骤 ATA.enable 锁死（research_hotzone-arch复审.md §11.1 实测）。
 - action_list 链步（v2 §3.1 ⑩）：(si+1)%len 循环推进、持久化于 l2d-touch:* 的 steps 字段；
   dispatch 动作 = at.action ?? step.action（7 条全库死区由此激活）；ATA = active_list[si] ??
   整条（全库 0 命中，语义就绪）；形态A 查表用目标 idle（v2 §3.2 修正；全库 0 命中）。
@@ -143,27 +149,44 @@ dragDirect 门控/resetAll）、`test_l2d_clamp_chain_runtime.py`（clampChain �
 
 - D2 body 连点链 touch_idleN 递进（游戏语义；站点引擎无点击计数器，stage1b Q3 实证站点无递进）。
 - D4′ stepSlide 0 轴排除（站点源码实为 `||1` 兜底；用户实测站点纯垂直拖无误触发，r4 疑点 1
-  未决，观感优先保留排除式，待站点数值取证后统一）。
+  未决，观感优先保留排除式；2026-09-27 用户裁决=**保留**：影响面 81 条/24 模型全为单轴 0，
+  站点 `||1` 交叉方向 115/324 组合满程扫动；考古项关闭，research_hotzone-arch复审.md §11.3）。
 - r2 已收回 D1/D3：透明度剔除与 T 区不可交互恢复为站点同款（原 stage4 超越项实测为净伤害）。
 
 ## 10. 明确不做
 
 type12（num 监听）、type7 listenerData（Limit_box）、relationParameter type101/102（拖动线性/y 轴）、
-tips/dragRate/ignoreDrag（全站 JS 0 命中死数据）、逐像素 alpha、ATA 门槛自动解锁、dynamicFlags
-可见性启用、冷却先记（被拒也吃冷却）。诊断中遇到按「未实现」标注。
+dragRate/ignoreDrag（死数据维持）、tips（2026-09-27 修正：站点消费点=提示图标显隐层
+officialLive2DHitAreaHintVisible——动作期查 animWhiteList、idle 期查 idleBlackList，**不参与
+交互门槛**；本地无图标层故 no-op 维持，r2「全站 0 命中」结论修正）、逐像素 alpha、
+ATA 门槛自动解锁、dynamicFlags 可见性启用、冷却先记（被拒也吃冷却）、type9/11/15 条件门槛
+（站点 live2DRuleConditionMatches：9=|值−num|≤0.05、11=num[lo,hi) 区间、15=|值|≤0.01∧玩家回合；
+本地数据 0/17/0 条，净行为差异≈叠加层显示）、type12 num 监听一次性触发路径、type8 delta 拖动、
+type14 active 区间自动触发、actionTrigger.const_fit idle 参数预设、动画触发规则
+（trigger_name/trigger_rate/parameter_range）、D6 棘轮三函数（stableLive2DDragValue 作用域
+type1/4 无 offsetCircle.pos，全库 6 条/参数驱动 2 条）、parameterRange 写参钳幅（站点活数据，
+本地 14/36 份有数据未消费）、forEach→逐区分发（维持本地择一）。诊断中遇到按「未实现」标注。
 （2026-09-17 修订：type104 idle 预设与 type103 链步查表已实现并移出本清单——
 live2d动作链条修正2 阶段，用户批准；依据 spec-l2dsu-engine-v2.md §4.4。）
+（2026-09-27 修订：D5 关闭——offsetCircle 数据面 0 样本（本地 36+站点缓存 33，3147 规则）；
+D7 定案——常量表 Oe/L 与 live2DRuleConditionMatches 全文已在本地 su_modelRuntime-BDk3g7Pb.js
+解码，r4「需下载 chunk」撤销；冷却先记注记——站点实态为白名单拒也写冷却（A 级），本地维持
+不写为有意偏离。依据 research_hotzone-arch复审.md。）
 
 ## 11. 遗留问题与下一步
 
 - **C4（BLOCKED·几何）**：光辉 TouchIdle17 门槛可解锁（interactive true）但绘画件屏幕投影
   y≈−4654 视口外，物理不可点。无代码解，除非改姿态/视口。
 - 信浓链跳号（1→3→6）：model3.json 缺 touch_idle2/4/5/14 组，数据事实非缺陷。
-- **D5**（slide 闸门边界）：offsetX=Y=0 且带 offsetCircle 的样本未普查（r4 疑点 4）。
-- **D6/D7**（r4 §5.2 优先级 4）：touch_drag7 棘轮三函数（stableLive2DDragValue /
-  snapLive2DTouchParameter / live2DDragStartedAtTarget）与 triggerConditionMet 常量表未实现，
-  需下载其余 chunk 反查常量；取证入口与已直证源码见 research_live2d-hotzone-touch-r4.md。
-- §5 resolve 触发时序为 D 级推断（行为锚点=站点实测播放）；若站点取证推翻须修正顺序。
+- **D5**（已关闭 2026-09-27）：offsetCircle 边界样本全库 0，见 §10 修订。
+- **D6/D7**（已定案 2026-09-27）：棘轮不实现（§10）；D7 语义解码见 §10 修订；原「需下载
+  chunk 反查」撤销（本地 chunk 已含全部常量表）。
+- ~~§5 resolve 触发时序为 D 级推断~~（已解除 2026-09-27：升级 A 级，见 §5/§10 修订）。
+- [live2d] TouchBody 链几何退化+复位不可逆（feiteliedadi_3 实测：链后 TouchBody 退化
+  7×6px @ 模型坐标 y≈20545，resetAll+playIdleOnce 不恢复；白名单锁已由 hotzone-arch裁决落地
+  阶段修复，几何层另立项；research_hotzone-arch复审.md §11.1）
+- [live2d] stepDrag 起点锚定未扩面（站点=交互起点 startValues 锚定，本地每次重锚 startValue+
+  幅值累积；影响 10 条/5 模型；待症状驱动再议）。
 - 待办：live2d.md 的 stage1 实测修正（§1/§5.1 矛盾点、数据接口"已失效"结论已被 stage1b 推翻、
   光辉 shipSkinId 疑点已核销）合并回 spec-l2dsu-engine.md / live2d.md。
 - 代码债：l2d.ts 1030 行远超「单模块 ≤200」上限，待功能收口后按注册/命中/播放/参数职责拆分。

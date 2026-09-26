@@ -170,7 +170,8 @@ ws.register('set-model-and-conf', (data) => {
           return;
         }
         if (param === 'touchbody') {
-          if (!activeRenderer.actionAllowedWithParamGate('touch_body')) return;
+          // 入口不固定闸 touch_body：链路径的动作闸在 resolve/gname（实际将播动作），
+          // 固定入口闸会被链步骤的 ATA.enable 锁死（research_hotzone-arch复审.md §11.1）
           const now = Date.now();
           if (now - chain.lastAt > CHAIN_RESET_MS) chain.index = 0; // 闲置太久重置
           if (chain.exhaustedAt && now - chain.exhaustedAt < CHAIN_COOLDOWN_MS) return;
@@ -195,6 +196,8 @@ ws.register('set-model-and-conf', (data) => {
                 : null;
             if (action !== null) play(action, chainRule?.id);
           } else {
+            // 无 touch_idle 链：touch_body 本体动作在此过闸（回退路径专属）
+            if (!activeRenderer.actionAllowedWithParamGate('touch_body')) return;
             play(byPattern(/^touch_body$/) ?? byPattern(/^touch_/));
           }
           return;
