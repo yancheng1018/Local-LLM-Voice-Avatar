@@ -26,7 +26,10 @@
 | `src/main.ts` | 手势分发：规则命中走 TouchChain/playAction，否则启发式 |
 
 测试（pytest 静态断言 + 运行时数值对拍 + `npm run build`，tsc strict）：`test_l2d_touch_chain.py`
-（TouchChain 契约）、`test_l2d_hotzone_stage2~7.py`（各阶段语义+regression_core）、
+（TouchChain 契约）、`test_l2d_param_engine.py`（参数引擎/注册骨架）、
+`test_l2d_slide_hold.py`（slide/hold 管线+动作核心锚）、`test_l2d_circle_dial.py`
+（转盘+透明剔除）、`test_l2d_gesture_values.py`（手势数值语义）、
+`test_l2d_chain_lookup.py`（链查找+渲染序）、`test_l2d_overlay_ux.py`（叠加层可读性）、
 `test_l2d_touch_redlines.py`（r2 红线：状态序/链 action 优先/兜底静默/行数契约）、
 `test_l2d_touch_param_semantics.py`（r2_v3/v4 参数语义：无 action 放行/slide 注册/轴排除/
 dragDirect 门控/resetAll）、`test_l2d_clamp_chain_runtime.py`（clampChain 与站点三步链

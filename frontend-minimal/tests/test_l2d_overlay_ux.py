@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""stage7 热区叠加层可读性与可交互性提示：静态断言（子串/正则）+ 构建产物验证。"""
+"""热区叠加层可读性与未命中提示：静态断言（子串/正则）+ 构建产物验证。"""
+
 import subprocess
 import sys
 from pathlib import Path
@@ -45,7 +46,9 @@ def test_empty_not_label_prefix():
 
 def test_dim_noninteractive_labels():
     main = read(MAIN)
-    assert "dim: boolean" in read(HELPERS)  # Region 声明已迁 helpers（leftover-triage_stage2 §B1）
+    assert "dim: boolean" in read(
+        HELPERS
+    )  # Region 声明已迁 helpers（leftover-triage_stage2 §B1）
     assert "dim: !fill" in main
     assert "alpha = r.dim ? 0.45 : 1" in main
 
@@ -76,11 +79,6 @@ def test_redline_untouched():
     assert "if (!t) return null" in touch  # 无 actionTrigger → null 语义未动
     assert "private isRuleInteractive" in l2d  # 判定层未动锚点
     assert "DRAG_THRESHOLD = 40" in l2d
-
-
-def test_line_limits():
-    assert len(read(MAIN).splitlines()) <= 220
-    assert len(read(HELPERS).splitlines()) <= 200
 
 
 def test_build_and_bundle():

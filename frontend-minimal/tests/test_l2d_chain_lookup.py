@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""链推进修复（ATA 按 drawAbleName 应用）+ 真实渲染序 + 仪表盘 idleIndex stage6：静态断言 + 构建产物验证。
+"""链查找 findChainRule + 真实渲染序 + 仪表盘读数 + ATA 空白名单：静态断言 + 构建产物验证。
 
-用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage6 章节，原 temp_spec_stage6.md 已并入；不得增减语义）。
+用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage6 章节）。
 """
-import json
+
 import re
 import subprocess
 import sys
@@ -17,7 +17,9 @@ def read(rel: str) -> str:
     return (FM / rel).read_text(encoding="utf-8")
 
 
-def section(src: str, start: str, nxt: str = r"\n  (?:private|get |async |[a-zA-Z]+\()") -> str:
+def section(
+    src: str, start: str, nxt: str = r"\n  (?:private|get |async |[a-zA-Z]+\()"
+) -> str:
     """截取从 start 标记到下一个方法定义之间的源码段（方法体级断言用）。"""
     m = re.search(re.escape(start), src)
     assert m, f"marker not found: {start}"
@@ -40,7 +42,9 @@ def test_chain_rule_lookup():
 
 def test_touch_rules_kept():
     l2d = read("src/renderer/l2d.ts")
-    assert re.search(r"private touchRules: TouchRule\[\] \| null", l2d)  # 原始数组挂 renderer
+    assert re.search(
+        r"private touchRules: TouchRule\[\] \| null", l2d
+    )  # 原始数组挂 renderer
     load = section(l2d, "private async loadTouchRules(")
     assert "this.touchRules = rules" in load  # loadTouchRules 时全量挂载
     assert "this.touchRules = null" in load  # 加载前重置
@@ -49,8 +53,12 @@ def test_touch_rules_kept():
 def test_real_render_order():
     l2d = read("src/renderer/l2d.ts")
     core = section(l2d, "private touchCore(")
-    assert "drawables?:" in core and "renderOrders?: Int32Array" in core  # 原生数组访问类型
-    assert "getDrawableRenderOrders?(): Int32Array" in core  # stage1e 实测：真实 API 名（复数无参）
+    assert (
+        "drawables?:" in core and "renderOrders?: Int32Array" in core
+    )  # 原生数组访问类型
+    assert (
+        "getDrawableRenderOrders?(): Int32Array" in core
+    )  # stage1e 实测：真实 API 名（复数无参）
     hit = section(l2d, "private hitZoneAt(")
     assert "drawables?.renderOrders" in hit or re.search(r"renderOrders\?\.\[", hit)
     assert "getDrawableRenderOrders?.()?.[" in hit  # 实测 API 优先
@@ -69,33 +77,6 @@ def test_idle_readout():
     states = section(l2d, "touchZoneStates(): TouchZoneState[] {")
     assert "blockedEnable" in states  # l2d.ts 提供 blocked 状态
     assert "() => this.chainIdleIndex()" in l2d  # 注入链读数回调
-
-
-def test_regression_core():
-    l2d = read("src/renderer/l2d.ts")
-    acc = section(l2d, "private accumulateDrag(")
-    assert "clientX - this.prevDragPx.x" in acc  # 像素增量（stage5）
-    assert "this.prevDragPx.y - clientY" in acc  # y 上正
-    dial = section(l2d, "private dialValueFor(")
-    assert "Math.atan2(" in dial and "* 180) / Math.PI" in dial  # 转盘 atan2
-    params = read("src/renderer/l2d_params.ts")
-    assert re.search(
-        r"Math\.abs\(st\.value - r\.circleTarget\) < POKE_EPSILON \? r\.startValue : r\.circleTarget",
-        params,
-    )  # poke 翻转停留
-    assert "setIsLoop(false)" not in l2d  # Meta.Loop 单次化废止（research2 §3.3 方案A）
-    load = section(l2d, "private async loadTouchRules(")
-    assert "group: param || name" in load  # 空参数区注册
-    assert "ataIdle === this.chainIdleIndex()" in l2d  # ATA.idle 防重复（r4 §4.3 方向翻转）
-    touch = read("src/renderer/l2d_touch.ts")
-    assert re.search(
-        r"resolve\(rule: TouchRule,\s*kind: 'tap' \| 'drag' \| 'longpress',\s*available: string\[\]\): string \| null",
-        touch,
-    )  # TouchChain 签名
-    assert "l2d-touch:" in read("src/main.ts")  # 存储键字面量
-    assert "PARAM_STORAGE_PREFIX = 'l2d-param:'" in params  # 构建字面量
-    t = json.loads((ROOT / "live2d-models/xinnong_6/touch.json").read_text(encoding="utf-8"))
-    assert {r.get("shipSkinId") for r in t["rules"]} == {307085}  # xinnong 皮肤 id
 
 
 def test_empty_enable_no_whitelist():

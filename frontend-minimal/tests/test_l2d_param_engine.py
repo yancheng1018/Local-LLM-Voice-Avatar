@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Live2D 热区与动作链条升级 stage2（参数驱动引擎）：静态断言 + 构建产物验证。
+"""Live2D 参数驱动引擎与注册骨架：静态断言 + 构建产物验证。
 
-用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage2 章节，原 temp_spec_stage2.md 已并入；不得增减语义）。
+用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage2 章节）。
 """
 
 import re
@@ -28,15 +28,6 @@ def test_params_module_exists():
         "PARAM_STORAGE_PREFIX",
     ):
         assert s in src
-
-
-def test_touchchain_signatures_intact():
-    src = read("src/renderer/l2d_touch.ts")
-    assert "export class TouchChain" in src
-    assert re.search(
-        r"resolve\(rule: TouchRule,\s*kind: 'tap' \| 'drag' \| 'longpress',\s*available: string\[\]\): string \| null",
-        src,
-    )
 
 
 def test_no_motion_group_gate():

@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Live2D 拖拽像素制 + circle 翻转开关 + 空参数区注册 + idle 单次化 stage5：静态断言 + 构建产物验证。
+"""Live2D 手势数值语义（像素拖拽/屏幕空间转盘/idle 循环/空参数注册）：静态断言。
 
-用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage5 章节，原 temp_spec_stage5.md 已并入；不得增减语义）。
+用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage5 章节）。
 """
-import json
+
 import re
-import subprocess
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]  # 仓库根
@@ -17,7 +15,9 @@ def read(rel: str) -> str:
     return (FM / rel).read_text(encoding="utf-8")
 
 
-def section(src: str, start: str, nxt: str = r"\n  (?:private|get |async |[a-zA-Z]+\()") -> str:
+def section(
+    src: str, start: str, nxt: str = r"\n  (?:private|get |async |[a-zA-Z]+\()"
+) -> str:
     """截取从 start 标记到下一个方法定义之间的源码段（方法体级断言用）。"""
     m = re.search(re.escape(start), src)
     assert m, f"marker not found: {start}"
@@ -37,7 +37,9 @@ def test_slide_pixel_delta():
 def test_slide_y_up():
     src = read("src/renderer/l2d.ts")
     acc = section(src, "private accumulateDrag(")
-    assert "this.prevDragPx.y - clientY" in acc  # y 上正（引擎 interaction.y − currentY）
+    assert (
+        "this.prevDragPx.y - clientY" in acc
+    )  # y 上正（引擎 interaction.y − currentY）
 
 
 def test_dial_screen_space():
@@ -78,7 +80,9 @@ def test_idle_loop_by_data():
     assert "Meta.Loop" in src  # 库不消费该标志的根因注释必须留档（A′ 依据）
     assert "setIsLoop(true)" in src  # A′：循环须显式落实（数据标志在本地库是死数据）
     assert "enableIdleLoop" in src
-    assert src.count("enableIdleLoop(pick.group, pick.index)") == 1  # 接线唯一点=播放回调
+    assert (
+        src.count("enableIdleLoop(pick.group, pick.index)") == 1
+    )  # 接线唯一点=播放回调
     assert ".then((started)" in src  # 播放成功（started）才置循环，被抢占不置
 
 
@@ -89,42 +93,3 @@ def test_overlay_readout():
     assert "paramDriver?.getValue(" in l2d  # ParamDriver 只读接口
     params = read("src/renderer/l2d_params.ts")
     assert "getValue(parameter: string): number | undefined" in params
-
-
-def test_regression_core():
-    touch = read("src/renderer/l2d_touch.ts")
-    assert re.search(
-        r"resolve\(rule: TouchRule,\s*kind: 'tap' \| 'drag' \| 'longpress',\s*available: string\[\]\): string \| null",
-        touch,
-    )
-    l2d = read("src/renderer/l2d.ts")
-    for s in ("playAction", "OE_TYPES", "ataIdle === this.chainIdleIndex()"):
-        assert s in l2d
-    params = read("src/renderer/l2d_params.ts")
-    assert "PARAM_STORAGE_PREFIX = 'l2d-param:'" in params
-    assert re.search(
-        r"Math\.abs\(st\.value - r\.circleTarget\) < POKE_EPSILON \? r\.startValue : r\.circleTarget",
-        params,
-    )  # poke 翻转入口
-    assert "l2d-touch:" in read("src/main.ts")
-    t = json.loads((ROOT / "live2d-models/xinnong_6/touch.json").read_text(encoding="utf-8"))
-    assert {r.get("shipSkinId") for r in t["rules"]} == {307085}
-
-
-def test_build_and_bundle():
-    r = subprocess.run(
-        "npm --prefix frontend-minimal run build",
-        shell=True,
-        cwd=str(ROOT),
-        capture_output=True,
-        text=True,
-    )
-    if r.returncode != 0:
-        sys.stderr.write((r.stdout or "")[-2000:])
-        sys.stderr.write((r.stderr or "")[-2000:])
-    assert r.returncode == 0
-    js = "".join(
-        p.read_text(encoding="utf-8") for p in (FM / "dist" / "assets").glob("*.js")
-    )
-    assert "l2d-param:" in js
-    assert "l2d-touch:" in js

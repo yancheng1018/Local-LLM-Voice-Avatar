@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Live2D circle 转盘手势 + 热区可见性稳定化 + 信浓入列 stage4：静态断言 + 构建产物验证。
+"""Live2D circle 转盘手势 + 透明度剔除恢复 + 信浓数据：静态断言。
 
-用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage4 章节，原 temp_spec_stage4.md 已并入；不得增减语义）。
+用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md（stage4 章节）。
 """
+
 import json
 import re
-import subprocess
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]  # 仓库根
@@ -60,39 +59,7 @@ def test_overlay_T_not_interactive():
 
 
 def test_xinnong_data():
-    t = json.loads((ROOT / "live2d-models/xinnong_6/touch.json").read_text(encoding="utf-8"))
+    t = json.loads(
+        (ROOT / "live2d-models/xinnong_6/touch.json").read_text(encoding="utf-8")
+    )
     assert {r.get("shipSkinId") for r in t["rules"]} == {307085}
-
-
-def test_regression_core():
-    params = read("src/renderer/l2d_params.ts")
-    assert re.search(r"Math\.abs\(xv\) >= Math\.abs\(yv\) \? xv : yv", params)  # slide 轴选择
-    touch = read("src/renderer/l2d_touch.ts")
-    assert re.search(
-        r"resolve\(rule: TouchRule,\s*kind: 'tap' \| 'drag' \| 'longpress',\s*available: string\[\]\): string \| null",
-        touch,
-    )
-    l2d = read("src/renderer/l2d.ts")
-    for s in ("playAction", "playIdleOnce", "OE_TYPES", "ataIdle === this.chainIdleIndex()"):
-        assert s in l2d
-    assert "PARAM_STORAGE_PREFIX = 'l2d-param:'" in params
-    assert "l2d-touch:" in read("src/main.ts")
-
-
-def test_build_and_bundle():
-    r = subprocess.run(
-        "npm --prefix frontend-minimal run build",
-        shell=True,
-        cwd=str(ROOT),
-        capture_output=True,
-        text=True,
-    )
-    if r.returncode != 0:
-        sys.stderr.write((r.stdout or "")[-2000:])
-        sys.stderr.write((r.stderr or "")[-2000:])
-    assert r.returncode == 0
-    js = "".join(
-        p.read_text(encoding="utf-8") for p in (FM / "dist" / "assets").glob("*.js")
-    )
-    assert "l2d-param:" in js
-    assert "l2d-touch:" in js

@@ -1,6 +1,6 @@
 ﻿# frontend-minimal 构建产物
 frontend-minimal/dist/
-frontend-minimal/tests/tsout/
+frontend-minimal/tests/__tsout__/
 frontend-minimal/node_modules/
 
 # 通用产物

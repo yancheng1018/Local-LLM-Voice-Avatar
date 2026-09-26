@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """仿 l2d.su 左侧调试栏：L1 静态接线（精确正则）+ L3 构建产物断言。
 运行时行为（L2）在 test_debug_panel_runtime.py。"""
+
 import re
 import subprocess
 import sys
@@ -29,7 +30,8 @@ def test_ui_wiring():
 def test_main_handler_block():
     main = read("src/main.ts")
     assert re.search(
-        r"ui\.onToggleDebugPanel = \(on\) => \{[^}]*renderer\.setDebugPanel\?\.\(on\)", main
+        r"ui\.onToggleDebugPanel = \(on\) => \{[^}]*renderer\.setDebugPanel\?\.\(on\)",
+        main,
     )
     assert re.search(r"renderer\.setDebugPanel\?\.\(debugPanelOn\)", main)
 
@@ -77,10 +79,6 @@ def test_css_source_and_dist():
     assert "#debug-panel" in css
 
 
-def test_module_line_limit():
-    assert read("src/renderer/l2d_debug_panel.ts").count("\n") <= 200
-
-
 def test_types_module_split():
     types = read("src/renderer/l2d_debug_panel_types.ts")
     panel = read("src/renderer/l2d_debug_panel.ts")
@@ -91,7 +89,10 @@ def test_types_module_split():
     ):
         assert name in types
     assert "from './l2d_debug_panel_types'" in panel
-    assert "export type { DebugCoreModel, DebugPanelModel } from './l2d_debug_panel_types'" in panel
+    assert (
+        "export type { DebugCoreModel, DebugPanelModel } from './l2d_debug_panel_types'"
+        in panel
+    )
 
 
 def test_build_and_bundle():
