@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """l2d.su 动作链条（TouchChain）stage1：静态断言 + 构建产物验证。"""
+
 import re
 import subprocess
 import sys
@@ -20,7 +21,12 @@ def test_touch_module_exists():
 
 def test_touch_types():
     src = read("src/renderer/l2d_touch.ts")
-    for name in ("TouchRule", "TouchActionTrigger", "TouchActionTriggerActive", "TouchData"):
+    for name in (
+        "TouchRule",
+        "TouchActionTrigger",
+        "TouchActionTriggerActive",
+        "TouchData",
+    ):
         assert name in src
 
 

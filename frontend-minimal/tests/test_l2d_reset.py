@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Live2D 一键复位：静态契约（子串/正则/序列顺序）+ 构建产物验证。"""
+
 import re
 import subprocess
 import sys
@@ -54,7 +55,9 @@ def test_l2d_reset_sequence():
     )
     idx = [body.index(f) for f in frags]
     assert idx == sorted(idx), idx
-    assert re.search(r"^\s*resetTouchChain: \(\(\) => void\) \| null = null;", l2d, re.M)
+    assert re.search(
+        r"^\s*resetTouchChain: \(\(\) => void\) \| null = null;", l2d, re.M
+    )
 
 
 def test_main_resets_chain_and_audio_only():
@@ -63,7 +66,11 @@ def test_main_resets_chain_and_audio_only():
     m = re.search(r"ui\.onResetModel = \(\) => \{(?P<body>[\s\S]*?)\n\};", main)
     assert m, "ui.onResetModel block not found"
     body = m.group("body")
-    for frag in ("audioQueue.interrupt()", "renderer.resetToInitialMotion()", "ui.setResetStatus(true)"):
+    for frag in (
+        "audioQueue.interrupt()",
+        "renderer.resetToInitialMotion()",
+        "ui.setResetStatus(true)",
+    ):
         assert frag in body, frag
     assert "interrupt-signal" not in body
     assert "ws.send" not in body

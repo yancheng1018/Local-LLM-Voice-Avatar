@@ -22,12 +22,14 @@ def read(rel: str) -> str:
     return (FM / rel).read_text(encoding="utf-8")
 
 
-def section(src: str, start: str, nxt: str = r"\n  (?:private|get |async |[a-zA-Z]+\()") -> str:
+def section(
+    src: str, start: str, nxt: str = r"\n  (?:private|get |async |[a-zA-Z]+\()"
+) -> str:
     """截取从 start 标记到下一个方法定义之间的源码段（方法体级断言用）。"""
     m = re.search(re.escape(start), src)
     assert m, f"marker not found: {start}"
-    rest = src[m.start():]
-    m2 = re.search(nxt, rest[len(start):])
+    rest = src[m.start() :]
+    m2 = re.search(nxt, rest[len(start) :])
     return rest[: len(start) + m2.start()] if m2 else rest
 
 
@@ -89,6 +91,8 @@ def test_l2d_core_read():
 def test_write_fail_flag():
     src = read("src/renderer/l2d_touch_debug.ts")
     assert "⚠写入失效" in src
-    assert "this.writeFailFrames = diverged ? this.writeFailFrames + 1 : 0;" in src  # 无分歧归零
+    assert (
+        "this.writeFailFrames = diverged ? this.writeFailFrames + 1 : 0;" in src
+    )  # 无分歧归零
     assert re.search(r"writeFailFrames >= 60", src)  # ≈1s 持续分歧才告警（防瞬时误报）
     assert "> 0.05" in src  # 分歧阈值

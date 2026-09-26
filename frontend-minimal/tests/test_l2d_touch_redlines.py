@@ -3,6 +3,7 @@
 
 用例与断言点语义对应 docs/context/temp_spec_live2d-hotzone-touch-r2.md §4.1。
 """
+
 import subprocess
 import sys
 from pathlib import Path
@@ -54,7 +55,9 @@ def test_redline_untouched():
     touch = read("src/renderer/l2d_touch.ts")
     assert "if (!t) return null" in touch
     src = read(L2D)
-    assert "ataIdle === this.chainIdleIndex()" in src  # 防重复方向（r4 §4.3 翻转 v3 门槛）
+    assert (
+        "ataIdle === this.chainIdleIndex()" in src
+    )  # 防重复方向（r4 §4.3 翻转 v3 门槛）
     assert "group: param || name" in src  # 注册语义锚点
 
 

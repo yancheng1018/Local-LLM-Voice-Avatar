@@ -3,6 +3,7 @@
 
 用例与断言点语义对应 docs/context/temp_spec_live2d-hotzone-touch-r2_v3.md §2。
 """
+
 import re
 import subprocess
 import sys
@@ -24,13 +25,20 @@ def test_no_action_rule_interactive():
 
 def test_slide_registration_relaxed():
     src = read("src/renderer/l2d.ts")
-    assert "!at?.action && ((num(rule.offsetX) ?? 0) !== 0" in src  # typed-无 action 可注册
+    assert (
+        "!at?.action && ((num(rule.offsetX) ?? 0) !== 0" in src
+    )  # typed-无 action 可注册
 
 
 def test_dragdirect_gate_restored():
     src = read("src/renderer/l2d_params.ts")
-    assert "if ((v < 0 && r.dragDirect === 1) || (v > 0 && r.dragDirect === 2)) v = 0;" in src  # r4 §3.1c 门控恢复
-    assert src.index("r.dragDirect === 1") < src.index("r.rangeAbs === 1")  # 门控在 rangeAbs 之前（站点次序）
+    assert (
+        "if ((v < 0 && r.dragDirect === 1) || (v > 0 && r.dragDirect === 2)) v = 0;"
+        in src
+    )  # r4 §3.1c 门控恢复
+    assert src.index("r.dragDirect === 1") < src.index(
+        "r.rangeAbs === 1"
+    )  # 门控在 rangeAbs 之前（站点次序）
     assert "if (r.rangeAbs === 1) v = Math.abs(v);" in src  # rangeAbs 链保留
     assert "return clamp(v, r.range[0], r.range[1]);" in src
 
@@ -39,7 +47,9 @@ def test_slide_axis_exclusion_and_anchor():
     src = read("src/renderer/l2d_params.ts")
     slide = src.split("private stepSlide(", 1)[1].split("private stepDrag(", 1)[0]
     assert "clampChain(this.holdBase + (lin ?? 0), r)" in slide  # 起点锚定 r3 §5.1
-    assert "r.startValue + lin" not in slide  # slide 不再从 startValue 重锚（stepDrag 仍用，勿误伤）
+    assert (
+        "r.startValue + lin" not in slide
+    )  # slide 不再从 startValue 重锚（stepDrag 仍用，勿误伤）
     hold = src.split("beginHold(id: number): void", 1)[1].split("holdDelta(", 1)[0]
     assert "this.holdBase = this.states.get(id)?.dragAccum ?? r.startValue;" in hold
 
@@ -53,7 +63,9 @@ def test_reset_all():
     assert m, "resetToInitialMotion body not found"
     body = m.group("body")
     assert "this.paramDriver?.resetAll();" in body
-    assert body.index("resetAll") < body.index("playIdleOnce()")  # 复位在回初始 idle 之前
+    assert body.index("resetAll") < body.index(
+        "playIdleOnce()"
+    )  # 复位在回初始 idle 之前
 
 
 def test_build_and_bundle():
@@ -68,6 +80,10 @@ def test_build_and_bundle():
         sys.stderr.write((r.stdout or "")[-2000:])
         sys.stderr.write((r.stderr or "")[-2000:])
     assert r.returncode == 0
-    js = "".join(p.read_text(encoding="utf-8") for p in (FM / "dist" / "assets").glob("*.js"))
-    assert "this.holdBase=" in js  # 起点锚定字段入包（esbuild 剥注释，锚点=补丁标识符，dist 实测存活）
+    js = "".join(
+        p.read_text(encoding="utf-8") for p in (FM / "dist" / "assets").glob("*.js")
+    )
+    assert (
+        "this.holdBase=" in js
+    )  # 起点锚定字段入包（esbuild 剥注释，锚点=补丁标识符，dist 实测存活）
     assert "resetAll(){for(const" in js  # resetAll 方法体入包

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """运行时行为测试编排：tsc 编译面板模块到 tests/__tsout__ → node --test 执行附录 A 用例。
 输出目录放在 frontend-minimal 包内（package.json type=module），编译产物才是 ESM。"""
+
 import subprocess
 import sys
 from pathlib import Path
@@ -11,7 +12,9 @@ OUT = FM / "tests" / "__tsout__"
 
 
 def run(cmd: str) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, shell=True, cwd=str(ROOT), capture_output=True, text=True)
+    return subprocess.run(
+        cmd, shell=True, cwd=str(ROOT), capture_output=True, text=True
+    )
 
 
 def test_runtime_behavior():

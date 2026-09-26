@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """触摸热区可视化开关：静态断言（子串/正则）+ 构建产物验证。"""
+
 import re
 import subprocess
 import sys

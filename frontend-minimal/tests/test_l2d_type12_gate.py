@@ -20,12 +20,14 @@ def read(rel: str) -> str:
     return (FM / rel).read_text(encoding="utf-8")
 
 
-def section(src: str, start: str, nxt: str = r"\n  (?:private|get |async |[a-zA-Z]+\()") -> str:
+def section(
+    src: str, start: str, nxt: str = r"\n  (?:private|get |async |[a-zA-Z]+\()"
+) -> str:
     """截取从 start 标记到下一个方法定义之间的源码段（方法体级断言用）。"""
     m = re.search(re.escape(start), src)
     assert m, f"marker not found: {start}"
-    rest = src[m.start():]
-    m2 = re.search(nxt, rest[len(start):])
+    rest = src[m.start() :]
+    m2 = re.search(nxt, rest[len(start) :])
     return rest[: len(start) + m2.start()] if m2 else rest
 
 
@@ -75,8 +77,7 @@ def test_trigger_parameter_field_static():
 
 def test_type12_decision_pure():
     setup = (
-        RULE12
-        + "const rules = [R12];"
+        RULE12 + "const rules = [R12];"
         "const f = (v) => () => v;"
         "return ["
         "type12Decision(rules, 'touch_head', f(5)),"
@@ -91,8 +92,7 @@ def test_type12_decision_pure():
 
 def test_type12_half_open():
     setup = (
-        RULE12
-        + "const rules = [R12];"
+        RULE12 + "const rules = [R12];"
         "return ["
         "type12Decision(rules, 'touch_head', () => 0.01),"
         "type12Decision(rules, 'touch_head', () => 10)]"
@@ -161,9 +161,18 @@ def test_type12_wiring_static():
     main_src = read("src/main.ts")
     assert "touchChain.paramGate = " in main_src
     head = section(main_src, "param === 'touchhead'")
-    assert "const canonical = param === 'touchhead' ? 'touch_head' : 'touch_special';" in head
-    assert "actionAllowedWithParamGate(canonical)" in head  # 默认区过闸（规格 §3.3b 伪代码）
+    assert (
+        "const canonical = param === 'touchhead' ? 'touch_head' : 'touch_special';"
+        in head
+    )
+    assert (
+        "actionAllowedWithParamGate(canonical)" in head
+    )  # 默认区过闸（规格 §3.3b 伪代码）
     body = section(main_src, "param === 'touchbody'")
     assert "actionAllowedWithParamGate('touch_body')" in body
-    fallback = section(main_src, "const chainRule = activeRenderer.findChainRule(gname)")
-    assert "actionAllowedWithParamGate(gname)" in fallback  # 直播兜底不过闸=绕过名单，禁止
+    fallback = section(
+        main_src, "const chainRule = activeRenderer.findChainRule(gname)"
+    )
+    assert (
+        "actionAllowedWithParamGate(gname)" in fallback
+    )  # 直播兜底不过闸=绕过名单，禁止
