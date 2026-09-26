@@ -1,14 +1,15 @@
 ## 当前阶段
 
 ### 阶段状态
-> **清理待处理遗留-批1 已完成并验收通过（2026-09-18）**。机械清理批：L2 断言加固
-> （downhit 整 handler 块截取）+11 文件排版+spec-writing §9-11+清单口径订正；
-> 提交 59f76f9/b0f6aec，全量 172 测试绿。批2（test-sweep 裁决）/批3（hotzone-arch
-> 复审研究）/批4（l2d.ts 重构立项）待各自立项；当前无既定下一阶段，等待新需求。
+> **清理待处理遗留-批2 已完成并验收通过（2026-09-27）**。test-sweep 五问裁决：7 文件
+> 转正改名、11 个重复/墓碑函数删除、__tsout__ 停跟踪+全仓排版清零（[test-sweep]/
+> [repo-format] 关账）；提交 f1831cb/708f241，全量 162 测试绿，ruff format --check
+> 全仓 0 files。批3（hotzone-arch 复审研究）/批4（l2d.ts 重构立项）待各自立项；
+> 当前无既定下一阶段，等待新需求。
 
 ### 收尾待办
-> 无（清理待处理遗留-批1 收尾已执行完毕：终态写入+收尾待办清空一笔提交、
-> temp_spec/impl_report 删除——2026-09-18）。
+> 无（清理待处理遗留-批2 收尾已执行完毕：temp_spec/impl_report 删除+pytest 调用
+> 契约入档 AGENTS.md+终态写入——2026-09-27）。
 
 ### 待处理遗留
 
@@ -24,11 +25,6 @@
   S3/F1 已裁不修（站点同款非缺陷，研究 §6.4）。依据：research_live2d动作链条修正.md §7/§8
 - [live2d] 39 个模型 emotionMap 为空（mao_pro 已有 50 键可作参照样本；情绪关键词
   不触发表情）：同样按需补（口径订正 2026-09-18，research_清理待处理遗留.md 发现 2）
-- [repo-format] 全仓余 15 文件未 ruff format（批1 已清 11 个非耦合文件：3 根脚本+
-  6 src/ 后端+tests/test_live2d_model_data.py+docs/assets/su_survey_touch_json.py；
-  余 15 个 frontend-minimal/tests/*.py，其中 9 个与 [test-sweep] 盘点耦合，建议其
-  裁决文件去留后再批量格式化，避免白做/混 diff）：处置待用户裁决（建议独立排版
-  工程一次清完）
 - [stage6] l2d.ts `load()` 先销毁后加载、失败不恢复旧模型：本阶段只修状态机
   （清空模型名，重选任意模型即可恢复），失败后舞台仍短暂空白直到用户重选。
   是否收敛为统一「重建回滚」模式（与 ensureRenderer 同属先销毁无回滚）另立项
@@ -46,17 +42,15 @@
   （需下载 chunk 反查）、§2.2 触发时序为 D 级推断（若站点取证推翻须修正 resolve
   顺序）。已裁决定案存档：forEach=站点逐区分发、C6=数据事实非实现顺序（r3 裁决，
   原文档已失，以此为准）；findChainRule 匹配面一项已吸收进 r2 规格 §2.3
-- [test-sweep] tests/ 既有资产盘点：11 个带 stage/debug 痕迹的已跟踪测试文件
-  （test_l2d_hotzone_stage2~7、test_stage6_bugfix、test_debug_panel、
-  test_debug_panel_runtime、debug_panel_runtime.test.mjs、test_touch_debug_overlay；
-  2026-09-18 复点订正：原「10 个」与枚举不符，另有 __tsout__/ 2 个编译产物随
-  裁决联动）待强模型专项按五问框架
-  集中裁决（转正改名/合并/删除）；机制落地后新任务不再积累。r2 系列两份已于
-  r2_v4 收尾转正（test_l2d_touch_redlines / test_l2d_touch_param_semantics）
 - [live2d] 新模型入库完整性检测：将 scan_live2d_models.py →
   fix_live2d_idle_groups.py → fit_live2d_scale.py 脚本链内嵌进启动器导入流程
   （自动检测 + 一键修复 + 报告展示）；轻量版工作流（导入后手动跑脚本链）随
   leftover-triage_stage1 建立，launcher 集成暂缓待立项（2026-09-16 用户裁决）
+- [repo-hygiene] 两处轻量清理（2026-09-18 批2 规划发现，可并入任意后续批）：
+  ① .gitignore `!live2d-models/shizuku/` 白名单行与「仅入库 mao_pro / shizuku」注释
+  过期（shizuku 已删，白名单成死配置）；② test_l2d_touch_redlines /
+  test_l2d_touch_param_semantics 的 docstring 指向已删除的 r2 temp_spec 文档
+  （应改指 spec-l2d-touch-engine.md 对应章节）
 
 ### 相关背景
 > 极简自研前端设计与踩坑：docs/context/minimal-frontend.md
