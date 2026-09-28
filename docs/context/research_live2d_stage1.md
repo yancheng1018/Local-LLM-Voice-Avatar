@@ -1,6 +1,6 @@
 # 研究报告 · l2d.su 热区分区与命中判定（stage1）
 
-> 2026-09-13，按 `research_plan_live2d.md` 执行的只读研究（未改任何代码）。
+> 2026-09-13 只读研究（未改任何代码）。
 > 方法：①modelRuntime 混淆 JS 全文去混淆（Node 解码字符串表 → `Temp/su_modelRuntime_deob.js`、`Temp/su_decoded_strings.json`）；
 > ②l2d.su 线上 guanghui_9（skin 237031）实测：挂钩 `Live2DCubismCore.Model.fromMoc` 捕获核心模型，
 > 逐 drawable 顶点实测几何（`Temp/su_touch_geometry.json`）+ 站点自带热区叠加层/点击行为黑盒验证。

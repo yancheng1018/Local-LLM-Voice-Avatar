@@ -1,11 +1,19 @@
 ## 当前阶段
 
 ### 阶段状态
-> **hotzone-arch裁决落地 已完成并验收通过（2026-09-27）。当前无既定下一阶段，等待新需求。**
+> **distill-b1（research存量提炼·批1）审查通过，待人工验收 [1/3]**
+
+### 阶段路线图 · research存量提炼
+> docs/context 存量研究文档分批提炼处置；共 3 阶段；建立于 2026-09-29
+| # | 阶段 | 目标一句话 | 状态 | 备注（依赖/前置） |
+|---|------|-----------|------|------|
+| 1 | distill-b1 | 删 6 份大纲脚手架 + 5 份成品溯源行改写 | 审查通过待验收 | 在途「上传github前准备」一对不动 |
+| 2 | distill-b2 | 触摸/热区及清理类逐份裁决：升格 spec-* / 提炼入模块文档 / 删；含 spec-l2dsu v1/v2 合并裁决与 repo-maintenance 分工表订正 | 未开始 | 强模型阅读大头 |
+| 3 | distill-b3 | 动作链条域结论提炼入模块文档，文件保留 | 未开始 | current-work 活引用在，不删文件 |
 
 ### 收尾待办
 
-> 无。
+> 收尾执行清单已备：finalize_exec_distill-b1.md（5 条），人工验收通过后运行 /finalize distill-b1
 
 ### 待处理遗留
 
@@ -42,6 +50,13 @@
   过期（shizuku 已删，白名单成死配置）；② test_l2d_touch_redlines /
   test_l2d_touch_param_semantics 的 docstring 指向已删除的 r2 temp_spec 文档
   （应改指 spec-l2d-touch-engine.md 对应章节）
+- [distill-b1] 审查裁决三项并入 distill-b2（2026-09-29）：① repo-maintenance.md 周期性
+  检查脚本 CRLF 缺陷——comm 前须 `tr -d '\r'` 归一化，否则「索引提到但不存在」在
+  Git Bash 下全量误报（od 实证踩坑），随批2 分工表订正一并修；② 规划期活引用 grep 用
+  路径子串做 `-v` 会误伤内容引用（应改 `--exclude`），增补进 repo-maintenance.md 施工习惯；
+  ③ research_hotzone-arch复审.md:4 悬空大纲引用（plan 文件先于本阶段已不存在，随批2 对
+  该文件的裁决处置）；另 docs/assets/README.md:74 历史表引用已删大纲（历史记录性质，
+  触发时机=「上传github前准备」阶段再议）
 
 ### 相关背景
 > 极简自研前端设计与踩坑：docs/context/minimal-frontend.md

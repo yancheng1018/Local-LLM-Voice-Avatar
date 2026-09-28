@@ -1,6 +1,6 @@
 # 研究 · live2d动作链条-research3（drag3 写参路径 / 热区消失机制 / poke 复位前提）
 
-> /research-doc 产物（2026-09-18）。依据 research_plan_live2d动作链条-research3.md 执行。
+> /research-doc 产物（2026-09-18）。
 > 触发：research2_v2 人工验收失败（三处规格前提被实测推翻，定性=认知/依据缺失）。
 > **本轮新增 A 级证据：在运行中的极简前端（127.0.0.1:12393/m/，dist 含 v2 代码）上做了
 > 只读运行时取证**——真实 PointerEvent 序列 + 参数状态机探针 + 值扫描，复现了用户全部三问。

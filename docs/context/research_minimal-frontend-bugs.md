@@ -1,6 +1,6 @@
 # 研究：minimal-frontend 现存两个 bug 的成因（research）
 
-> 生成于 2026-09-15，/research-doc 产物。执行依据：`research_plan_minimal-frontend-bugs.md`（同一大纲）。
+> 生成于 2026-09-15，/research-doc 产物。
 > 本文只查成因，不含修复设计；修复另走 fix_instruction 流程。
 > 方法：纯代码走查 + 静态数据取证（未起服务、未占 GPU/端口）。所有结论均附文件:行号。
 
