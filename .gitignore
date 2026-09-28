@@ -41,6 +41,11 @@ live2d_scan_report.md
 docs/context/temp_spec_*.md
 docs/context/impl_report_*.md
 docs/context/distill_draft_*.md
+docs/context/finalize_exec_*.md
+
+# 上传github前准备研究文档（含私有资产明细，仅存本地不入库；终态处置见路线图 stage 6）
+docs/context/research_上传github前准备.md
+docs/context/research_plan_上传github前准备.md
 
 # ---------- Python 缓存与虚拟环境 ----------
 __pycache__/
@@ -62,3 +67,6 @@ characters/ja_test.yaml
 characters/spine_test.yaml
 docs/assets/_ships_cache/
 docs/assets/su_ships-CN.json
+
+# ---------- 私有声音名守卫名单（github-p0-decouple，本地文件不入库） ----------
+tests/private_names.local.txt

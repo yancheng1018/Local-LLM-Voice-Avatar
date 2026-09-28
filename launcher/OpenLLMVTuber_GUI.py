@@ -570,7 +570,9 @@ class VoiceDialog(QDialog):
         form = QFormLayout(self)
 
         self.edit_name = QLineEdit()
-        self.edit_name.setPlaceholderText("如 加藤惠（将作为 voices/ 下的文件夹名）")
+        self.edit_name.setPlaceholderText(
+            "如 自定义音色名（将作为 voices/ 下的文件夹名）"
+        )
         form.addRow("名称：", self.edit_name)
 
         self.combo_gpt = QComboBox()
