@@ -24,7 +24,7 @@ git ls-files -i -c --exclude-standard
 
 ### 本仓库的忽略策略
 
-- `live2d-models/*` 整体忽略，仅 `!mao_pro/`、`!shizuku/` 两个上游示例模型入库。
+- `live2d-models/*` 整体忽略，仅 `!mao_pro/` 一个上游示例模型入库（shizuku 已删，其死白名单行随 distill-b2 清理）。
 - `models/`、`Spine-models/`、`voices/`、`avatars/`、`backgrounds/` 忽略但**保磁盘**。
 - `frontend/` 忽略且**不在索引中，仅保磁盘**：旧官方前端，服务器仍 catch-all mount 它
   （`server.py`），删了服务器起不来。stage2 已解除其子模块关系（gitlink 移除、`.gitmodules`
@@ -109,6 +109,8 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
   正斜杠前缀过滤**恒不命中**、形同虚设；要按路径排除用 `grep -rn --exclude="<模式>"`。
 - grep pattern 以 `/` 开头（如 `/finalize`）会被 Git Bash 的 MSYS 路径转换改写成
   Windows 路径，结果**伪 0**；用 `[/]finalize` 写法或 `MSYS_NO_PATHCONV=1` 规避。
+- 活引用排查排除文档自身时用 `rg --glob='!<文件名>'` 或 `grep -rn --exclude=<文件名>`；用路径子串
+  做 `grep -v` 会把正文里引用该文件名的**内容引用**一并误伤（distill-b1 审查实证）。
 
 ### 相关工具
 
@@ -146,6 +148,9 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
 | 模块边界调整、索引表增删 | 你 | 归属不对/新建删除文件时 |
 | 删除过时内容 | 你 | 定期扫一眼时 |
 
+存量研究文档处置口径（distill 系列，2026-09-29）：大纲/分诊类计划文档随执行完成删除；成品取证
+记录保留作证据链（教训：r3 研究文档删除后其裁决证据不可复核）。
+
 关键提醒：Agent 不会自动更新文档，这是特性。若 Agent 在代码任务后静默更新文档，
 任务有 bug 时错误行为会被记成「预期行为」，下个会话就会把错误当规则。
 你是检查点：先确认代码正确，再指示记录。
@@ -161,14 +166,15 @@ for f in AGENTS.md docs/context/*.md; do
   printf "%-42s %4d 行  %s\n" "$f" "$n" "$flag"
 done
 echo "===== 索引表一致性 ====="
-grep -o 'docs/context/[A-Za-z0-9._-]*\.md' AGENTS.md | sort -u > /tmp/idx.txt
-ls docs/context/*.md | sort -u > /tmp/act.txt
+grep -o 'docs/context/[A-Za-z0-9._-]*\.md' AGENTS.md | tr -d '\r' | sort -u > /tmp/idx.txt
+ls docs/context/*.md | tr -d '\r' | sort -u > /tmp/act.txt
 echo "索引提到但不存在：";  comm -23 /tmp/idx.txt /tmp/act.txt
 echo "存在但索引未提：";      comm -13 /tmp/idx.txt /tmp/act.txt
 ```
 
-> 「存在但索引未提」列出 temp_spec_* / impl_report_* / distill_draft_* / 本规格
-> 属正常（临时产物，不入索引）。其余即为索引欠账，须补。
+> 「存在但索引未提」列出 temp_spec_* / impl_report_* / finalize_exec_* / distill_draft_* / 本规格
+> 与存量归档（research_* / verify_* / manual_* / l2dsu抓取模型说明.md）属正常（临时产物与研究
+> 归档，不入索引）。其余即为索引欠账，须补。
 
 （并入自原 docs/context/MAINTENANCE.md，doc-lifecycle stage1 合并；
 其「文件体系总览」表因与 AGENTS.md 索引双头维护且已过时而废止，

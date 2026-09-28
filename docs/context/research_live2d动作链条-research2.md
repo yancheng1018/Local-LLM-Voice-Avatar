@@ -3,7 +3,7 @@
 > 2026-09-18 **只读研究**（未改源码）。
 > 基线：阶段 0/A/B + v2 修复轮已完成并验收（2026-09-18，archive.md）。站点侧证据三级来源：
 > ①站点引擎快照 `docs/assets/su_modelRuntime-BDk3g7Pb.js`（201,926 字节，rg 可复核）；
-> ②逆向记录 `spec-l2dsu-engine-v2.md`；③站点数据缓存 `docs/assets/_ships_cache/`。
+> ②逆向记录 `spec-l2dsu-engine.md`；③站点数据缓存 `docs/assets/_ships_cache/`。
 > 置信度标注：**A**=源码/数据直证；**B**=多源推断；**C**=待运行时验证。
 
 ## 1. 结论速览（问题定义：站点在「播放期门控/结束后恢复/idle 生命周期/无绘画件热区」四场景的真实语义，与本地的差距根因）

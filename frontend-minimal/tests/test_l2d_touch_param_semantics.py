@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """r3 定案四缺陷修正：误杀/夺轴/归零/复位残留 + 起点锚定。静态断言 + 构建产物验证。
 
-用例与断言点语义对应 docs/context/temp_spec_live2d-hotzone-touch-r2_v3.md §2。
+用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md §3/§7（r2_v3/v4 参数语义定案）。
 """
 
 import re

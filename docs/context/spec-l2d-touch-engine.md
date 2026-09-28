@@ -167,7 +167,7 @@ type14 active 区间自动触发、actionTrigger.const_fit idle 参数预设、�
 type1/4 无 offsetCircle.pos，全库 6 条/参数驱动 2 条）、parameterRange 写参钳幅（站点活数据，
 本地 14/36 份有数据未消费）、forEach→逐区分发（维持本地择一）。诊断中遇到按「未实现」标注。
 （2026-09-17 修订：type104 idle 预设与 type103 链步查表已实现并移出本清单——
-live2d动作链条修正2 阶段，用户批准；依据 spec-l2dsu-engine-v2.md §4.4。）
+live2d动作链条修正2 阶段，用户批准；依据 spec-l2dsu-engine.md §4.4。）
 （2026-09-27 修订：D5 关闭——offsetCircle 数据面 0 样本（本地 36+站点缓存 33，3147 规则）；
 D7 定案——常量表 Oe/L 与 live2DRuleConditionMatches 全文已在本地 su_modelRuntime-BDk3g7Pb.js
 解码，r4「需下载 chunk」撤销；冷却先记注记——站点实态为白名单拒也写冷却（A 级），本地维持
@@ -187,8 +187,8 @@ D7 定案——常量表 Oe/L 与 live2DRuleConditionMatches 全文已在本地 
   阶段修复，几何层另立项；research_hotzone-arch复审.md §11.1）
 - [live2d] stepDrag 起点锚定未扩面（站点=交互起点 startValues 锚定，本地每次重锚 startValue+
   幅值累积；影响 10 条/5 模型；待症状驱动再议）。
-- 待办：live2d.md 的 stage1 实测修正（§1/§5.1 矛盾点、数据接口"已失效"结论已被 stage1b 推翻、
-  光辉 shipSkinId 疑点已核销）合并回 spec-l2dsu-engine.md / live2d.md。
+- ~~待办：live2d.md 的 stage1 实测修正合并回 spec-l2dsu-engine.md / live2d.md~~（已完成 distill-b2：
+  并入合并版 §12，live2d.md 修正块同步订正）。
 - 代码债：l2d.ts 1030 行远超「单模块 ≤200」上限，待功能收口后按注册/命中/播放/参数职责拆分。
 
 ## 12. 验收方式（改引擎必读）

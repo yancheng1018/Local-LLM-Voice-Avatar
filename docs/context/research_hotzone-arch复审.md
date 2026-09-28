@@ -1,7 +1,7 @@
 # 研究：hotzone-arch 复审（批3）
 
 > 阶段：hotzone-arch 复审（批3）。日期 2026-09-27。只读研究：不改代码/规格/current-work。
-> 大纲：research_plan_hotzone-arch复审.md。取证基座：docs/assets/ 本地站点资产
+> （研究大纲 research_plan_hotzone-arch复审.md 已随 distill-b1 删除，本文自足。）取证基座：docs/assets/ 本地站点资产
 > （su_modelRuntime-BDk3g7Pb.js 201,926B 完整引擎源码 + su_modelRuntime_strings.json 642 条
 > 解码串表 + _ships_cache/ 33 船数据 + su_ships-CN.json 896 船索引）。
 > ⚠️ 联网复核：l2d.su apex 已无 DNS A 记录（DoH 返回 NOERROR+SOA，2026-09-27），

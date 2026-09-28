@@ -190,10 +190,10 @@ fetch(modelHomeDir + name + ".model3.json")   // 路径来自 model_dict.json �
 - 升级路径结论（混合方案）：优先补 4 项（ATA 状态机 / actionTrigger type 分发 / limitTime
   冷却+localStorage 持久化 / mode2 位置反应），`listenerData`/游戏机缓做。
 
-**stage1 实测修正（2026-09-13，细节见 research_live2d_stage1.md；待合并回 spec-l2dsu-engine.md §1/§5.1，两文档冲突处以本条为准）**：
+**stage1 实测修正（2026-09-13，细节见 research_live2d_stage1.md；已于 distill-b2 并入 spec-l2dsu-engine.md §12，冲突处以该文为准）**：
 
 - l2d.su 命中判据＝模型局部 drawable 包围盒包含＋最大渲染序取上层（无逐像素/无分区），不经过 pixi hitTest；`Ve()` 展开键是 aliases 非 shipSkinId。
 - guanghui_9 的 28 个规则绘画件仅 TouchDrag1/2/3/15 在画布内，其余画布外（y36~149）＝链/参数数据载体永不被空间触发；`touch_dragN` 是模型参数名非动作组，故现前端 `valid.has(param)` 会把 4 个画布内热区也滤掉（`[Touch] 0/31`）→「上下二分」真因。
-- 站点逐舰数据接口 `/data/ships/CN/<id>.json` 已失效（返回 SPA HTML）→ 线上 l2d.su 当前无 touch 规则，行为＝7 个默认热区＋touch_body 兜底，与本地前端过滤结果等价；`tips`/`dragRate`/`ignoreDrag` 为死数据（全站 JS 0 命中）不实现。
-- 【契约候选】本地碧蓝航线 touch.json 可能整体错配皮肤：guanghui_9/touch.json 的 shipSkinId=207037（guanghui_7）≠ 模型皮肤 237031——核对 36 个模型前，勿把 touch.json 规则语义当该模型的精确行为依据。
+- 站点数据接口：**皮肤级** `/data/ships/CN/<skinId>.json` 返回 SPA HTML（与 SPA 路由撞车，非接口失效，stage1b §9.1 订正本条旧表述）；真数据源是舰船级 `<shipGroupId>.json`；`tips` 仅消费于提示图标显隐、`dragRate`/`ignoreDrag` 为死数据，均不实现。
+- 【已核销 2026-09-17】碧蓝航线 touch.json 皮肤错配：全库重订 9 处错配、2 例站点无规则已清库（spec-l2dsu-engine.md §5、minimal-frontend-live2d.md）。
 

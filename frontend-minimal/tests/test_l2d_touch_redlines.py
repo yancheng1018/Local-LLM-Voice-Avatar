@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """r2 收回透明剔除（D1/D3）+ G/T 状态序 + 链步进优先级：静态断言 + 构建产物验证。
 
-用例与断言点语义对应 docs/context/temp_spec_live2d-hotzone-touch-r2.md §4.1。
+用例与断言点语义对应 docs/context/spec-l2d-touch-engine.md §1/§3/§5（r2 红线定案）与 minimal-frontend-live2d.md 行数例外条目。
 """
 
 import subprocess

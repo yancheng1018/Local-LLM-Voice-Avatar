@@ -7,10 +7,9 @@ frontend-minimal/node_modules/
 *.tsbuildinfo
 
 # ---------- 模型资产（体积大，保留本地不入库） ----------
-# live2d-models/ 仅入库上游示例模型 mao_pro / shizuku
+# live2d-models/ 仅入库上游示例模型 mao_pro
 live2d-models/*
 !live2d-models/mao_pro/
-!live2d-models/shizuku/
 models/
 Spine-models/
 voices/

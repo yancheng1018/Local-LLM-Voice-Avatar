@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """live2d动作链条-research2 §3/§7：type12 全局动作裁决 + TouchChain paramGate 组合闸。
 
-静态锚点 + esbuild→node 运行时向量（语义依据 spec-l2dsu-engine-v2.md §3.2、
+静态锚点 + esbuild→node 运行时向量（语义依据 spec-l2dsu-engine.md §3.2、
 research_live2d动作链条-research2.md §3.1；契约候选 R2-a/R2-b）。
 """
 

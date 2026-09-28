@@ -1,19 +1,19 @@
 ## 当前阶段
 
 ### 阶段状态
-> **distill-b1（research存量提炼·批1）审查通过，待人工验收 [1/3]**
+> **distill-b2（research存量提炼·批2）审查通过，待人工验收 [2/3]**
 
 ### 阶段路线图 · research存量提炼
 > docs/context 存量研究文档分批提炼处置；共 3 阶段；建立于 2026-09-29
 | # | 阶段 | 目标一句话 | 状态 | 备注（依赖/前置） |
 |---|------|-----------|------|------|
-| 1 | distill-b1 | 删 6 份大纲脚手架 + 5 份成品溯源行改写 | 审查通过待验收 | 在途「上传github前准备」一对不动 |
-| 2 | distill-b2 | 触摸/热区及清理类逐份裁决：升格 spec-* / 提炼入模块文档 / 删；含 spec-l2dsu v1/v2 合并裁决与 repo-maintenance 分工表订正 | 未开始 | 强模型阅读大头 |
+| 1 | distill-b1 | 删 6 份大纲脚手架 + 5 份成品溯源行改写 | 已验收 2026-09-29 | 在途「上传github前准备」一对不动 |
+| 2 | distill-b2 | 触摸/热区及清理类逐份裁决：升格 spec-* / 提炼入模块文档 / 删；含 spec-l2dsu v1/v2 合并裁决与 repo-maintenance 分工表订正 | 审查通过待验收 | 强模型阅读大头；规格 temp_spec_distill-b2.md |
 | 3 | distill-b3 | 动作链条域结论提炼入模块文档，文件保留 | 未开始 | current-work 活引用在，不删文件 |
 
 ### 收尾待办
 
-> 收尾执行清单已备：finalize_exec_distill-b1.md（5 条），人工验收通过后运行 /finalize distill-b1
+> 收尾执行清单已备：finalize_exec_distill-b2.md（5 条），人工验收通过后运行 /finalize distill-b2
 
 ### 待处理遗留
 
@@ -28,7 +28,7 @@
   live2d动作链条-research2 阶段。链循环 vs D2 取舍待权威层阶段一并裁决。
   S3/F1 已裁不修（站点同款非缺陷，研究 §6.4）。依据：research_live2d动作链条修正.md §7/§8
 - [live2d] 39 个模型 emotionMap 为空（mao_pro 已有 50 键可作参照样本；情绪关键词
-  不触发表情）：同样按需补（口径订正 2026-09-18，research_清理待处理遗留.md 发现 2）
+  不触发表情）：同样按需补（口径 2026-09-18 实测：39/40 空，mao_pro 唯一非空）
 - [stage6] l2d.ts `load()` 先销毁后加载、失败不恢复旧模型：本阶段只修状态机
   （清空模型名，重选任意模型即可恢复），失败后舞台仍短暂空白直到用户重选。
   是否收敛为统一「重建回滚」模式（与 ensureRenderer 同属先销毁无回滚）另立项
@@ -45,18 +45,11 @@
   fix_live2d_idle_groups.py → fit_live2d_scale.py 脚本链内嵌进启动器导入流程
   （自动检测 + 一键修复 + 报告展示）；轻量版工作流（导入后手动跑脚本链）随
   leftover-triage_stage1 建立，launcher 集成暂缓待立项（2026-09-16 用户裁决）
-- [repo-hygiene] 两处轻量清理（2026-09-18 批2 规划发现，可并入任意后续批）：
-  ① .gitignore `!live2d-models/shizuku/` 白名单行与「仅入库 mao_pro / shizuku」注释
-  过期（shizuku 已删，白名单成死配置）；② test_l2d_touch_redlines /
-  test_l2d_touch_param_semantics 的 docstring 指向已删除的 r2 temp_spec 文档
-  （应改指 spec-l2d-touch-engine.md 对应章节）
-- [distill-b1] 审查裁决三项并入 distill-b2（2026-09-29）：① repo-maintenance.md 周期性
-  检查脚本 CRLF 缺陷——comm 前须 `tr -d '\r'` 归一化，否则「索引提到但不存在」在
-  Git Bash 下全量误报（od 实证踩坑），随批2 分工表订正一并修；② 规划期活引用 grep 用
-  路径子串做 `-v` 会误伤内容引用（应改 `--exclude`），增补进 repo-maintenance.md 施工习惯；
-  ③ research_hotzone-arch复审.md:4 悬空大纲引用（plan 文件先于本阶段已不存在，随批2 对
-  该文件的裁决处置）；另 docs/assets/README.md:74 历史表引用已删大纲（历史记录性质，
-  触发时机=「上传github前准备」阶段再议）
+- [上传github前准备] docs/assets/README.md:74 历史表引用已删大纲（历史记录性质，触发
+  时机=「上传github前准备」阶段再议；distill-b1 审查发现，distill-b2 移交）
+- [distill-b2] 收尾两项待拍板：① l2dsu抓取模型说明.md 是否登记 AGENTS.md 索引表（自荐
+  「l2d.su 数据源抓取」条目，索引增删属用户）；② 合并版 spec-l2dsu-engine.md 601 行超标按
+  归档容忍口径确认（先例 r4=948）——①拍板后自改或指示执行，②默认容忍无需动作
 
 ### 相关背景
 > 极简自研前端设计与踩坑：docs/context/minimal-frontend.md

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """live2d动作链条修正2 §7：关系预设层（type103 链步查表 / type104 idle 预设）+ ParamDriver 链同步。
 
-静态锚点 + esbuild→node 运行时向量（规格书 §7 用例表；语义依据 spec-l2dsu-engine-v2.md §4.4）。
+静态锚点 + esbuild→node 运行时向量（规格书 §7 用例表；语义依据 spec-l2dsu-engine.md §4.4）。
 """
 
 import json

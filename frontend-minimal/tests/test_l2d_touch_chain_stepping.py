@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """live2d动作链条修正2 §7：TouchChain 链步状态机（action_list 循环步进 + ATA 覆盖 + 形态A 目标 idle）。
 
-静态锚点 + esbuild→node 运行时向量（规格书 §7 用例表；语义依据 spec-l2dsu-engine-v2.md §3.1/§3.2）。
+静态锚点 + esbuild→node 运行时向量（规格书 §7 用例表；语义依据 spec-l2dsu-engine.md §3.1/§3.2）。
 """
 
 import json

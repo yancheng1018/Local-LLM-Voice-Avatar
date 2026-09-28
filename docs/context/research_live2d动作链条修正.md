@@ -2,7 +2,7 @@
 
 > 2026-09-17 只读研究（未改任何代码/测试）。
 > **本轮新增决定性证据源**：站点引擎 JS 成功下载并**完整反混淆**（`modelRuntime-BDk3g7Pb.js`，201,926 字节），
-> 逆向记录见 `spec-l2dsu-engine-v2.md`（同批产出，含可复现解码方法与归档产物清单）。
+> 逆向记录见 `spec-l2dsu-engine.md`（同批产出，含可复现解码方法与归档产物清单）。
 > **证据等级**：A=站点源码直证 · B=数据直证（可脚本复现）· C=用户观感 · D=推断。
 > 症状编号沿用用户报告原文（G=guanghui_9、S=shi_3、X=xinnong_6、F=feiteliedadi_3）。
 
@@ -45,7 +45,7 @@
 
 ## 3. 站点行为基准（l2d.su 对照，全部 A 级源码直证）
 
-> 完整逆向见 `spec-l2dsu-engine-v2.md`。以下仅列与四症状直接相关的机制。
+> 完整逆向见 `spec-l2dsu-engine.md`。以下仅列与四症状直接相关的机制。
 
 ### 3.1 参数权威层（`setOfficialLive2DParameterTarget` + 每帧 Tween）
 
@@ -317,7 +317,7 @@ xinnong_6 `model3.json` 的 `Idle` 组 15 条（`idle`、`idle1`…`idle13`、`i
 
 **F2（决定性）**：`TouchDrag3`（49902204）`ATA {enable:[], idle:2, ignore:[]}` +
 `relationParameter.list` 四条 **type104**（`idle:2` → `touch_drag15=0, touch_drag16=1, touch_drag17=1, touch_drag18=0`）。
-站点 type104 语义（`spec-l2dsu-engine-v2.md` §4.4）：**`rel.idle === 当前 idleIndex` 时把 `rel.name` 设为 `target`**。
+站点 type104 语义（`spec-l2dsu-engine.md` §4.4）：**`rel.idle === 当前 idleIndex` 时把 `rel.name` 设为 `target`**。
 点 drag3 → idleIndex=2 → 这四个参数被设为 `0/1/1/0` → 模型显示 drag2/drag4 且**参数目标表每帧维持** → 「不复位」。
 本地：type104 未实现（`l2d_params.ts:13` 只认 103；`toParamRule` 只提取 `list[0]` 的 type103）→ 参数不设 → 画面不保持。
 
@@ -382,7 +382,7 @@ xinnong_6 `model3.json` 的 `Idle` 组 15 条（`idle`、`idle1`…`idle13`、`i
 9. **形态A 查表改用「目标 idle」**（修 `l2d_touch.ts:143-144` 的语义错）+ `active_list[si]` 覆盖 ATA。
 10. **冷却先记 + 链步循环**语义（注意：与本地偏离项 D2「body 连点冷却」冲突，**须先裁决**）。
 11. **条件门槛 type9/11/15**、**type5/type10/type13**、**dynamicFlag 可见性**、**tips 显隐**——
-    按 `spec-l2dsu-engine-v2.md` §6 对照表逐项评估；其中 tips 显隐直接关系 G1「无热区」的观感。
+    按 `spec-l2dsu-engine.md` §6 对照表逐项评估；其中 tips 显隐直接关系 G1「无热区」的观感。
 
 ### 6.4 不建议
 

@@ -53,7 +53,7 @@
   （轻量版工作流；launcher 内嵌检测仍为遗留）；规格编写规范新增 3 条（∩ 口径写明具体名单 /
   幂等判据只锚可确定项 / 脚本行数预检留输出余量），见 spec-writing.md §6-8
 - 原 temp_spec_leftover-triage*.md 与 impl_report_leftover-triage_stage1.md 已删除；
-  研究报告 research_leftover-triage.md 留存（N02/N04/N08 与 D 类裁决待续）
+  研究报告 research_leftover-triage.md 后于 distill-b2 删除（A/C 类已执行、D 类裁决已被后续阶段吸收）
 
 ## 2026-09-10 综合会话（GUI v2.0~v2.4 与遗留修复）
 - GUI 启动器迭代至 v2.4：模型页、角色编辑器、贴图预览、voices/ 声音模型体系、Live2D 导入（自动登记 model_dict.json）、启动后自动开浏览器；另做 streaming_mode 注解等遗留修复

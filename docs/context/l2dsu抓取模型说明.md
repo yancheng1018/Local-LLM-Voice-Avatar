@@ -74,9 +74,9 @@ curl -s --noproxy '*' -A 'Mozilla/5.0' -o ship-39904.json https://l2d.su/data/sh
 
 1. **shipId/skinId 混淆**（见 §2.1）：皮肤级路径返回 HTML 不是反爬、不是接口失效，是路径错了。
 2. **live2dTouch 顶层键 per-ship 差异**：实测 wuqi_3=4 键（无 tips/dragRate）、guanghui_9=5 键（有 tips 无
-   dragRate）、spec-l2dsu-engine §1 记载的 6 键是 207037 系皮肤——不要假设固定键集，解析按需取。
+   dragRate）、spec-l2dsu-engine §11 记载的 6 键是 207037 系皮肤——不要假设固定键集，解析按需取。
 3. **tips 子键比旧记载多**：guanghui_9 实测有 `tipsOffset/tipsScale/tipsIcon/idleBlackList/animWhiteList`
-   （后三者为 spec-l2dsu-engine §1 未记载的新发现）。
+   （后三者为 spec-l2dsu-engine §11 未记载的新发现）。
 4. **不认识的规则类型也要原样保留**：实测存在 type12（参数 num 监听，两模型各 1 条带大 ignore 表）、
    9/10/11 等；本地引擎未实现 ≠ 数据不需要，重抓后 diff 会因丢弃而误报。
 5. **动作组跳号是数据事实**：wuqi_3 无 idle8 组、guanghui_9 无 touch_idle11/idle11 组且规则集同样缺号
@@ -108,7 +108,6 @@ generatedAt）。无浏览器依赖，可 cron 化增量（先抓索引 diff `ne
 
 ## 5. 与既有文档的关系
 
-- spec-l2dsu-engine.md §1「数据源 `/data/ships/CN/<shipGroupId>.json`」的 id 语义应订正为**舰船级**；
-  其 6 顶层键描述限定 207037 系皮肤（§3-2）。research_live2d_stage1.md §6 的「接口失效」结论已被
-  stage1b §9.1 推翻（本轮再证）。订正动作待裁决后由 /distill-research 类命令执行，本文不直接改旧文档。
+- 本节上述订正已于 distill-b2 随 spec-l2dsu v1/v2 合并落地（舰船级语义与键集限定见合并版 §11；
+  stage1「接口失效」结论订正与 T12 教训见合并版 §12）。
 - 本文件未录入 AGENTS.md 索引表（改索引需确认）；建议登记为「l2d.su 数据源抓取」场景条目。

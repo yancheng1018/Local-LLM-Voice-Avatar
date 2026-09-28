@@ -144,7 +144,7 @@ S1/S2 最小且证据充分；S3 需先补站点对照。
 - 数据：`guanghui_9/touch.json`（23703103/23703161/23703104/23703105）、
   `guanghui_9/motions/*.motion3.json`（97 文件曲线清点）。
 - 既有对照：`spec-l2d-touch-engine.md` §7:115-118（站点 poke 语义）、
-  `spec-l2dsu-engine-v2.md` §3.1 ⑥⑧/§3.3:280-287（站点 dial 与释放路径）、
+  `spec-l2dsu-engine.md` §3.1 ⑥⑧/§3.3:280-287（站点 dial 与释放路径）、
   `research_live2d动作链条修正.md` §3.1/§5.2-5.4。
 - **未取证（Q3 残留）**：站点实时对照（l2d.su 需登录；stage1 实测记录站点 guanghui 规则区
   当时不可交互）——站点 dial 写入时机与是否同样存在值→几何自反馈，待实机取证。
