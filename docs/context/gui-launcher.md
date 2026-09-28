@@ -87,7 +87,7 @@ GPT-SoVITS 每次请求都需要参考音频 + 提示文本，因此把「权重
 
 ```
 voices/
-└── 加藤惠/
+└── <声音名>/
     ├── ref.wav       # 参考音频
     └── voice.json    # {
                       #   "prompt_text": "参考音频中说的原话",

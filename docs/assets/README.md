@@ -14,8 +14,8 @@
 |------|------|---------|
 | `su_modelRuntime-BDk3g7Pb.js` | 站点引擎 JS 原始快照（201,926 字节，2026-09-17） | 直接读；混淆字符串按下方脚本还原 |
 | `su_modelRuntime_strings.json` | 解码后的字符串表（642 条，键=解码入参十六进制） | `su_survey_touch_json.py` 同目录脚本；或按 spec-l2dsu-engine §1 的 Node 片段重建解码器 |
-| `su_ships-CN.json` | 站点全量索引（prefab→shipGroupId、皮肤清单），2.8MB | 直接读；survey 脚本的索引源 |
-| `_ships_cache/site_<group>.json` | 33 组站点数据快照（研究期 4 症状组 + 普查/修复全量缓存，6.6MB） | 直接读；含各皮肤完整 `live2dTouch`；可用脚本 `--fetch` 重新采集 |
+| `su_ships-CN.json` | 站点全量索引（prefab→shipGroupId、皮肤清单），2.8MB；**已出库（本地保留磁盘，不入库，2026-09-29）** | 直接读；survey 脚本的索引源 |
+| `_ships_cache/site_<group>.json` | 33 组站点数据快照（研究期 4 症状组 + 普查/修复全量缓存，6.6MB）；**已出库（本地保留磁盘，不入库，2026-09-29）** | 直接读；含各皮肤完整 `live2dTouch`；可用脚本 `--fetch` 重新采集 |
 | `su_survey_touch_json.py` | **touch.json 皮肤匹配普查脚本**（发现 9/36 错配） | `python docs/assets/su_survey_touch_json.py <repo_root> [--fetch]` |
 
 **touch.json 数据源规则（动作链条修正候选 A1 降级，2026-09-17）**：本地
@@ -72,7 +72,7 @@ stage1 已物理删除 `Temp/`，该阶段（git_stage2）追溯失败，**无�
 
 | 文档 | 引用内容 |
 |------|---------|
-| `docs/context/research_plan_live2d.md:37,68` | SQ1 依赖 `Temp/stage2_ctx.txt`、`Temp/modelRuntime-BDk3g7Pb.js` |
+| `docs/context/research_plan_live2d.md:37,68` | SQ1 依赖 `Temp/stage2_ctx.txt`、`Temp/modelRuntime-BDk3g7Pb.js`（该大纲已随 distill-b1 脚手架清理删除，本行仅历史记录） |
 | `docs/context/research_live2d_stage1.md:145,156,256` | 依赖 `Temp/su_touch_rules_skin9.json`、`Temp/su_modelRuntime_deob.js` |
 | `docs/context/spec-l2dsu-engine.md` §12 | 引用 `Temp/stage2_tests.ps1`、`Temp/stage2_ctx.txt`（v1 头注随 distill-b2 合并迁入） |
 | `docs/context/live2d.md` | 1 处 `Temp/` 引用 |

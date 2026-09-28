@@ -205,7 +205,7 @@ export class TouchChain {
       if (idleNew !== undefined) this.idleIndex = idleNew; // 带 idle 的形态A 同样推进（站点语义）
     } else {
       // 空数组 = 无白名单（站点 deob officialLive2DActionAllowed：enable.length > 0 才启用；
-      // 与形态 A 的 en.length ? new Set(en) : null 对齐。stage1e 实测修正：光辉 ATA.enable=[]
+      // 与形态 A 的 en.length ? new Set(en) : null 对齐。stage1e 实测修正：某模型 ATA.enable=[]
       // 曾被当空白名单拦截一切动作）
       if (Array.isArray(ata.enable)) this.enable = ata.enable.length ? new Set(ata.enable) : null;
       if (ata.ignore) this.ignore = new Set(ata.ignore);

@@ -1,7 +1,20 @@
 ## 当前阶段
 
 ### 阶段状态
-> **distill-b3 及所属功能线（research存量提炼）全部完成并验收通过（2026-09-29）。当前无既定下一阶段，等待新需求**
+> **github-p0-privacy：上传github前准备·P0隐私批——私人资产出索引+B档文档脱敏+filter-repo 历史抹除与 mailmap 改写（规划完成，待弱模型实施）[1/6]**
+
+### 阶段路线图 · 上传github前准备
+> 把仓库整理为可公开发布的 GitHub 仓库（已定名 Local-LLM-Voice-Avatar，分发名 local-llm-voice-avatar）；共 6 阶段；建立于 2026-09-29
+> 阶段划分依据 research_上传github前准备.md §7 分批表；事实基准 temp_spec_github_publish.md
+
+| # | 阶段 | 目标一句话 | 状态 | 备注（依赖/前置） |
+|---|------|-----------|------|------------------|
+| 1 | github-p0-privacy | 私人资产出索引+文档B档脱敏+filter-repo 抹历史与 mailmap 改写 | 规划完成 | mailmap 已定 noreply（55277749+yancheng1018）；规格 temp_spec_github-p0-privacy.md |
+| 2 | github-p0-decouple | GUI:573 占位文案通用化+收录 start_v4_dpo.bat/.py（注明 v2pro-20260604）+私有声音名 grep 守卫测试落位 | 未开始 | 依赖批1；是否连带收录停止脚本待用户定（研究 §8-②） |
+| 3 | github-p0-characters | ja_test 本地改名 shinano.yaml+忽略项换名+新建大众化默认测试角色入库 | 未开始 | 依赖批1；新角色人设内容需用户过目 |
+| 4 | github-p1-facade | 改名四联动+版本 1.0.0+README 主写（Live2D 授权声明/多引擎亮点/快速层 pyttsx3） | 未开始 | edge_tts→pyttsx3 方案默认采纳（研究 §3 建议，§8-① 待最终确认） |
+| 5 | github-p1-robust | frontend/ mount 守卫+新克隆冒烟（零 GPT-SoVITS 路径加验转必做） | 未开始 | 依赖批4（按 README 冒烟） |
+| 6 | github-p2-release | 建仓（先私有）→显式 refspec push→tag v1.0.0+Release→收尾 | 未开始 | push 需用户明确确认；需 GitHub 用户名 |
 
 ### 收尾待办
 
@@ -37,8 +50,6 @@
   fix_live2d_idle_groups.py → fit_live2d_scale.py 脚本链内嵌进启动器导入流程
   （自动检测 + 一键修复 + 报告展示）；轻量版工作流（导入后手动跑脚本链）随
   leftover-triage_stage1 建立，launcher 集成暂缓待立项（2026-09-16 用户裁决）
-- [上传github前准备] docs/assets/README.md:74 历史表引用已删大纲（历史记录性质，触发
-  时机=「上传github前准备」阶段再议；distill-b1 审查发现，distill-b2 移交）
 - [distill-b2] 收尾两项待拍板：① l2dsu抓取模型说明.md 是否登记 AGENTS.md 索引表（自荐
   「l2d.su 数据源抓取」条目，索引增删属用户）；② 合并版 spec-l2dsu-engine.md 601 行超标按
   归档容忍口径确认（先例 r4=948）——①拍板后自改或指示执行，②默认容忍无需动作

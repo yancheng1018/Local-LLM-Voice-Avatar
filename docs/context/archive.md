@@ -60,7 +60,7 @@
 
 ## 2026-09-10 综合会话（GUI v2.0~v2.4 与遗留修复）
 - GUI 启动器迭代至 v2.4：模型页、角色编辑器、贴图预览、voices/ 声音模型体系、Live2D 导入（自动登记 model_dict.json）、启动后自动开浏览器；另做 streaming_mode 注解等遗留修复
-- 留下：`启动器.bat`（须保持 GBK 编码、不加 chcp）；conf.yaml `ref_audio_path` 指向 `voices/加藤惠/ref.wav`；加藤惠 Live2D 因 Cubism 2.1 前端不支持而弃用并移出 model_dict.json，其余 41 条 url 核对有效
+- 留下：`启动器.bat`（须保持 GBK 编码、不加 chcp）；conf.yaml `ref_audio_path` 指向 `voices/<声音名>/ref.wav`；某 Cubism 2.1 模型因前端不支持而弃用并移出 model_dict.json，其余 41 条 url 核对有效
 
 ## 2026-09-10 Live2D 动作表现优化
 - 为 xinnong_6 / mao_pro 补 Idle / Talk 动作组与 tapMotions（默认角色从完全静止变为有待机/说话/点击反应）；修正 mao_pro emotionMap 三处错误映射（fear/sadness 原指开心、anger 原指闭眼）并扩至 50 键；重写 live2d_expression_prompt.txt（每句最多一个关键词且放句首）

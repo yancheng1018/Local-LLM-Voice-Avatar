@@ -10,7 +10,7 @@
 
 | 现象 | 真相 |
 |------|------|
-| 加了 `voices/` 规则后 `voices/加藤惠/voice.json` 仍被追踪 | 正常，它本就在索引里 |
+| 加了 `voices/` 规则后 `voices/<声音名>/voice.json` 仍被追踪 | 正常，它本就在索引里 |
 | 想提交该类文件的**修改**，`git add voices/...` 被拒（ignored） | **这才是真问题**，须 `git add -f` |
 
 自查有哪些已追踪文件落进了忽略范围：
@@ -19,8 +19,9 @@
 git ls-files -i -c --exclude-standard
 ```
 
-当前实测命中约 20 项（`avatars/`、`backgrounds/`、`voices/加藤惠/*` 等），
-都是**刻意保留追踪**的：改它们要 `git add -f`。
+当前实测命中 17 项（`avatars/` 2 项、`backgrounds/` 15 项），
+都是**刻意保留追踪**的：改它们要 `git add -f`（voices/ 私有资产已随 github-p0-privacy
+批出索引，不再落进忽略范围；计数为批后口径 2026-09-29）。
 
 ### 本仓库的忽略策略
 
@@ -34,6 +35,9 @@ git ls-files -i -c --exclude-standard
 - `docs/context/temp_spec_*.md` 与 `docs/context/impl_report_*.md` 忽略：施工期的临时图纸，
   结论沉淀进归档文档后即弃。**已入库的同名历史文件不受影响**（声明式规则只作用于未追踪文件），
   改它们仍须 `git add -f`。阶段收尾时把有长期价值的规格书改名为 `spec-*.md` 入库。
+- 私有资产出库（github-p0-privacy，2026-09-29）：`launcher/launcher_config.json`（运行时状态，
+  缺失时 launcher 自动重建）、characters/ 下 5 个本地角色 yaml、`docs/assets/_ships_cache/` 与
+  `su_ships-CN.json`（舰船数据缓存）已 `git rm --cached` 出索引并补忽略规则，磁盘保留。
 
 ### 可搬移性红线（移走 = 服务器起不来）
 

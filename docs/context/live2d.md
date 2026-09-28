@@ -170,8 +170,8 @@ fetch(modelHomeDir + name + ".model3.json")   // 路径来自 model_dict.json �
 `model_dict.json` 的 `url` 必须以 `.model3.json` 结尾（前端会剥掉该后缀推导模型名与 baseUrl，
 所以模型嵌在多层子目录里也可以）。
 
-**已知不兼容**：`live2d-models/加藤惠live2d/` 是 Cubism 2.1
-（入口 `model/katou_01/katou_01.model.json`），前端无法加载。
+**已知不兼容**：`live2d-models/` 下某 Cubism 2.1 模型
+（入口 `<模型目录>/<入口>.model.json`），前端无法加载。
 转换到 `.model3.json` 必须用 Live2D Cubism Editor，无法脚本化。
 启动器会在预览下方用黄色提示标出这种模型。
 
