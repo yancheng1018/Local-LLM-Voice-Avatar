@@ -1,6 +1,7 @@
 # 研究报告 · live2d动作链条-research2（type12 门控 / 结束后恢复 / idle 生命周期 / 无绘画件热区 / 验收仪表）
 
 > 2026-09-18 **只读研究**（未改源码）。
+> 2026-09-29 distill-b3：可复用结论已提炼入 `minimal-frontend-live2d.md`「动作链条域结论提炼」节；本文保留作证据链。
 > 基线：阶段 0/A/B + v2 修复轮已完成并验收（2026-09-18，archive.md）。站点侧证据三级来源：
 > ①站点引擎快照 `docs/assets/su_modelRuntime-BDk3g7Pb.js`（201,926 字节，rg 可复核）；
 > ②逆向记录 `spec-l2dsu-engine.md`；③站点数据缓存 `docs/assets/_ships_cache/`。

@@ -2,6 +2,9 @@
 
 > 压缩格式：日期 + 做了什么 + 留下的契约/文件。过程性叙述不复述，事实以代码与 git log 为准。
 
+## 2026-09-29 research存量提炼 distill 系列（b1~b3 全验收）
+- b1 删 6 份大纲脚手架+5 成品溯源行改写；b2 触摸/热区及清理类 3 删+spec-l2dsu v1/v2 合并+repo-maintenance 订正；b3 动作链条域结论提炼入 minimal-frontend-live2d.md（已裁不修红线+站点未取证残留）+4 处置行+口径从句；域内 research/manual 文件全保留作证据链
+
 ## 2026-09-18 Live2D 动作链条 research2_v2 + research3（type12 裁决 + tap 抬起命中回退）
 - 依 temp_spec_live2d动作链条-research2.md（v1）+ _v2.md + _research3.md 实施（原文已删）。
   v1→v2 验收失败根因：方案A 假设「idle 循环由 motion3.json Meta.Loop 数据标志驱动」——库

@@ -204,3 +204,7 @@
 - F5 死锁链（修复后解除入口）：值卡 (0.01,10] → type12 门关 → touchbody 链不推进 →
   idleIndex 恒 0 → revertOnIdle 不触发。修复后首次点击即收敛到 10，drag4/5 入画布可拖，
   复位路径恢复可达。
+
+**动作链条域结论提炼（distill-b3，2026-09-29；来源 research_live2d动作链条修正/-research2/-research3 与 manual_live2d动作链条验证.md，均保留作证据链，处置行见各文件文首）**：
+- ⚠️ **已裁不修红线（站点同款非缺陷，勿再立项修复）**：S3 touch_head/touch_body 播放后 touch_drag10 0→4（站点实测同样变 4，动作曲线末值属数据设定）；F1 feiteliedadi_3 TouchDrag6 初始不可互动（站点初始同样无此热区）；另不得为提高可点率放宽 opacity/门槛判定（r2 已证 D1 净伤害）。依据：修正.md §5.2/§5.6/§6.4（T3/T5 实测）
+- ⚠️ **站点侧未取证残留（未来立项前置，勿当已验证事实引用）**：面板↔模型双路径后半——motion 曲线写入与目标表交互（修正.md §8-1，research2 §3.1 定案一半）；`ruleHasLive2DSlide`/`playLive2DIdleMotion` 函数体（research2 §8-5）；站点 dial 写入时机与值→几何自反馈对照（research3 Q3）
