@@ -5,6 +5,7 @@
 ## 2026-09-29 research存量提炼 distill 系列（b1~b3 全验收）
 - b1 删 6 份大纲脚手架+5 成品溯源行改写；b2 触摸/热区及清理类 3 删+spec-l2dsu v1/v2 合并+repo-maintenance 订正；b3 动作链条域结论提炼入 minimal-frontend-live2d.md（已裁不修红线+站点未取证残留）+4 处置行+口径从句；域内 research/manual 文件全保留作证据链
 - github-p0-privacy 批（同日）：42 项私人资产出索引保磁盘；voices 声音卡+launcher_config.json+舰船缓存 34 项 filter-repo 抹历史；mailmap 全量改 `yancheng1018 <55277749+yancheng1018@users.noreply.github.com>`（上游署名 1 条保留）；B 档私有名脱敏 7 文件；索引守卫 tests/test_repo_privacy_guard.py 入库。仓库外备份：../pre-scrub-backup.bundle、../pre-namescrub-backup.bundle
+- github-p0-decouple 批（同日）：GUI:573 占位文案通用化；收录 GPT-SoVITS v2pro-20250604 自建启动脚本至 external/gpt_sovits/（bat/py+README，仅 lint 修正无逻辑改动）；私有声音名 grep 守卫落位（本地名单 tests/private_names.local.txt，缺失 skip）；本任务线开发文档（research 2 份+finalize_exec）出库保护落地；全量 166 passed
 
 ## 2026-09-18 Live2D 动作链条 research2_v2 + research3（type12 裁决 + tap 抬起命中回退）
 - 依 temp_spec_live2d动作链条-research2.md（v1）+ _v2.md + _research3.md 实施（原文已删）。

@@ -1,7 +1,7 @@
 ## 当前阶段
 
 ### 阶段状态
-> **github-p0-privacy 已完成并验收通过（2026-09-29）。下一阶段：github-p0-decouple——GUI:573 占位文案通用化+收录自建启动脚本+私有声音名 grep 守卫测试落位 [2/6]**
+> **github-p0-decouple 已完成并验收通过（2026-09-29）。下一阶段：github-p0-characters——ja_test 本地改名 shinano.yaml+忽略项换名+新建大众化默认测试角色入库 [3/6]**
 
 ### 阶段路线图 · 上传github前准备
 > 把仓库整理为可公开发布的 GitHub 仓库（已定名 Local-LLM-Voice-Avatar，分发名 local-llm-voice-avatar）；共 6 阶段；建立于 2026-09-29
@@ -10,7 +10,7 @@
 | # | 阶段 | 目标一句话 | 状态 | 备注（依赖/前置） |
 |---|------|-----------|------|------------------|
 | 1 | github-p0-privacy | 私人资产出索引+文档B档脱敏+filter-repo 抹历史与 mailmap 改写 | 已验收 2026-09-29 | 守卫常量去名化+作者名改写 yancheng1018 已随收尾落地 |
-| 2 | github-p0-decouple | GUI:573 占位文案通用化+收录 start_v4_dpo.bat/.py（注明 v2pro-20260604）+私有声音名 grep 守卫测试落位 | 未开始 | 依赖批1；是否连带收录停止脚本待用户定（研究 §8-②） |
+| 2 | github-p0-decouple | GUI:573 占位文案通用化+收录 start_v4_dpo.bat/.py（注明 v2pro-20260604）+私有声音名 grep 守卫测试落位 | 已验收 2026-09-29 | 实查无 stop 配套脚本（§8-② 消解）；收录版=lint 修正无逻辑改动 |
 | 3 | github-p0-characters | ja_test 本地改名 shinano.yaml+忽略项换名+新建大众化默认测试角色入库 | 未开始 | 依赖批1；新角色人设内容需用户过目 |
 | 4 | github-p1-facade | 改名四联动+版本 1.0.0+README 主写（Live2D 授权声明/多引擎亮点/快速层 pyttsx3） | 未开始 | edge_tts→pyttsx3 方案默认采纳（研究 §3 建议，§8-① 待最终确认） |
 | 5 | github-p1-robust | frontend/ mount 守卫+新克隆冒烟（零 GPT-SoVITS 路径加验转必做） | 未开始 | 依赖批4（按 README 冒烟） |
