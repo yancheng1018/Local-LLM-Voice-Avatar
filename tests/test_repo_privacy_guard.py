@@ -11,7 +11,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 PRIVATE_PATH_PREFIXES = (
-    "voices/加藤惠/",
+    "voices/",
     "launcher/launcher_config.json",
     "characters/Friedrich.yaml",
     "characters/Illustrious.yaml",

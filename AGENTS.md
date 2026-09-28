@@ -36,6 +36,7 @@ GUI 启动器（推荐；自动使用 .venv-gui，环境缺失时会给出创建
 - 角色自我认知名来自 persona_prompt，不是 character_name（详见 docs/context/config-system.md）
 - 默认角色是指针方案（v2.6 起）（详见 docs/context/config-system.md）
 - 动 Live2D 前必读 docs/context/live2d.md 的硬性契约
+- git 提交身份：yancheng1018 <55277749+yancheng1018@users.noreply.github.com>，勿用旧占位身份（公开仓库隐私；换机/新克隆须先设）
 
 ## 目录速览
 

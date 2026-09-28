@@ -38,6 +38,12 @@ git ls-files -i -c --exclude-standard
 - 私有资产出库（github-p0-privacy，2026-09-29）：`launcher/launcher_config.json`（运行时状态，
   缺失时 launcher 自动重建）、characters/ 下 5 个本地角色 yaml、`docs/assets/_ships_cache/` 与
   `su_ships-CN.json`（舰船数据缓存）已 `git rm --cached` 出索引并补忽略规则，磁盘保留。
+- git filter-repo 默认重写**所有 ref**：`git branch` 备份会被一并重写，退路必须放仓库外
+  （`git bundle create ../<名>.bundle --all`；github-p0-privacy 实证，两轮重写均此法）。
+- github-p0-privacy 终态：42 项出索引保磁盘；voices 声音卡、launcher_config.json、舰船缓存
+  34 项已抹历史；作者全量 `yancheng1018 <55277749+yancheng1018@users.noreply.github.com>`；
+  索引守卫 = tests/test_repo_privacy_guard.py（新增出库资产须同步补其 PRIVATE_PATH_PREFIXES
+  与 .gitignore）。
 
 ### 可搬移性红线（移走 = 服务器起不来）
 
