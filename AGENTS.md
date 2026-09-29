@@ -50,7 +50,7 @@ src/open_llm_vtuber/               后端主体
   config_manager/ · conversations/ 配置管理 / 对话系统
 launcher/                          GUI 启动器（PySide6）
 live2d-models/                     Live2D 模型
-frontend/                          官方前端（Git 子模块）；frontend-minimal/ 自研极简前端
+frontend-minimal/                  自研极简前端（唯一前端，入口 /m/）
 config_templates/                  默认配置模板
 legacy/                            上游遗留部件（本项目不用，详见 legacy/README.md）
 ```

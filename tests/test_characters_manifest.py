@@ -54,7 +54,9 @@ def test_demo_character_tracked_and_valid():
     assert isinstance(cfg["persona_prompt"], str) and cfg["persona_prompt"].strip()
     model_list = json.loads((REPO_ROOT / "model_dict.json").read_text(encoding="utf-8"))
     assert isinstance(model_list, list), "model_dict.json 须为模型对象数组"
-    assert any(m["name"] == DEMO_MODEL for m in model_list), f"{DEMO_MODEL} 不在 model_dict.json"
+    assert any(m["name"] == DEMO_MODEL for m in model_list), (
+        f"{DEMO_MODEL} 不在 model_dict.json"
+    )
 
 
 def test_character_identity_unique_on_disk():

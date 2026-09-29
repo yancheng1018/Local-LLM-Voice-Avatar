@@ -833,18 +833,9 @@ class LauncherWindow(QMainWindow):
         self.chk_open_browser = QCheckBox("启动完成后自动打开浏览器")
         self.chk_open_browser.setChecked(True)
         self.chk_open_browser.toggled.connect(self._on_open_browser_toggled)
-        self.combo_frontend = QComboBox()
-        self.combo_frontend.addItems(["原版前端", "极简前端 (/m)"])
-        self.combo_frontend.setToolTip(
-            "选择「立即打开界面」和自动打开时访问的前端：\n"
-            f"原版前端 = {WEB_UI_URL}\n"
-            f"极简前端 = {WEB_UI_URL}/m/（自研，支持 Spine 模型）"
-        )
-        self.combo_frontend.currentIndexChanged.connect(self._on_frontend_changed)
         self.btn_open_browser = QPushButton("立即打开界面")
         self.btn_open_browser.clicked.connect(self._open_web_ui)
         svc_opt_row.addWidget(self.chk_open_browser)
-        svc_opt_row.addWidget(self.combo_frontend)
         svc_opt_row.addWidget(self.btn_open_browser)
         svc_opt_row.addStretch(1)
         tab_service_layout.addLayout(svc_opt_row)
@@ -1398,12 +1389,6 @@ class LauncherWindow(QMainWindow):
             bool(self.launcher_cfg.get("auto_open_browser", True))
         )
         self.chk_open_browser.blockSignals(False)
-        # 恢复「前端选择」下拉（默认极简前端）
-        self.combo_frontend.blockSignals(True)
-        self.combo_frontend.setCurrentIndex(
-            1 if self.launcher_cfg.get("frontend_choice", "minimal") == "minimal" else 0
-        )
-        self.combo_frontend.blockSignals(False)
 
     def _save_launcher_config(self):
         try:
@@ -3562,8 +3547,7 @@ class LauncherWindow(QMainWindow):
             # 后端只会在进程启动时读一次 conf.yaml，正在运行的话改动不会生效
             if self.llm_process is not None and self.llm_process.poll() is None:
                 self._log(
-                    "[启动器] ⚠ 主服务 正在运行，本次改动需"
-                    "「停止」后重新启动才会生效"
+                    "[启动器] ⚠ 主服务 正在运行，本次改动需「停止」后重新启动才会生效"
                 )
             # 已落盘，更新快照，关闭窗口时就不会再提示"有未保存改动"
             self._mark_config_saved()
@@ -3636,15 +3620,9 @@ class LauncherWindow(QMainWindow):
         self.launcher_cfg["auto_open_browser"] = bool(checked)
         self._save_launcher_config()
 
-    def _on_frontend_changed(self, index: int):
-        self.launcher_cfg["frontend_choice"] = "minimal" if index == 1 else "default"
-        self._save_launcher_config()
-
     def _web_ui_url(self) -> str:
-        """根据前端选择返回要打开的地址。"""
-        if self.combo_frontend.currentIndex() == 1:
-            return f"{WEB_UI_URL}/m/"
-        return WEB_UI_URL
+        """旧官方前端已移除，界面固定指向极简前端。"""
+        return f"{WEB_UI_URL}/m/"
 
     def _schedule_open_web_ui(self, timeout: int = 180):
         """起一个守护线程等 12393 就绪，然后通知主线程打开浏览器。"""
@@ -3858,15 +3836,15 @@ class LauncherWindow(QMainWindow):
         self._log("[启动器] 一键启动：先保存当前配置...")
         self._save_config()
         tts_key = self.combo_tts.currentText()  # 主线程读取，避免跨线程读 Qt 控件
-        threading.Thread(target=self._oneclick_worker, args=(tts_key,), daemon=True).start()
+        threading.Thread(
+            target=self._oneclick_worker, args=(tts_key,), daemon=True
+        ).start()
 
     def _oneclick_worker(self, tts_key: str):
         try:
             if tts_key == "sherpa_onnx_tts":
                 cfg = self._get_tts_config(tts_key) or {}
-                if any(
-                    isinstance(v, str) and "/path/to" in v for v in cfg.values()
-                ):
+                if any(isinstance(v, str) and "/path/to" in v for v in cfg.values()):
                     self.oneclick_progress_signal.emit(
                         "[启动器] ✘ sherpa_onnx_tts 配置仍是模板占位路径（/path/to/...），"
                         "请先下载模型并按 README 进阶配置填写真实路径，已中止一键启动。"
@@ -3918,9 +3896,7 @@ class LauncherWindow(QMainWindow):
                 self._auto_apply_saved_weights()
 
             if self.llm_process is not None and self.llm_process.poll() is None:
-                self.oneclick_progress_signal.emit(
-                    "[启动器] ✔ 主服务 已在运行"
-                )
+                self.oneclick_progress_signal.emit("[启动器] ✔ 主服务 已在运行")
                 self.web_ready_signal.emit()  # 已在运行也打开一次界面
             else:
                 self.oneclick_progress_signal.emit("[启动器] ★ 启动 主服务...")
@@ -4055,9 +4031,7 @@ class LauncherWindow(QMainWindow):
             )
             self._llm_reader_thread.start()
         except Exception as e:
-            self.oneclick_progress_signal.emit(
-                f"[启动器] ✘ 启动 主服务 失败：{e}"
-            )
+            self.oneclick_progress_signal.emit(f"[启动器] ✘ 启动 主服务 失败：{e}")
 
     # ------------------------------------------------------------------
     # 全部停止

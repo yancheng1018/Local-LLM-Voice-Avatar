@@ -27,9 +27,10 @@ git ls-files -i -c --exclude-standard
 
 - `live2d-models/*` 整体忽略，仅 `!mao_pro/` 一个上游示例模型入库（shizuku 已删，其死白名单行随 distill-b2 清理）。
 - `models/`、`Spine-models/`、`voices/`、`avatars/`、`backgrounds/` 忽略但**保磁盘**。
-- `frontend/` 忽略且**不在索引中，仅保磁盘**：旧官方前端，服务器仍 catch-all mount 它
-  （`server.py`），删了服务器起不来。stage2 已解除其子模块关系（gitlink 移除、`.gitmodules`
-  删除），不再指向上游；磁盘文件保留但不入库。
+- `frontend/`（旧官方前端）已于 github-p1-robust（2026-09-29）整体退役：目录删除，server.py mount
+  与 run_server.py 启动检查删除，GUI 前端选项删除，根路径 307 引导 /m/；防回潮守卫 =
+  tests/test_server_frontend_guard.py。恢复路径 = 上游 https://github.com/Open-LLM-VTuber/Open-LLM-VTuber-Web
+  （branch=build）clone 回 frontend/ + 从上游 server.py 抄回 mount 段（忽略规则保留，防重取后误入库）。
 - `conf.yaml` 忽略，入库模板是 `config_templates/conf.ZH.default.yaml`。
 - 根目录 `conf.yaml.bak` / `.backup`、`model_dict.json.bak` 属脚本自动备份，一并忽略。
 - `docs/context/temp_spec_*.md` 与 `docs/context/impl_report_*.md` 忽略：施工期的临时图纸，
@@ -57,13 +58,7 @@ git ls-files -i -c --exclude-standard
 | `web_tool/` | `server.py` mount 为 `/web_tool` |
 | `models/` | `run_server.py:21` 设为 `HF_HOME`；`conf.yaml` 指向其下 sherpa-onnx 模型 |
 | `Spine-models/` | `server.py` 存在性检查后 mount 为 `/Spine-models` |
-| `frontend/` | `server.py:172` catch-all mount（**无存在性检查**）+ `run_server.py:52` 启动检查；已非子模块（`.gitmodules` 已删），被 `.gitignore` 忽略、不在索引中，仅保磁盘 |
 
-> `frontend/` 是本表里**唯一没有 `os.path.exists` 守卫**的 mount：`Spine-models`（`server.py:150`）
-> 与 `frontend-minimal/dist`（`server.py:158`）都在 mount 前做了存在性判断，`frontend` 没有。
-> 因此该目录一旦缺失，`CORSStaticFiles(directory="frontend")` 直接在启动时抛错，服务器起不来。
-> 日后若真要删除它，**必须先给 `server.py:172` 补守卫**；这也是它"忽略但保磁盘"的根本原因 ——
-> 文件不能删（无兜底），却又不该入库（44 MB，含嵌套 `.git`）。
 
 > 变更记录（git_stage2）：`upgrade_codes/` 与 `upgrade.py` 已于本阶段移除，
 > 不再需要升级能力。`run_server.py` 中的 `UpgradeManager` 依赖已剥离。

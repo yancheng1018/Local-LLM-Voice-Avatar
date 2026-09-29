@@ -1,7 +1,7 @@
 ## 当前阶段
 
 ### 阶段状态
-> **github-p1-facade 已完成并验收通过（2026-09-29）。下一阶段：github-p1-robust——frontend/ mount 守卫+新克隆冒烟（零 GPT-SoVITS 路径加验转必做+pyttsx3 端到端出声加验） [5/6]**
+> **github-p1-robust 已完成并验收通过（2026-09-29）。下一阶段：github-p2-release——建仓（先私有）→显式 refspec push→tag v1.0.0+Release→收尾 [6/6]**
 
 ### 阶段路线图 · 上传github前准备
 > 把仓库整理为可公开发布的 GitHub 仓库（已定名 Local-LLM-Voice-Avatar，分发名 local-llm-voice-avatar）；共 6 阶段；建立于 2026-09-29
@@ -13,7 +13,7 @@
 | 2 | github-p0-decouple | GUI:573 占位文案通用化+收录 start_v4_dpo.bat/.py（注明 v2pro-20260604）+私有声音名 grep 守卫测试落位 | 已验收 2026-09-29 | 实查无 stop 配套脚本（§8-② 消解）；收录版=lint 修正无逻辑改动 |
 | 3 | github-p0-characters | ja_test 本地改名 shinano.yaml+忽略项换名+新建大众化默认测试角色入库 | 已验收 2026-09-29 | 依赖批1；新角色人设内容需用户过目（zh_demo 已随规格批准过目） |
 | 4 | github-p1-facade | 改名四联动+版本 1.0.0+README 主写（Live2D 授权声明/多引擎亮点/快速层 pyttsx3） | 已验收 2026-09-29 | v1+v2 两轮落地：门面改名全仓+pyttsx3 配置链+一键联动+sherpa 守卫 |
-| 5 | github-p1-robust | frontend/ mount 守卫+新克隆冒烟（零 GPT-SoVITS 路径加验转必做+pyttsx3 端到端出声加验） | 未开始 | 依赖批4（按 README 冒烟） |
+| 5 | github-p1-robust | 旧前端整体退役（目录+mount+启动检查+GUI 选项，根路径落 /m/）+新克隆冒烟（pyttsx3 必做） | 已验收 2026-09-29 | 依赖批4；规格 temp_spec_github-p1-robust.md；2026-09-29 用户裁决取清除式（删目录删代码），非守卫式 |
 | 6 | github-p2-release | 建仓（先私有）→显式 refspec push→tag v1.0.0+Release→收尾 | 未开始 | push 需用户明确确认；需 GitHub 用户名 |
 
 ### 收尾待办
@@ -55,6 +55,10 @@
   归档容忍口径确认（先例 r4=948）——①拍板后自改或指示执行，②默认容忍无需动作
 - [github-p1-facade] pyproject `[tool.pixi.pypi-dependencies]`（上游遗留死配置，本项目用 uv）：
   P2 发布前裁决删留；暂缓原因=非阻塞，随 P2 清理批处理
+- [github-p1-robust] TTS 音频链路行为约定暂无归属文档：音频经 WS base64 内嵌下发
+  （prepare_audio_payload），cache 文件发送后即删（tts_manager.py:195）；验证 TTS 出声
+  不得走 HTTP cache URL（应查日志 TTS sequence + 前端播放状态）。暂缓原因：项目无 TTS
+  模块文档，触发时机=下次 TTS 相关任务或建模块文档时入档
 
 ### 相关背景
 > 极简自研前端设计与踩坑：docs/context/minimal-frontend.md

@@ -10,6 +10,7 @@ import os
 import shutil
 
 from fastapi import FastAPI
+from loguru import logger
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse, Response
 from starlette.staticfiles import StaticFiles as StarletteStaticFiles
@@ -77,7 +78,9 @@ class WebSocketServer:
     """
 
     def __init__(self, config: Config, default_context_cache: ServiceContext = None):
-        self.app = FastAPI(title="Local-LLM-Voice-Avatar Server")  # Added title for clarity
+        self.app = FastAPI(
+            title="Local-LLM-Voice-Avatar Server"
+        )  # Added title for clarity
         self.config = config
         self.default_context_cache = (
             default_context_cache or ServiceContext()
@@ -154,7 +157,7 @@ class WebSocketServer:
                 name="spine_models",
             )
 
-        # Mount minimal frontend (frontend-minimal/, Vite 构建产物；需在 / catch-all 之前)
+        # Mount minimal frontend (frontend-minimal/, Vite 构建产物；需在 / 重定向前)
         if os.path.exists("frontend-minimal/dist"):
             # Starlette 不会为 mount 自动补尾斜杠，/m 会 404，这里显式重定向到 /m/
             self.app.add_route(
@@ -166,12 +169,17 @@ class WebSocketServer:
                 CORSStaticFiles(directory="frontend-minimal/dist", html=True),
                 name="frontend_minimal",
             )
+        else:
+            logger.warning(
+                "frontend-minimal/dist 未构建，/m/ 不可用。"
+                "请先构建：cd frontend-minimal && npm install && npm run build"
+            )
 
-        # Mount main frontend last (as catch-all)
-        self.app.mount(
+        # 旧官方前端（frontend/）已于 github-p1-robust 整体移除；
+        # 根路径统一引导到极简前端 /m/（规范地址，GUI 与 README 均指向它）
+        self.app.add_route(
             "/",
-            CORSStaticFiles(directory="frontend", html=True),
-            name="frontend",
+            lambda request: RedirectResponse(url="/m/", status_code=307),
         )
 
     async def initialize(self):
