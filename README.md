@@ -47,10 +47,13 @@ pyttsx3 音质有限。sherpa-onnx 提供明显更自然的离线中文合成：
 
 用自己准备的 5–10 秒参考音频（或微调权重）合成个性化音色：
 
-1. 安装 [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)，用 `external/gpt_sovits/`
-   中的启动脚本（基于 GPT-SoVITS v2pro-20250604 修改）启动其 API 服务。
-2. 在 GUI 启动器的「声音模型体系」中新建声音模型，按提示选择参考音频——声音卡会自动生成。
-3. 把 `tts_model` 改为 `'gpt_sovits_tts'`，按声音卡中的信息填写 `gpt_sovits_tts` 配置块。
+1. 安装 [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS) 整合包（本项目适配器基于
+   v2pro-20250604 布局自制），自备权重与参考音频。
+2. 在 GUI 启动器「TTS 页」选择 GPT-SoVITS 根目录——「一键启动」会直接用所选声音模型
+   权重拉起 API（无需拷贝任何脚本进整合包）；无 GUI 时用
+   `python scripts/gpt_sovits/start_gsv_api.py --root <GSV根目录>` 启动。
+3. 在「声音模型体系」中新建声音模型，按提示选择参考音频——声音卡会自动生成；把
+   `tts_model` 改为 `'gpt_sovits_tts'`，按声音卡中的信息填写 `gpt_sovits_tts` 配置块。
 
 ### 声音卡约定
 

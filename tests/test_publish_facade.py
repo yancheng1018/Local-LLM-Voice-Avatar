@@ -145,6 +145,15 @@ def test_facade_no_legacy_name():
     assert "<title>Open-LLM-VTuber" not in html
 
 
+def test_gui_gsv_contract():
+    """GUI 启动合同收敛为「跑适配器脚本 + 传选择」，旧 bat 门面不得回潮（批 d）。"""
+    gui = (REPO_ROOT / "launcher" / "OpenLLMVTuber_GUI.py").read_text(encoding="utf-8")
+    assert "start_gsv_api.py" in gui
+    assert '"--root"' in gui
+    for legacy in ("start_v4_dpo", "DEFAULT_GPT_BAT", "CURRENT_GSV_VERSION_DIR"):
+        assert legacy not in gui, f"GUI 残留旧 GSV 启动门面: {legacy}"
+
+
 def test_live2d_core_vendored():
     """static/libs 必须入库 Cubism Core（06 §0-C 裁决，P0 修复防回潮）。"""
     core = REPO_ROOT / "static" / "libs" / "live2dcubismcore.min.js"

@@ -62,10 +62,11 @@ config_templates/                  默认配置模板
 | 改配置/角色/人设/语言 | docs/context/config-system.md |
 | 改 Live2D 模型/表情/动作/尺寸 | docs/context/live2d.md |
 | 改 GUI 启动器/声音模型/编辑器 | docs/context/gui-launcher.md |
-| git/加忽略/搬移文件/分批提交/文档体系维护 | docs/context/repo-maintenance.md |
+| git/搬移文件/分批提交/文档体系维护 | docs/context/repo-maintenance.md |
+| 加忽略/资产出库/隐私守卫 | docs/context/repo-ignore-policy.md |
 | 改后端/Ollama/streaming/加引擎 | docs/context/ollama-backend.md |
 | 续接工作/排优先级 | docs/context/current-work.md |
-| 查历史决策 | docs/context/archive.md |
+| 查历史决策/仓库重组历程与施工踩坑 | docs/context/archive.md · docs/context/spec-git-reorganize.md |
 | 开发极简自研前端（总入口/遗留） | docs/context/minimal-frontend.md |
 | 极简前端 工程/协议/历史/口型 | docs/context/minimal-frontend-foundation.md |
 | 极简前端 Live2D 手势/触摸引擎/复位 | docs/context/minimal-frontend-live2d.md |
@@ -73,7 +74,6 @@ config_templates/                  默认配置模板
 | 极简前端 Spine 渲染 | docs/context/minimal-frontend-spine.md |
 | 极简前端 模型切换/allowlist | docs/context/minimal-frontend-model-switch.md |
 | 查 Live2D 触摸引擎设计与 l2d.su 逆向 | docs/context/spec-l2d-touch-engine.md · docs/context/spec-l2dsu-engine.md |
-| 查 git 仓库重组历程与施工踩坑 | docs/context/spec-git-reorganize.md |
 | 写规格书（断言盘点/锚点/基线/行数预检） | docs/context/spec-writing.md |
 
 ## 用户级工作流绑定

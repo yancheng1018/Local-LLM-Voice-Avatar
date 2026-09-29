@@ -124,7 +124,8 @@ TTS 页「声音模型」区：
 ### GPT-SoVITS 权重扫描
 
 扫描**所有** `GPT_weights*` / `SoVITS_weights*` 版本目录，下拉条目带 `[目录名]` 版本标签。
-当前 API 以 v4 DPO 启动（`start_v4_dpo.py`），应用非 v4 权重时会弹窗警告。
+API 以所选声音模型的权重与版本直接启动（`scripts/gpt_sovits/start_gsv_api.py` 适配器）；
+仅 GPT/SoVITS 权重版本混搭时警告。
 
 ### 启动后自动打开浏览器
 
@@ -137,15 +138,14 @@ TTS 页「声音模型」区：
 
 ### ⚠️ launcher 代码维护（stage5 教训）
 
-- `OpenLLMVTuber_GUI.py` 历史上从未被 ruff format 过：对它执行 format 会触发
-  **全文件重排**（实测 +332/-181 纯排版 diff），淹没功能改动。format-clean 化须
-  单独立项，不得混入功能阶段；功能阶段对它只跑 `ruff check`
-  （ruff 不在 Git Bash PATH，用 `uv run ruff`）
+- `OpenLLMVTuber_GUI.py` 已于 2026-09-17（2a9f0b5，N04）全文件 ruff format 化，
+  现为 format-clean：`ruff format` 对它是幂等空操作，可正常使用
+  （ruff 不在 Git Bash PATH，用 `uv run ruff`；CRLF 属性不受 format 影响）
 - 启动器.bat 为 **GBK 编码 + CRLF 换行**：编辑必须 python `encoding='gbk'` round-trip，
   text 模式读或 UTF-8 工具直写即破坏（cmd 解析错乱，2026-09-29 实踩：LF-only 后全盘乱
   执行报 9009）；CRLF 已由 test_publish_facade.py 守卫，GBK 守护是弱断言（UTF-8 中文常可
   被 GBK 静默乱解），人工编辑须自觉
-- `OpenLLMVTuber_GUI.py` 为 **CRLF**（4293 处）：脚本做多行字面量替换时模式须带 `\r\n`
+- `OpenLLMVTuber_GUI.py` 为 **CRLF**（全文 4204 行，2026-09-30 复核实测）：脚本做多行字面量替换时模式须带 `\r\n`
 - 一键启动引擎联动（v2.7）：`tts_model != gpt_sovits_tts` 时跳过 GSV 启动与权重自动应用
   （tts_key 在主线程 `_oneclick_start` 捕获后传参 worker，跨线程禁读 Qt 控件）；
   `sherpa_onnx_tts` 配置值含 `/path/to` 占位时中止一键启动并提示

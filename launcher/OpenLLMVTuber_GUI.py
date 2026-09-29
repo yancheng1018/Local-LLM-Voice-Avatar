@@ -138,14 +138,14 @@ LLM_HOST = "127.0.0.1"
 LLM_PORT = 12393
 WEB_UI_URL = f"http://localhost:{LLM_PORT}"
 
-DEFAULT_GPT_BAT = "start_v4_dpo.bat"
+GSV_START_SCRIPT = (
+    Path(__file__).resolve().parents[1] / "scripts" / "gpt_sovits" / "start_gsv_api.py"
+)
 OLLAMA_PROVIDER_KEY = "ollama_llm"
 GPT_SOVITS_TTS_KEY = "gpt_sovits_tts"
 
 GPT_WEIGHTS_PREFIX = "GPT_weights"
 SOVITS_WEIGHTS_PREFIX = "SoVITS_weights"
-# API 以 v4 DPO 启动（start_v4_dpo.py），应用非 v4 权重时给出警告
-CURRENT_GSV_VERSION_DIR = "GPT_weights_v4"
 
 ASR_ENGINE_KEY = "asr_model"
 ASR_ENGINES = [
@@ -1216,7 +1216,7 @@ class LauncherWindow(QMainWindow):
         gsv_dir_row.addWidget(btn_pick_gsv)
         gsv_layout.addRow("根目录：", gsv_dir_row)
 
-        self.gsv_bat_label = QLabel(DEFAULT_GPT_BAT)
+        self.gsv_bat_label = QLabel("scripts/gpt_sovits/start_gsv_api.py")
         gsv_layout.addRow("启动脚本：", self.gsv_bat_label)
 
         # 当前权重（只读）：权重在「新建/编辑声音」里选择
@@ -2990,20 +2990,24 @@ class LauncherWindow(QMainWindow):
 
     @staticmethod
     def _confirm_version_match(parent, gpt_path: Path, sovits_path: Path) -> bool:
-        """API 以 v4 启动，应用其他版本权重时警告。返回是否继续。"""
-        for label, path in (("GPT", gpt_path), ("SoVITS", sovits_path)):
-            if path.parent.name not in ("GPT_weights_v4", "SoVITS_weights_v4"):
-                reply = QMessageBox.warning(
-                    parent,
-                    "版本不匹配",
-                    f"{label} 权重「{path.name}」属于 {path.parent.name}，"
-                    f"但当前 API 以 v4 模式启动，混用可能导致合成失败或音质异常。\n"
-                    f"仍要使用吗？",
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.No,
-                )
-                if reply != QMessageBox.Yes:
-                    return False
+        """GPT/SoVITS 权重版本混搭时警告。返回是否继续。"""
+        gpt_ver = gpt_path.parent.name.removeprefix("GPT_weights_")
+        sovits_ver = sovits_path.parent.name.removeprefix("SoVITS_weights_")
+        # 仅当两侧后缀均可解析（非空）且不一致时警告（权重对版本混搭）；
+        # 不可解析（非标准目录）放行不拦
+        if gpt_ver and sovits_ver and gpt_ver != sovits_ver:
+            reply = QMessageBox.warning(
+                parent,
+                "版本不匹配",
+                f"GPT 权重「{gpt_path.name}」属于 {gpt_path.parent.name}，"
+                f"SoVITS 权重「{sovits_path.name}」属于 {sovits_path.parent.name}，"
+                f"版本混搭可能导致合成失败或音质异常。\n"
+                f"仍要使用吗？",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
+                return False
         return True
 
     def _switch_weights(self, gpt_text: str, sovits_text: str):
@@ -3641,6 +3645,34 @@ class LauncherWindow(QMainWindow):
     # 启动 / 停止 GPT-SoVITS
     # ------------------------------------------------------------------
 
+    def _gsv_launch_command(self, gsv_dir: Path) -> list[str] | None:
+        """构造 GSV 适配器 CLI 命令；权重取 launcher_cfg 已存选择（含版本推导），
+        无存档则交脚本回退（取版本目录 mtime 最新）。"""
+        if not GSV_START_SCRIPT.is_file():
+            return None
+        cmd = [sys.executable, str(GSV_START_SCRIPT), "--root", str(gsv_dir)]
+        saved = self.launcher_cfg.get("gpt_sovits_model", {})
+        gpt_name = saved.get("gpt", "")
+        sovits_name = saved.get("sovits", "")
+        gpt_path = sovits_path = None
+        if gpt_name:
+            gpt_path = find_weight_path(gsv_dir, GPT_WEIGHTS_PREFIX, gpt_name)
+        if sovits_name:
+            sovits_path = find_weight_path(gsv_dir, SOVITS_WEIGHTS_PREFIX, sovits_name)
+        if gpt_path and sovits_path:
+            # 版本由权重所在目录名推导；GPT/SoVITS 后缀不一致以 GPT 侧为准，
+            # 混搭由 _confirm_version_match 的警告拦
+            version = gpt_path.parent.name.removeprefix("GPT_weights_") or "v4"
+            cmd += [
+                "--version",
+                version,
+                "--gpt",
+                str(gpt_path),
+                "--sovits",
+                str(sovits_path),
+            ]
+        return cmd
+
     def _start_gsv(self):
         if self.gsv_process is not None and self.gsv_process.poll() is None:
             self._log("[启动器] ⚠ GPT-SoVITS 已经在运行")
@@ -3654,9 +3686,13 @@ class LauncherWindow(QMainWindow):
             return
 
         gsv_dir = Path(gsv_root)
-        bat_path = gsv_dir / DEFAULT_GPT_BAT
-        if not bat_path.exists():
-            QMessageBox.critical(self, "启动失败", f"找不到启动脚本：\n{bat_path}")
+        cmd = self._gsv_launch_command(gsv_dir)
+        if cmd is None:
+            QMessageBox.critical(
+                self,
+                "启动失败",
+                "找不到启动脚本：\nscripts/gpt_sovits/start_gsv_api.py",
+            )
             return
 
         creationflags = 0
@@ -3664,17 +3700,14 @@ class LauncherWindow(QMainWindow):
             creationflags = subprocess.CREATE_NEW_CONSOLE
 
         try:
-            self.gsv_process = subprocess.Popen(
-                [str(bat_path)],
-                cwd=str(gsv_dir),
-                creationflags=creationflags,
-            )
+            self.gsv_process = subprocess.Popen(cmd, creationflags=creationflags)
         except Exception as e:
             QMessageBox.critical(self, "启动失败", f"启动 GPT-SoVITS 时出错：\n{e}")
             return
 
         self._log(
-            f"[启动器] ▶ 启动 GPT-SoVITS (PID={self.gsv_process.pid}) → {bat_path.name}"
+            f"[启动器] ▶ 启动 GPT-SoVITS (PID={self.gsv_process.pid})"
+            f" → {GSV_START_SCRIPT.name}"
         )
         self.btn_start_gsv.setEnabled(False)
         self.btn_stop_gsv.setEnabled(True)
@@ -3687,6 +3720,17 @@ class LauncherWindow(QMainWindow):
             self.gsv_finished_signal.emit(code)
 
         threading.Thread(target=_wait, daemon=True).start()
+
+        # 与一键启动行为统一：API 就绪后自动应用已存权重，超时仅记日志不弹窗
+        def _await_api():
+            for _ in range(120):
+                if is_port_open(GPT_SOVITS_HOST, GPT_SOVITS_PORT):
+                    self._auto_apply_saved_weights()
+                    return
+                time.sleep(1)
+            self.oneclick_progress_signal.emit("[启动器] ⚠ GSV API 未在 120 秒内就绪")
+
+        threading.Thread(target=_await_api, daemon=True).start()
 
     def _stop_gsv(self):
         if self.gsv_process is None or self.gsv_process.poll() is not None:
@@ -3854,19 +3898,16 @@ class LauncherWindow(QMainWindow):
         gsv_root = self.launcher_cfg.get("gpt_sovits_root")
         if not gsv_root or not Path(gsv_root).is_dir():
             return
-        gsv_dir = Path(gsv_root)
-        bat_path = gsv_dir / DEFAULT_GPT_BAT
-        if not bat_path.exists():
-            self.oneclick_progress_signal.emit(f"[启动器] ✘ 找不到 {bat_path}")
+        cmd = self._gsv_launch_command(Path(gsv_root))
+        if cmd is None:
+            self.oneclick_progress_signal.emit(
+                "[启动器] ✘ 找不到 scripts/gpt_sovits/start_gsv_api.py"
+            )
             return
 
         creationflags = subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
         try:
-            self.gsv_process = subprocess.Popen(
-                [str(bat_path)],
-                cwd=str(gsv_dir),
-                creationflags=creationflags,
-            )
+            self.gsv_process = subprocess.Popen(cmd, creationflags=creationflags)
             self.oneclick_progress_signal.emit(
                 f"[启动器] ▶ GPT-SoVITS 进程已启动 (PID={self.gsv_process.pid})"
             )

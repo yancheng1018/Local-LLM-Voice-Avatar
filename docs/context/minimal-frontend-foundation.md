@@ -31,6 +31,11 @@
   `display_text.text`，表情在 `actions.expressions[0]`，数字=索引/字符串=名）、
   `backend-synth-complete`、`error`；发：`text-input`、`interrupt-signal`、
   `frontend-playback-complete`（播完必须回，否则服务端等超时）
+- **TTS 音频链路行为约定**（github-p1-robust 遗留入档 2026-09-30）：音频经 WS `audio` 消息
+  base64 内嵌下发（`utils/stream_audio.py` prepare_audio_payload），cache 音频文件入队发送后
+  即删（`conversations/tts_manager.py` _process_tts finally remove_file）；前端不走 HTTP cache
+  URL（audio.ts 直接 base64 播放）。验证 TTS 出声 = 查日志 TTS sequence + 前端播放状态，
+  不得走 /cache 直取（/cache 挂载保留，web_tool 试听在用——查漏 03-K4 红线）
 - 表情：`model.expression(索引|名)` 均支持；Talk 动作在每句播放时触发
   `model.motion('Talk')`（模型无该组自动跳过）；Idle 由库自动播放
 - dev 模式 `npm run dev`（5173）经 Vite 代理转发 `/client-ws`、
