@@ -11,7 +11,6 @@ export default defineConfig({
         ws: true,
       },
       '/live2d-models': 'http://localhost:12393',
-      '/avatars': 'http://localhost:12393',
       '/libs': 'http://localhost:12393',
     },
   },

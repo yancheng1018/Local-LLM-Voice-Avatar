@@ -18,7 +18,7 @@ Open-LLM-VTuber v1.2.1-zh：完全离线运行的语音交互 AI 伴侣，支持
 ```bash
 uv sync                              # 安装依赖
 uv run run_server.py                 # 启动服务器（--verbose 开详细日志）
-uv run --extra test python -m pytest -q   # 全量测试（必须 python -m 形式：prompts 包依赖 cwd 在 sys.path，pytest 入口会 ModuleNotFoundError；测试内导入项目模块须用 src. 前缀——uv virtual 布局，包不装进 venv）
+uv run --extra test python -m pytest -q   # 全量测试（uv virtual 布局包不装 venv，测试内导入项目模块须用 src. 前缀）
 ruff check . && ruff format .        # 代码检查 / 格式化
 ```
 
@@ -51,6 +51,7 @@ src/open_llm_vtuber/               后端主体
 launcher/                          GUI 启动器（PySide6）
 live2d-models/                     Live2D 模型
 frontend-minimal/                  自研极简前端（唯一前端，入口 /m/）
+scripts/                           维护脚本（live2d 扫描/标定/修复 4 件 + gpt_sovits 启动器，见 repo-maintenance 工具节）
 config_templates/                  默认配置模板
 ```
 
@@ -68,10 +69,10 @@ config_templates/                  默认配置模板
 | 开发极简自研前端（总入口/遗留） | docs/context/minimal-frontend.md |
 | 极简前端 工程/协议/历史/口型 | docs/context/minimal-frontend-foundation.md |
 | 极简前端 Live2D 手势/触摸引擎/复位 | docs/context/minimal-frontend-live2d.md |
+| 极简前端 Live2D 调试栏/热区叠加层 | docs/context/minimal-frontend-live2d-debug.md |
 | 极简前端 Spine 渲染 | docs/context/minimal-frontend-spine.md |
 | 极简前端 模型切换/allowlist | docs/context/minimal-frontend-model-switch.md |
-| 查 l2d.su 热区/动作链引擎逆向 | docs/context/spec-l2dsu-engine.md |
-| 查 Live2D 触摸引擎设计 | docs/context/spec-l2d-touch-engine.md |
+| 查 Live2D 触摸引擎设计与 l2d.su 逆向 | docs/context/spec-l2d-touch-engine.md · docs/context/spec-l2dsu-engine.md |
 | 查 git 仓库重组历程与施工踩坑 | docs/context/spec-git-reorganize.md |
 | 写规格书（断言盘点/锚点/基线/行数预检） | docs/context/spec-writing.md |
 

@@ -4,7 +4,7 @@ from typing import Callable
 from loguru import logger
 from fastapi import WebSocket
 
-from prompts import prompt_loader
+from .prompts import prompt_loader
 from .live2d_model import Live2dModel
 from .asr.asr_interface import ASRInterface
 from .tts.tts_interface import TTSInterface

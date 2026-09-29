@@ -19,14 +19,14 @@ CanvasInfo 解析（依据 OpenL2D/moc3ingbird 的 moc3 格式逆向，v3~v5 通
     u32 @0x44 → CanvasInfo 偏移；该处 5 个 float = PixelsPerUnit, OriginX, OriginY,
     CanvasWidth(px), CanvasHeight(px)。
 
-用法：uv run python fit_live2d_scale.py   （自动备份 model_dict.json 为 .bak）
+用法：uv run python scripts/fit_live2d_scale.py   （自动备份 model_dict.json 为 .bak）
 """
 
 import json
 import os
 import struct
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # scripts/ 上一级 = 仓库根
 MODEL_DICT_PATH = os.path.join(ROOT, "model_dict.json")
 
 # 标定系数：0.5 × mao_pro 逻辑画布高（8400px / 5800ppu = 1.4483 单位）

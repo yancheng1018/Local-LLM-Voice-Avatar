@@ -46,12 +46,11 @@
 | 分组 | 字段 |
 |------|------|
 | 显示信息 | 角色名（character_name）、用户名（human_name） |
-| 形象 | Live2D 模型（下拉+刷新+打开目录+导入）、模型允许列表（live2d_model_names，逗号分隔）、头像（下拉+刷新+**导入...**） |
+| 形象 | Live2D 模型（下拉+刷新+打开目录+导入）、模型允许列表（live2d_model_names，逗号分隔） |
 | 人设 | persona_prompt |
 | 内部标识（一般无需修改） | conf_name、conf_uid |
 
-- Live2D 模型与头像均为可编辑下拉，自动扫描 `model_dict.json` ∪ `live2d-models/`、`avatars/`，支持手输
-- 「导入...」会复制所选图片到 `avatars/` 并自动选中
+- Live2D 模型为可编辑下拉，自动扫描 `model_dict.json` ∪ `live2d-models/`，支持手输
 - `conf_uid` 留空保存时自动补为 `{conf_name}_001`；空的可选字段不会写入 YAML
 - **list[str] 字段不得走 `char_edit_fields` 通道**（stage5 硬性契约）：该通道按
   `w.text().strip()` 字符串写回，会把 list 写成 str 导致 CharacterConfig 校验失败，

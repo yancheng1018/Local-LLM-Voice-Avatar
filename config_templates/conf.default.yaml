@@ -33,7 +33,6 @@ character_config:
   conf_uid: 'mao_pro_001' # The unique identifier of character configuration. Also used as the chat_history/<conf_uid>/ folder name.
   live2d_model_name: 'mao_pro' # The name of Live2D model. Must be the same as the corresponding name in model_dict.json
   character_name: 'Mao' # Display name of the AI, also shown in the Web UI character list. Must be unique among characters.
-  avatar: 'mao.png' # Suggest using a square image for the avatar. Save it in the avatars folder. Leave blank to use the first letter of the character name as the avatar.
   # Reply language of this character. The character always answers in this language and the
   # TTS output uses it too. Pick it from the dropdown in the launcher.
   # One of: '' (no restriction), zh, ja, en, ko, yue, auto

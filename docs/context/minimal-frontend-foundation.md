@@ -34,7 +34,7 @@
 - 表情：`model.expression(索引|名)` 均支持；Talk 动作在每句播放时触发
   `model.motion('Talk')`（模型无该组自动跳过）；Idle 由库自动播放
 - dev 模式 `npm run dev`（5173）经 Vite 代理转发 `/client-ws`、
-  `/live2d-models`、`/avatars`、`/libs` → 12393
+  `/live2d-models`、`/libs` → 12393
 
 **阶段三已完成**（2026-09-11，聊天历史持久化 + L2D 口型同步）：
 

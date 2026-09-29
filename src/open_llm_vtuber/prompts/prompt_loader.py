@@ -5,7 +5,6 @@ from loguru import logger
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 PROMPT_DIR = current_dir
-PERSONA_PROMPT_DIR = os.path.join(PROMPT_DIR, "persona")
 UTIL_PROMPT_DIR = os.path.join(PROMPT_DIR, "utils")
 
 
@@ -52,16 +51,6 @@ def _load_file_content(file_path: str) -> str:
         logger.error(f"Error detecting encoding for {file_path}: {e}")
 
     raise UnicodeError(f"Failed to decode {file_path} with any encoding")
-
-
-def load_persona(persona_name: str) -> str:
-    """Load the content of a specific persona prompt file."""
-    persona_file_path = os.path.join(PERSONA_PROMPT_DIR, f"{persona_name}.txt")
-    try:
-        return _load_file_content(persona_file_path)
-    except Exception as e:
-        logger.error(f"Error loading persona {persona_name}: {e}")
-        raise
 
 
 def load_util(util_name: str) -> str:

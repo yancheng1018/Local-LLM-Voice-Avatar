@@ -3,14 +3,14 @@
 报告内容：表情清单、动作组名、Idle/Talk 组是否可用（前端硬编码这两个组名）、
 HitAreas、emotionMap / tapMotions 配置状态、model_dict.json 登记一致性。
 
-用法：uv run python scan_live2d_models.py
+用法：uv run python scripts/scan_live2d_models.py
 输出：项目根目录 live2d_scan_report.md
 """
 
 import json
 import os
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # scripts/ 上一级 = 仓库根
 MODELS_DIR = os.path.join(ROOT, "live2d-models")
 MODEL_DICT_PATH = os.path.join(ROOT, "model_dict.json")
 REPORT_PATH = os.path.join(ROOT, "live2d_scan_report.md")

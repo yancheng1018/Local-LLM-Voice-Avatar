@@ -35,7 +35,6 @@ character_config:
   conf_uid: 'mao_pro_001' # 角色配置的唯一标识符，同时用作 chat_history/<conf_uid>/ 目录名
   live2d_model_name: 'mao_pro' # Live2D 模型名称
   character_name: 'Mao' # 角色名。界面（含 Web UI 角色列表）显示的就是它，需保持唯一
-  avatar: 'mao.png' # 建议使用正方形图像作为头像。将其保存到 avatars 文件夹中。留空则使用角色名称的首字母作为头像。
   # 该角色的回答语言。无论用户说什么语言都只用该语言回答，TTS 也按该语言合成。
   # 请在启动器里下拉选择。可选值：''（不限制）/ zh / ja / en / ko / yue / auto
   language: ''

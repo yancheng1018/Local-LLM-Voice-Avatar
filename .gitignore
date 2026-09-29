@@ -13,8 +13,6 @@ live2d-models/*
 models/
 Spine-models/
 voices/
-avatars/
-backgrounds/
 
 # 旧官方前端（stage2 起已解除子模块关系；服务器仍 mount 它，故保磁盘不入库）
 # 见 docs/context/repo-maintenance.md
@@ -59,6 +57,7 @@ __pycache__/
 
 # ZCode 会话产物
 .zcode/
+.zcodeignore
 
 # ---------- 本地私有资产出库（github-p0-privacy，出索引保磁盘） ----------
 launcher/launcher_config.json
