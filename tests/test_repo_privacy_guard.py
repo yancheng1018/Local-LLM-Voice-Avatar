@@ -17,7 +17,7 @@ PRIVATE_PATH_PREFIXES = (
     "characters/Friedrich.yaml",
     "characters/Illustrious.yaml",
     "characters/azuma.yaml",
-    "characters/ja_test.yaml",  # github-p0-characters 批改名 shinano.yaml 后本条同步换名
+    "characters/shinano.yaml",  # github-p0-characters 改名后条目（本地保留角色，不得回索引）
     "characters/spine_test.yaml",
     "docs/assets/_ships_cache/",
     "docs/assets/su_ships-CN.json",
@@ -81,7 +81,9 @@ def test_private_names_absent_from_tracked_content():
     rc, _ = _git_grep("私有资产不得回到")
     assert rc == 0, "CJK 参数往返失效，名单扫描结果不可信"
     names = _load_private_names()
-    assert names, "名单文件存在但为空（全为注释/空行）；确无私有名时应删除该文件转为 skip"
+    assert names, (
+        "名单文件存在但为空（全为注释/空行）；确无私有名时应删除该文件转为 skip"
+    )
     for name in names:
         rc, out = _git_grep(name)
         if rc >= 2:
