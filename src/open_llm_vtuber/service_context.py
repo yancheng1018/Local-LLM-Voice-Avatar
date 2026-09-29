@@ -425,7 +425,8 @@ class ServiceContext:
         角色语言会覆盖引擎配置里的 text_lang（若该引擎有此参数），
         但不覆盖 prompt_lang —— 那是参考音频的语言，属于声音模型的属性。
         """
-        engine_cfg = getattr(tts_config, tts_config.tts_model.lower()).model_dump()
+        engine_cfg_obj = getattr(tts_config, tts_config.tts_model.lower())
+        engine_cfg = engine_cfg_obj.model_dump() if engine_cfg_obj is not None else {}
         role_lang = (language or "").strip().lower()
         if role_lang in ("", "auto"):
             role_lang = ""

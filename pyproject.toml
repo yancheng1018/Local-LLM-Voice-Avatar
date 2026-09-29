@@ -1,7 +1,7 @@
 [project]
-name = "open-llm-vtuber-zh-local"
-version = "1.2.1"
-description = "本地离线语音交互 AI 伴侣（Open-LLM-VTuber 定制版，已与上游切割）"
+name = "local-llm-voice-avatar"
+version = "1.0.0"
+description = "完全离线运行的本地语音 AI 伴侣（基于上游 Open-LLM-VTuber v1.2.1 二次开发）"
 requires-python = ">=3.10,<3.13"
 dependencies = [
     "anthropic>=0.40.0",

@@ -82,7 +82,7 @@ class OllamaLLM(AsyncLLM):
             logger.info("Ollama preload complete.")
         except requests.exceptions.RequestException as exc:
             logger.error(f"Failed to preload Ollama model: {exc}")
-            logger.warning("Open-LLM-VTuber will still try to use Ollama on demand.")
+            logger.warning("The server will still try to use Ollama on demand.")
         except Exception as exc:
             logger.error(f"Failed to preload Ollama model: {exc}")
 

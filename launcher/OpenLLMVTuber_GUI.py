@@ -1,5 +1,5 @@
 """
-Open-LLM-VTuber 启动器 v2.6
+Local-LLM-Voice-Avatar 启动器 v2.7
 - 自动发现项目根目录
 - 读取/保存 conf.yaml
 - 切换默认角色 / 语言模型 / TTS 模型
@@ -714,7 +714,7 @@ class LauncherWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Open-LLM-VTuber 启动器 v2.6")
+        self.setWindowTitle("Local-LLM-Voice-Avatar 启动器 v2.7")
         self.resize(1220, 980)
 
         self.yaml = YAML()
@@ -782,7 +782,7 @@ class LauncherWindow(QMainWindow):
         status_bar = QHBoxLayout()
         self.lbl_ollama = QLabel("● Ollama")
         self.lbl_gsv = QLabel("● GPT-SoVITS")
-        self.lbl_llm = QLabel("● Open-LLM-VTuber")
+        self.lbl_llm = QLabel("● 主服务")
         for lbl in (self.lbl_ollama, self.lbl_gsv, self.lbl_llm):
             lbl.setStyleSheet("color: gray; font-weight: bold;")
             status_bar.addWidget(lbl)
@@ -814,8 +814,8 @@ class LauncherWindow(QMainWindow):
 
         svc_btn_row = QHBoxLayout()
         self.btn_oneclick = QPushButton("★ 一键启动全部")
-        self.btn_start_llm = QPushButton("启动 Open-LLM-VTuber")
-        self.btn_stop_llm = QPushButton("停止 Open-LLM-VTuber")
+        self.btn_start_llm = QPushButton("启动 主服务")
+        self.btn_stop_llm = QPushButton("停止 主服务")
         self.btn_stop_all = QPushButton("■ 全部停止")
         self.btn_stop_llm.setEnabled(False)
         self.btn_oneclick.clicked.connect(self._oneclick_start)
@@ -1358,7 +1358,7 @@ class LauncherWindow(QMainWindow):
 
     def _pick_project(self):
         folder = QFileDialog.getExistingDirectory(
-            self, "选择 Open-LLM-VTuber 项目根目录"
+            self, "选择 Local-LLM-Voice-Avatar 项目根目录"
         )
         if not folder:
             return
@@ -3562,7 +3562,7 @@ class LauncherWindow(QMainWindow):
             # 后端只会在进程启动时读一次 conf.yaml，正在运行的话改动不会生效
             if self.llm_process is not None and self.llm_process.poll() is None:
                 self._log(
-                    "[启动器] ⚠ Open-LLM-VTuber 正在运行，本次改动需"
+                    "[启动器] ⚠ 主服务 正在运行，本次改动需"
                     "「停止」后重新启动才会生效"
                 )
             # 已落盘，更新快照，关闭窗口时就不会再提示"有未保存改动"
@@ -3571,12 +3571,12 @@ class LauncherWindow(QMainWindow):
             QMessageBox.critical(self, "保存失败", f"写入 conf.yaml 时出错：\n{e}")
 
     # ------------------------------------------------------------------
-    # 启动 / 停止 Open-LLM-VTuber
+    # 启动 / 停止 主服务
     # ------------------------------------------------------------------
 
     def _start_llm(self):
         if self.llm_process is not None and self.llm_process.poll() is None:
-            self._log("[启动器] ⚠ Open-LLM-VTuber 已经在运行")
+            self._log("[启动器] ⚠ 主服务 已经在运行")
             self._log("[启动器] ⚠ 若刚改过配置，需先「停止」再启动才会生效")
             return
         if not self.project_root:
@@ -3617,7 +3617,7 @@ class LauncherWindow(QMainWindow):
             )
             return
 
-        self._log(f"[启动器] ▶ 启动 Open-LLM-VTuber (PID={self.llm_process.pid})")
+        self._log(f"[启动器] ▶ 启动 主服务 (PID={self.llm_process.pid})")
         self.btn_start_llm.setEnabled(False)
         self.btn_stop_llm.setEnabled(True)
 
@@ -3757,7 +3757,7 @@ class LauncherWindow(QMainWindow):
         if self.llm_process is None or self.llm_process.poll() is not None:
             return
         self._web_open_token += 1  # 让等待中的自动打开线程失效
-        self._log("[启动器] ⏹ 正在停止 Open-LLM-VTuber...")
+        self._log("[启动器] ⏹ 正在停止 主服务...")
         pid = self.llm_process.pid
         try:
             subprocess.run(
@@ -3770,7 +3770,7 @@ class LauncherWindow(QMainWindow):
         self._unload_ollama_best_effort()
 
     def _on_llm_finished(self, exit_code):
-        self._log(f"[启动器] ■ Open-LLM-VTuber 进程结束（exit_code={exit_code}）")
+        self._log(f"[启动器] ■ 主服务 进程结束（exit_code={exit_code}）")
         self.llm_process = None
         self.btn_start_llm.setEnabled(True)
         self.btn_stop_llm.setEnabled(False)
@@ -3857,10 +3857,21 @@ class LauncherWindow(QMainWindow):
         # 必须在主线程做：_save_config 会读写 Qt 控件，跨线程操作不安全。
         self._log("[启动器] 一键启动：先保存当前配置...")
         self._save_config()
-        threading.Thread(target=self._oneclick_worker, daemon=True).start()
+        tts_key = self.combo_tts.currentText()  # 主线程读取，避免跨线程读 Qt 控件
+        threading.Thread(target=self._oneclick_worker, args=(tts_key,), daemon=True).start()
 
-    def _oneclick_worker(self):
+    def _oneclick_worker(self, tts_key: str):
         try:
+            if tts_key == "sherpa_onnx_tts":
+                cfg = self._get_tts_config(tts_key) or {}
+                if any(
+                    isinstance(v, str) and "/path/to" in v for v in cfg.values()
+                ):
+                    self.oneclick_progress_signal.emit(
+                        "[启动器] ✘ sherpa_onnx_tts 配置仍是模板占位路径（/path/to/...），"
+                        "请先下载模型并按 README 进阶配置填写真实路径，已中止一键启动。"
+                    )
+                    return
             self.oneclick_progress_signal.emit("[启动器] ★ 一键启动：检查 Ollama...")
             if not is_port_open(OLLAMA_HOST, OLLAMA_PORT):
                 self.oneclick_progress_signal.emit(
@@ -3871,7 +3882,11 @@ class LauncherWindow(QMainWindow):
 
             gsv_root = self.launcher_cfg.get("gpt_sovits_root")
             gsv_started_now = False
-            if not gsv_root or not Path(gsv_root).is_dir():
+            if tts_key != GPT_SOVITS_TTS_KEY:
+                self.oneclick_progress_signal.emit(
+                    f"[启动器] ▷ TTS 引擎为 {tts_key}，跳过 GPT-SoVITS。"
+                )
+            elif not gsv_root or not Path(gsv_root).is_dir():
                 self.oneclick_progress_signal.emit(
                     "[启动器] ⚠ 未设置 GPT-SoVITS 根目录，跳过启动 GPT-SoVITS。"
                 )
@@ -3904,15 +3919,15 @@ class LauncherWindow(QMainWindow):
 
             if self.llm_process is not None and self.llm_process.poll() is None:
                 self.oneclick_progress_signal.emit(
-                    "[启动器] ✔ Open-LLM-VTuber 已在运行"
+                    "[启动器] ✔ 主服务 已在运行"
                 )
                 self.web_ready_signal.emit()  # 已在运行也打开一次界面
             else:
-                self.oneclick_progress_signal.emit("[启动器] ★ 启动 Open-LLM-VTuber...")
+                self.oneclick_progress_signal.emit("[启动器] ★ 启动 主服务...")
                 self._start_llm_threadsafe()
 
                 self.oneclick_progress_signal.emit(
-                    "[启动器] ⏳ 等待 Open-LLM-VTuber 就绪（最多 120 秒）..."
+                    "[启动器] ⏳ 等待 主服务 就绪（最多 120 秒）..."
                 )
                 ok = False
                 for _ in range(120):
@@ -3924,16 +3939,16 @@ class LauncherWindow(QMainWindow):
                         and self.llm_process.poll() is not None
                     ):
                         self.oneclick_progress_signal.emit(
-                            "[启动器] ✘ Open-LLM-VTuber 进程意外退出，中止一键启动。"
+                            "[启动器] ✘ 主服务 进程意外退出，中止一键启动。"
                         )
                         return
                     time.sleep(1)
                 if not ok:
                     self.oneclick_progress_signal.emit(
-                        "[启动器] ✘ Open-LLM-VTuber 在 120 秒内未就绪，中止一键启动。"
+                        "[启动器] ✘ 主服务 在 120 秒内未就绪，中止一键启动。"
                     )
                     return
-                self.oneclick_progress_signal.emit("[启动器] ✔ Open-LLM-VTuber 就绪")
+                self.oneclick_progress_signal.emit("[启动器] ✔ 主服务 就绪")
                 if self.chk_open_browser.isChecked():
                     self.web_ready_signal.emit()
 
@@ -4033,7 +4048,7 @@ class LauncherWindow(QMainWindow):
                 creationflags=creationflags,
             )
             self.oneclick_progress_signal.emit(
-                f"[启动器] ▶ Open-LLM-VTuber 进程已启动 (PID={self.llm_process.pid})"
+                f"[启动器] ▶ 主服务 进程已启动 (PID={self.llm_process.pid})"
             )
             self._llm_reader_thread = threading.Thread(
                 target=self._read_llm_output, daemon=True
@@ -4041,7 +4056,7 @@ class LauncherWindow(QMainWindow):
             self._llm_reader_thread.start()
         except Exception as e:
             self.oneclick_progress_signal.emit(
-                f"[启动器] ✘ 启动 Open-LLM-VTuber 失败：{e}"
+                f"[启动器] ✘ 启动 主服务 失败：{e}"
             )
 
     # ------------------------------------------------------------------
@@ -4058,7 +4073,7 @@ class LauncherWindow(QMainWindow):
 
         running_list = []
         if llm_running:
-            running_list.append("Open-LLM-VTuber")
+            running_list.append("主服务")
         if gsv_running:
             running_list.append("GPT-SoVITS")
         reply = QMessageBox.question(
@@ -4153,7 +4168,7 @@ class LauncherWindow(QMainWindow):
 
         running_list = []
         if llm_running:
-            running_list.append("Open-LLM-VTuber")
+            running_list.append("主服务")
         if gsv_running:
             running_list.append("GPT-SoVITS")
 
@@ -4202,7 +4217,7 @@ class LauncherWindow(QMainWindow):
 
         style(self.lbl_ollama, ollama_up, "Ollama")
         style(self.lbl_gsv, gsv_up, "GPT-SoVITS")
-        style(self.lbl_llm, llm_up, "Open-LLM-VTuber")
+        style(self.lbl_llm, llm_up, "主服务")
 
     def _on_gpu_update(self, text: str):
         self.lbl_gpu.setText(text)
@@ -4260,7 +4275,7 @@ def _report_startup_failure(message: str):
         ctypes.windll.user32.MessageBoxW(
             None,
             message,
-            "Open-LLM-VTuber 启动器",
+            "Local-LLM-Voice-Avatar 启动器",
             0x10,  # MB_ICONERROR
         )
     except Exception:

@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 rem ============================================================
-rem  Open-LLM-VTuber 启动器
+rem  Local-LLM-Voice-Avatar 启动器
 rem
 rem  双击即可运行（不显示控制台窗口）。
 rem  若需要查看报错信息，在命令行执行：  启动器.bat debug
@@ -19,7 +19,7 @@ if not exist "%APP%" (
     echo [错误] 找不到启动器脚本：
     echo     %APP%
     echo.
-    echo 请确认本文件位于 Open-LLM-VTuber 项目根目录。
+    echo 请确认本文件位于 Local-LLM-Voice-Avatar 项目根目录。
     echo.
     pause
     exit /b 1
@@ -32,7 +32,7 @@ if not exist "%PY%" (
     echo.
     echo 请先在项目根目录执行以下命令创建环境并安装依赖：
     echo.
-    echo     uv venv .venv-gui
+    echo     uv venv .venv-gui --seed
     echo     .venv-gui\Scripts\python.exe -m pip install PySide6-Essentials ruamel.yaml psutil
     echo.
     pause

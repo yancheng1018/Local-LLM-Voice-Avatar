@@ -53,6 +53,10 @@ class EdgeTTSConfig(I18nMixin):
     }
 
 
+class Pyttsx3TTSConfig(I18nMixin):
+    """pyttsx3 走系统语音，无任何配置项。"""
+
+
 class CosyvoiceTTSConfig(I18nMixin):
     """Configuration for Cosyvoice TTS."""
 
@@ -444,6 +448,7 @@ class TTSConfig(I18nMixin):
         "coqui_tts",
         "x_tts",
         "gpt_sovits_tts",
+        "pyttsx3_tts",
         "fish_api_tts",
         "sherpa_onnx_tts",
         "siliconflow_tts",
@@ -461,6 +466,7 @@ class TTSConfig(I18nMixin):
     coqui_tts: Optional[CoquiTTSConfig] = Field(None, alias="coqui_tts")
     x_tts: Optional[XTTSConfig] = Field(None, alias="x_tts")
     gpt_sovits_tts: Optional[GPTSoVITSConfig] = Field(None, alias="gpt_sovits")
+    pyttsx3_tts: Optional[Pyttsx3TTSConfig] = Field(None, alias="pyttsx3_tts")
     fish_api_tts: Optional[FishAPITTSConfig] = Field(None, alias="fish_api_tts")
     sherpa_onnx_tts: Optional[SherpaOnnxTTSConfig] = Field(
         None, alias="sherpa_onnx_tts"
