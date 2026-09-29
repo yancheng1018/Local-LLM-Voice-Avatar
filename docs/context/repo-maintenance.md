@@ -73,6 +73,10 @@ git ls-files -i -c --exclude-standard
 
 其余上游遗留件已移入 `legacy/`（见 `legacy/README.md`）。
 
+- `.venv` 与 `.venv-gui` 内嵌绝对路径：项目文件夹改名/搬移后必须重建——
+  `rm -rf .venv && uv sync`；`rm -rf .venv-gui && uv venv .venv-gui --seed` 再装
+  PySide6-Essentials ruamel.yaml psutil（启动器.bat 环境缺失提示已含 `--seed`）
+
 ### 解除子模块关系（危险操作）
 
 把子模块转成普通目录/忽略项时，**删 `.git/modules/<name>` 与删工作区里的

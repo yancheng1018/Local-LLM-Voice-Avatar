@@ -18,7 +18,7 @@ Open-LLM-VTuber v1.2.1-zh：完全离线运行的语音交互 AI 伴侣，支持
 ```bash
 uv sync                              # 安装依赖
 uv run run_server.py                 # 启动服务器（--verbose 开详细日志）
-uv run --extra test python -m pytest -q   # 全量测试（必须 python -m 形式：prompts 包依赖 cwd 在 sys.path，pytest 入口会 ModuleNotFoundError）
+uv run --extra test python -m pytest -q   # 全量测试（必须 python -m 形式：prompts 包依赖 cwd 在 sys.path，pytest 入口会 ModuleNotFoundError；测试内导入项目模块须用 src. 前缀——uv virtual 布局，包不装进 venv）
 ruff check . && ruff format .        # 代码检查 / 格式化
 ```
 

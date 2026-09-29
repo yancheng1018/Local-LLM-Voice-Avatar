@@ -1,4 +1,4 @@
-﻿## GUI 启动器功能（v2.4）
+﻿## GUI 启动器功能（v2.7）
 
 6 个标签页布局（服务 → 模型 → 角色 → LLM → TTS → ASR / VAD）：
 
@@ -142,4 +142,14 @@ TTS 页「声音模型」区：
   **全文件重排**（实测 +332/-181 纯排版 diff），淹没功能改动。format-clean 化须
   单独立项，不得混入功能阶段；功能阶段对它只跑 `ruff check`
   （ruff 不在 Git Bash PATH，用 `uv run ruff`）
+- 启动器.bat 为 **GBK 编码 + CRLF 换行**：编辑必须 python `encoding='gbk'` round-trip，
+  text 模式读或 UTF-8 工具直写即破坏（cmd 解析错乱，2026-09-29 实踩：LF-only 后全盘乱
+  执行报 9009）；CRLF 已由 test_publish_facade.py 守卫，GBK 守护是弱断言（UTF-8 中文常可
+  被 GBK 静默乱解），人工编辑须自觉
+- `OpenLLMVTuber_GUI.py` 为 **CRLF**（4293 处）：脚本做多行字面量替换时模式须带 `\r\n`
+- 一键启动引擎联动（v2.7）：`tts_model != gpt_sovits_tts` 时跳过 GSV 启动与权重自动应用
+  （tts_key 在主线程 `_oneclick_start` 捕获后传参 worker，跨线程禁读 Qt 控件）；
+  `sherpa_onnx_tts` 配置值含 `/path/to` 占位时中止一键启动并提示
+- GUI 门面文案约定：窗口/对话框标题用「Local-LLM-Voice-Avatar 启动器」（带版本号），
+  状态/按钮/日志用「主服务」；旧名残留由 test_publish_facade.py 守卫
 
