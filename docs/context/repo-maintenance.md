@@ -38,6 +38,7 @@ git ls-files -i -c --exclude-standard
 - 私有资产出库（github-p0-privacy，2026-09-29）：`launcher/launcher_config.json`（运行时状态，
   缺失时 launcher 自动重建）、characters/ 下 5 个本地角色 yaml、`docs/assets/_ships_cache/` 与
   `su_ships-CN.json`（舰船数据缓存）已 `git rm --cached` 出索引并补忽略规则，磁盘保留。
+  其中 ja_test.yaml 已于 github-p0-characters 本地改名 shinano.yaml（忽略项与守卫前缀同步换名）。
 - 私有声音名守卫名单（github-p0-decouple）：`tests/private_names.local.txt` 为本地忽略文件，
   每行一个私有名（`#` 注释）；守卫在名单缺失时 skip（静默失效）→ 换机/新克隆须重建。
 - git filter-repo 默认重写**所有 ref**：`git branch` 备份会被一并重写，退路必须放仓库外

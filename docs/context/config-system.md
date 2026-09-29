@@ -196,5 +196,5 @@ WebSocket 发 `switch-config` 完成的（见 `service_context._handle_config_sw
 - 必须同时更新 `config_templates/conf.default.yaml` 和 `conf.ZH.default.yaml`
 - `streaming_mode` 等字段必须保持字符串类型（权威说明与原因：ollama-backend.md §3）
 - 使用 `ruamel.yaml` 的 `SingleQuotedScalarString` 保证格式
-- 新增角色时**不要**再写 `conf_name`；`character_name` 与 `conf_uid` 必填且各自唯一
+- 新增角色时**不要**再写 `conf_name`；`character_name` 与 `conf_uid` 必填且各自唯一（入库角色受 tests/test_characters_manifest.py 守卫；默认测试角色=characters/zh_demo.yaml，github-p0-characters 起入库）
 
