@@ -89,3 +89,45 @@ def test_private_names_absent_from_tracked_content():
         if rc >= 2:
             pytest.fail(f"git grep 调用失败 rc={rc}: {out.strip()}")
         assert rc == 1, f"私有声音名出现在被跟踪文件中（{name}）:\n{out.strip()}"
+
+
+# A1+A3 裁决（2026-09-29）：接受 3 处存量私有名消息体残留，守卫只拦增量。
+KNOWN_HISTORICAL_OFFENDERS = frozenset({
+    "acc5198f44a0b4da835757816ce5cac737e27e08",
+    "67770bf011a4d137fb7c06300050d482023b5ce3",
+    "be1ef5e6cffd3df6d5abe226cade36ea91c8cf46",
+})
+
+
+def _commit_messages() -> list[tuple[str, str]]:
+    # %x01 作条目分隔（消息体不可能含 \x01）：git 的 %H%x00%B 中 \0 只分隔
+    # hash 与消息体，条目之间没有分隔符，仅靠 \0 切分会错位。
+    result = subprocess.run(
+        ["git", "-c", "core.quotepath=false", "log", "--all", "--format=%x01%H%x00%B"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        check=True,
+    )
+    out = result.stdout.decode("utf-8", errors="replace")
+    pairs = []
+    for record in out.split("\x01"):
+        record = record.strip("\n")
+        if not record:
+            continue
+        commit_hash, _, body = record.partition("\x00")
+        if commit_hash.strip():
+            pairs.append((commit_hash.strip(), body))
+    return pairs
+
+
+def test_private_names_absent_from_commit_messages():
+    """私有名不得再进入新的提交信息体（拦增量不除存量，06 §0-A 裁决）。"""
+    names = _load_private_names()
+    assert names, "名单文件存在但为空时沿用 test_private_names_absent_from_tracked_content 的口径"
+    messages = _commit_messages()
+    assert len(messages) > 0, "git log --all 未返回任何提交，扫描管道可疑"
+    leaked = sorted(
+        h for h, msg in messages
+        if any(name in msg for name in names) and h not in KNOWN_HISTORICAL_OFFENDERS
+    )
+    assert leaked == [], f"私有名进入新的提交信息体: {leaked}"

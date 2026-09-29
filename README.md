@@ -2,12 +2,10 @@
 
 完全离线运行的本地语音 AI 伴侣：LLM 对话 × 语音识别与合成 × Live2D 动态形象，数据不出本机。
 
-<!-- TODO: 演示截图/GIF，发布前补 -->
-
 ## 核心特性
 
 - **完全离线**：默认配置（Ollama + 本地语音模型）零云依赖，断网可用，隐私数据不出本机。
-- **引擎可插拔**：5 类 LLM、8 种语音识别、16 种语音合成引擎，改一个配置字段即可切换，任意组合。
+- **引擎可插拔**：5 类 LLM（其中 llama_cpp_llm 需自行安装 llama-cpp-python 且本项目未经实测）、7 种语音识别、16 种语音合成引擎，改一个配置字段即可切换，任意组合。
 - **Ollama 原生接入**：走 Ollama 原生 `/api/chat` 接口，显式支持 `num_gpu` / `num_ctx` / 思考模式 / 模型预热。
 - **自研极简前端**：轻量 Live2D 舞台，带触摸/手势交互引擎，可自定义模型与互动热区。
 - **GUI 启动器**：一键启动全套服务，内置「声音模型体系」——声音卡管理与 GPT-SoVITS 权重热切换。
@@ -29,10 +27,7 @@ cp config_templates/conf.ZH.default.yaml conf.yaml   # Windows PowerShell 用 co
 
 1. 拉一个 Ollama 模型（配置默认已指向 Ollama）：`ollama pull qwen2.5:latest`。
    想用其他模型，改 `conf.yaml` 中 `agent_config.llm_configs.ollama_llm.model` 即可。
-2. 在 `conf.yaml` 的 `tts_config` 中把 `tts_model` 改为 `'pyttsx3_tts'`（走 Windows 系统语音，零配置真离线）。
-   注意：pyttsx3 依赖系统已安装的语音——中文版 Windows 自带中文语音（Huihui），
-   其他语言系统需先在系统设置中添加中文语音包，否则中文内容无声。
-3. 启动：
+2. 启动：
 
 ```bash
 uv run run_server.py

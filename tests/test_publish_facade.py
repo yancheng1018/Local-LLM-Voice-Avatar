@@ -79,6 +79,47 @@ def test_conf_template_pyttsx3_key():
     assert tts_config["pyttsx3_tts"] == {}
 
 
+def test_conf_template_pyttsx3_key_en():
+    """EN 模板同样必须有 pyttsx3_tts 空实键（04-A2，GUI 下拉契约）。"""
+    data = yaml.safe_load(
+        (REPO_ROOT / "config_templates" / "conf.default.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    tts_config = data["character_config"]["tts_config"]
+    assert "pyttsx3_tts" in tts_config
+    assert tts_config["pyttsx3_tts"] == {}
+
+
+def _nested_keys(node, prefix=""):
+    """递归收集 YAML 键路径集合（值忽略，只比键集）。"""
+    keys = set()
+    if isinstance(node, dict):
+        for k, v in node.items():
+            path = f"{prefix}.{k}" if prefix else str(k)
+            keys.add(path)
+            keys |= _nested_keys(v, path)
+    return keys
+
+
+def test_templates_keyset_consistency():
+    """ZH/EN 模板键集必须一致（04-A3；历史分歧仅 pyttsx3 一节，C2 补齐后应零差）。"""
+    zh = yaml.safe_load(
+        (REPO_ROOT / "config_templates" / "conf.ZH.default.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    en = yaml.safe_load(
+        (REPO_ROOT / "config_templates" / "conf.default.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    zh_keys, en_keys = _nested_keys(zh), _nested_keys(en)
+    assert zh_keys == en_keys, (
+        f"模板键集分歧: 仅ZH={sorted(zh_keys - en_keys)} 仅EN={sorted(en_keys - zh_keys)}"
+    )
+
+
 def test_gui_no_legacy_name():
     """GUI 与启动器 bat 不得残留旧项目名（bat 为 GBK 编码 + CRLF 换行）。"""
     gui = (REPO_ROOT / "launcher" / "OpenLLMVTuber_GUI.py").read_text(encoding="utf-8")

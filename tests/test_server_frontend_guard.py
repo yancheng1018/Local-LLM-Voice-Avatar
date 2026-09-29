@@ -82,3 +82,22 @@ def test_constructs_without_dist(tmp_path, monkeypatch):
     routes = _routes_of(server)
     assert "/" in [path for path, _ in routes]
     assert "frontend" not in [name for _, name in routes]
+
+
+def test_en_template_validates(tmp_path, monkeypatch):
+    """EN 模板走 ZH 同款全链校验（04-A3：EN 此前零守卫覆盖）。"""
+    shutil.copy(
+        REPO_ROOT / "config_templates" / "conf.default.yaml",
+        tmp_path / "conf.yaml",
+    )
+    shutil.copytree(REPO_ROOT / "characters", tmp_path / "characters")
+    for empty_dir in ("live2d-models", "backgrounds", "avatars", "web_tool"):
+        (tmp_path / empty_dir).mkdir()
+    monkeypatch.chdir(tmp_path)
+    from src.open_llm_vtuber.config_manager import (
+        apply_default_character,
+        read_yaml,
+        validate_config,
+    )
+
+    validate_config(apply_default_character(read_yaml("conf.yaml")))

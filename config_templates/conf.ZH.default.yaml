@@ -128,12 +128,15 @@ character_config:
 
       llama_cpp_llm:
         model_path: '<path-to-gguf-model-file>' # GGUF 模型文件路径
-        verbose: False # 是否输出详细信息
 
       ollama_llm:
         base_url: 'http://localhost:11434/v1' # 基础 URL
         model: 'qwen2.5:latest' # 使用的模型
         temperature: 1.0 # 温度，介于 0 到 2 之间
+        # num_gpu: 16 # GPU 层数，按显存调整（RTX 3070 Ti 8GB 实测 16）
+        # num_ctx: 4096 # 上下文长度（控制显存与延迟）
+        # think: false # 是否启用 Qwen thinking（False 避免思考生成延迟）
+        # preload: true # 启动时预加载模型（使用与 num_gpu/num_ctx 相同的配置）
         # 不活动后模型在内存中保留的时间（秒）
         # 设置为 -1 表示模型将永远保留在内存中（即使退出 open llm vtuber 之后也是）
         keep_alive: -1
@@ -191,7 +194,6 @@ character_config:
       language: 'zh' # 语言，en、zh 或其他。留空表示自动检测。
       device: 'auto' # 设备，cpu、cuda 或 auto。faster-whisper 不支持 mps
       compute_type: 'int8'
-      prompt: '' # 提示词，用于辅助生成正确的文本
 
     whisper_cpp:
       # 所有可用模型都列在 https://abdeladim-s.github.io/pywhispercpp/#pywhispercpp.constants.AVAILABLE_MODELS
@@ -200,13 +202,11 @@ character_config:
       print_realtime: False # 是否实时打印
       print_progress: False # 是否打印进度
       language: 'auto' # 语言，en、zh、auto
-      prompt: '' # 提示词，用于辅助生成正确的文本
 
     whisper:
       name: 'medium' # 模型名称
       download_root: 'models/whisper' # 模型下载根目录
       device: 'cpu' # 设备
-      prompt: '' # 提示词，用于辅助生成正确的文本
 
     # FunASR 目前需要在启动时连接互联网以下载/检查模型。您可以在初始化后断开互联网连接。
     # 或者您可以使用 sherpa onnx asr 或 Faster-Whisper 获得完全离线的体验
@@ -247,6 +247,7 @@ character_config:
       sense_voice: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/model.int8.onnx' # SenseVoice 模型路径（例如 'path/to/model.onnx'）
       tokens: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/tokens.txt' # tokens.txt 路径（所有模型类型都需要）
       # --- 可选参数（显示默认值）---
+      # 注意：以下可选参数当前配置链不透传（pydantic 未声明），取消注释也不会生效——改动无效
       # hotwords_file: ''     # 热词文件路径（如果使用热词）
       # hotwords_score: 1.5   # 热词分数
       # modeling_unit: ''     # 热词的建模单元（如果适用）
@@ -271,12 +272,13 @@ character_config:
 
   # =================== 文本转语音 ===================
   tts_config:
-    tts_model: 'edge_tts' # 使用的文本转语音模型
+    tts_model: 'pyttsx3_tts' # 使用的文本转语音模型
     # 文本转语音模型选项：
     #   'azure_tts', 'pyttsx3_tts', 'edge_tts', 'bark_tts',
     #   'cosyvoice_tts', 'melo_tts', 'coqui_tts',
     #   'fish_api_tts', 'x_tts', 'gpt_sovits_tts', 'sherpa_onnx_tts'
-    #   'minimax_tts'
+    #   'minimax_tts',
+    #   'cosyvoice2_tts', 'siliconflow_tts', 'openai_tts', 'spark_tts'
 
     siliconflow_tts:
       api_url: "https://api.siliconflow.cn/v1/audio/speech"

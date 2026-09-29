@@ -72,7 +72,7 @@ character_config:
         segment_method: 'pysbd'
         # Use MCP (Model Context Protocol) Plus to let the LLM have the ability to use tools
         # 'Plus' means that it has the ability to call tools by using OpenAI API.
-        use_mcpp: True
+        use_mcpp: False
         mcp_enabled_servers: ["time", "ddg-search"] # Enabled MCP servers
 
       letta_agent:
@@ -130,12 +130,15 @@ character_config:
 
       llama_cpp_llm:
         model_path: '<path-to-gguf-model-file>'
-        verbose: False
 
       ollama_llm:
         base_url: 'http://localhost:11434/v1'
         model: 'qwen2.5:latest'
         temperature: 1.0 # value between 0 to 2
+        # num_gpu: 16 # GPU layers, adjust to your VRAM (16 tested on RTX 3070 Ti 8GB)
+        # num_ctx: 4096 # context length (trade VRAM for latency)
+        # think: false # enable Qwen thinking (False avoids extra thinking latency)
+        # preload: true # preload the model at startup (uses the same num_gpu/num_ctx settings)
         # seconds to keep the model in memory after inactivity. 
         # set to -1 to keep the model in memory forever (even after exiting open llm vtuber)
         keep_alive: -1
@@ -193,7 +196,6 @@ character_config:
       language: 'en' # en, zh, or something else. put nothing for auto-detect.
       device: 'auto' # cpu, cuda, or auto. faster-whisper doesn't support mps
       compute_type: 'int8'
-      prompt: '' # You can put a prompt here to help the model understand the context of the audio
 
     whisper_cpp:
       # all available models are listed on https://abdeladim-s.github.io/pywhispercpp/#pywhispercpp.constants.AVAILABLE_MODELS
@@ -202,13 +204,11 @@ character_config:
       print_realtime: False
       print_progress: False
       language: 'auto' # en, zh, auto,
-      prompt: '' # You can put a prompt here to help the model understand the context of the audio
 
     whisper:
       name: 'medium'
       download_root: 'models/whisper'
       device: 'cpu'
-      prompt: '' # You can put a prompt here to help the model understand the context of the audio
 
     # FunASR currently needs internet connection on launch
     # to download / check the models. You can disconnect the internet after initialization.
@@ -251,6 +251,8 @@ character_config:
       sense_voice: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/model.int8.onnx' # Path to the SenseVoice model (e.g., 'path/to/model.onnx')
       tokens: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/tokens.txt' # Path to tokens.txt (required for all model types)
       # --- Optional parameters (with defaults shown) ---
+      # Note: the optional parameters below are NOT passed through by the current
+      # config chain (not declared in pydantic); uncommenting them has no effect.
       # hotwords_file: ''     # Path to hotwords file (if using hotwords)
       # hotwords_score: 1.5   # Score for hotwords
       # modeling_unit: ''     # Modeling unit for hotwords (if applicable)
@@ -275,12 +277,13 @@ character_config:
 
   # =================== Text to Speech ===================
   tts_config:
-    tts_model: 'edge_tts'
+    tts_model: 'pyttsx3_tts'
     # text to speech model options:
     #   'azure_tts', 'pyttsx3_tts', 'edge_tts', 'bark_tts',
     #   'cosyvoice_tts', 'melo_tts', 'coqui_tts',
     #   'fish_api_tts', 'x_tts', 'gpt_sovits_tts', 'sherpa_onnx_tts'
-    #   'minimax_tts'
+    #   'minimax_tts',
+    #   'cosyvoice2_tts', 'siliconflow_tts', 'openai_tts', 'spark_tts'
 
     azure_tts:
       api_key: 'azure-api-key'
@@ -298,6 +301,7 @@ character_config:
       voice: 'en-US-AvaMultilingualNeural' # 'en-US-AvaMultilingualNeural' #'zh-CN-XiaoxiaoNeural' # 'ja-JP-NanamiNeural'
 
     # pyttsx3_tts doesn't have any config.
+    pyttsx3_tts: {}
 
     cosyvoice_tts: # Cosy Voice TTS connects to the gradio webui
       # Check their documentation for deployment and the meaning of the following configurations
