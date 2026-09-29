@@ -501,9 +501,6 @@ class ServiceContext:
             persona_prompt, language, human_name
         )
 
-        # Pass avatar to agent factory
-        avatar = self.character_config.avatar or ""  # Get avatar from config
-
         try:
             self.agent_engine = AgentFactory.create_agent(
                 conversation_agent_choice=agent_config.conversation_agent_choice,
@@ -512,7 +509,6 @@ class ServiceContext:
                 system_prompt=system_prompt,
                 live2d_model=self.live2d_model,
                 tts_preprocessor_config=self.character_config.tts_preprocessor_config,
-                character_avatar=avatar,
                 system_config=self.system_config.model_dump(),
                 tool_manager=self.tool_manager,
                 tool_executor=self.tool_executor,
@@ -715,17 +711,9 @@ class ServiceContext:
                             "type": "set-model-and-conf",
                             "model_info": self.live2d_model.model_info,
                             # 键名 conf_name 是前端的历史包袱，值即角色显示名
+                            # —— 极简前端消费（main.ts 读值刷新，ui.ts setCharacters 按名选中）
                             "conf_name": self.character_config.character_name,
                             "conf_uid": self.character_config.conf_uid,
-                        }
-                    )
-                )
-
-                await websocket.send_text(
-                    json.dumps(
-                        {
-                            "type": "config-switched",
-                            "message": f"Switched to config: {config_file_name}",
                         }
                     )
                 )

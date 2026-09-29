@@ -75,6 +75,8 @@ pyttsx3 音质有限。sherpa-onnx 提供明显更自然的离线中文合成：
 
 本项目基于 [Open-LLM-VTuber](https://github.com/Open-LLM-VTuber/Open-LLM-VTuber) v1.2.1 二次开发而来，
 感谢上游项目的优秀工作。本仓库版本号自 1.0.0 起独立演进，与上游版本号无关。
+上游文档见 [open-llm-vtuber.github.io](https://open-llm-vtuber.github.io/)（源仓库
+[open-llm-vtuber.github.io](https://github.com/Open-LLM-VTuber/open-llm-vtuber.github.io)）。
 
 ## Live2D 素材授权声明
 

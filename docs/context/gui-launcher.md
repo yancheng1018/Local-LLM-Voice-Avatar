@@ -64,7 +64,7 @@
 ### Live2D 贴图预览的实现与限制
 
 **不做骨骼渲染**：真正的 Live2D 渲染需要 Cubism Core 专有原生 DLL + `live2d-py` + OpenGL 上下文；
-本项目只有 Web 版 `frontend/libs/live2dcubismcore.js`（供前端用），Python 侧无原生运行时，
+本项目只有 Web 版 `static/libs/live2dcubismcore.min.js`（后端挂 /libs 供前端用），Python 侧无原生运行时，
 因此启动器只显示**模型贴图**作为静态预览（零依赖、无 GPU 开销）。
 
 贴图查找顺序（`_find_model_texture`）：

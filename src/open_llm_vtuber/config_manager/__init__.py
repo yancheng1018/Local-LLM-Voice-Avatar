@@ -9,7 +9,6 @@ and utility functions for loading/saving configurations.
 from .main import Config
 from .system import SystemConfig
 from .character import CharacterConfig
-from .live import LiveConfig, BiliBiliLiveConfig
 from .stateless_llm import (
     OpenAICompatibleConfig,
     ClaudeConfig,
@@ -61,7 +60,6 @@ from .utils import (
     validate_config,
     save_config,
     scan_config_alts_directory,
-    scan_bg_directory,
     apply_default_character,
 )
 
@@ -70,8 +68,6 @@ __all__ = [
     "Config",
     "SystemConfig",
     "CharacterConfig",
-    "LiveConfig",
-    "BiliBiliLiveConfig",
     # LLM related classes
     "OpenAICompatibleConfig",
     "ClaudeConfig",
@@ -123,5 +119,4 @@ __all__ = [
     "save_config",
     "scan_config_alts_directory",
     "apply_default_character",
-    "scan_bg_directory",
 ]

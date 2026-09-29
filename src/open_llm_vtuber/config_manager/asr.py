@@ -330,25 +330,3 @@ class ASRConfig(I18nMixin):
             en="Configuration for Sherpa Onnx ASR", zh="Sherpa Onnx ASR 配置"
         ),
     }
-
-    @model_validator(mode="after")
-    def check_asr_config(cls, values: "ASRConfig", info: ValidationInfo):
-        asr_model = values.asr_model
-
-        # Only validate the selected ASR model
-        if asr_model == "AzureASR" and values.azure_asr is not None:
-            values.azure_asr.model_validate(values.azure_asr.model_dump())
-        elif asr_model == "Faster-Whisper" and values.faster_whisper is not None:
-            values.faster_whisper.model_validate(values.faster_whisper.model_dump())
-        elif asr_model == "WhisperCPP" and values.whisper_cpp is not None:
-            values.whisper_cpp.model_validate(values.whisper_cpp.model_dump())
-        elif asr_model == "Whisper" and values.whisper is not None:
-            values.whisper.model_validate(values.whisper.model_dump())
-        elif asr_model == "FunASR" and values.fun_asr is not None:
-            values.fun_asr.model_validate(values.fun_asr.model_dump())
-        elif asr_model == "GroqWhisperASR" and values.groq_whisper_asr is not None:
-            values.groq_whisper_asr.model_validate(values.groq_whisper_asr.model_dump())
-        elif asr_model == "SherpaOnnxASR" and values.sherpa_onnx_asr is not None:
-            values.sherpa_onnx_asr.model_validate(values.sherpa_onnx_asr.model_dump())
-
-        return values

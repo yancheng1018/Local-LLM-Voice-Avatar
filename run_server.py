@@ -82,9 +82,6 @@ def run(console_log_level: str):
     config: Config = validate_config(apply_default_character(read_yaml("conf.yaml")))
     server_config = config.system_config
 
-    if server_config.enable_proxy:
-        logger.info("Proxy mode enabled - /proxy-ws endpoint will be available")
-
     # Initialize the WebSocket server (synchronous part)
     server = WebSocketServer(config=config)
 

@@ -17,7 +17,6 @@ dependencies = [
     "numpy>=1.26.4,<2",
     "onnxruntime>=1.20.1",
     "openai>=1.57.4",
-    "pre-commit>=4.1.0",
     "pydub>=0.25.1",
     "pysbd>=0.3.4",
     "pyttsx3>=2.98",
@@ -40,29 +39,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-bilibili = [
-    "aiohttp~=3.9.0",
-    "Brotli~=1.1.0",
-    "yarl~=1.9.3",
-]
 test = [
     "pytest~=8.0",
 ]
 
-[tool.pixi.project]
-channels = ["conda-forge"]
-platforms = ["win-64", "linux-64"]
-
-[tool.pixi.pypi-dependencies]
-open-llm-vtuber = { path = ".", editable = true }
-
-[tool.pixi.dependencies]
-cudnn = ">=8.0,<9"
-cudatoolkit = ">=11.0,<12"
-
 [tool.ruff]
 target-version = "py310"
-
-[tool.ruff.lint]
-# Ignore E402 (module level import not at top of file) for the run_bilibili_live.py script
-per-file-ignores = { "legacy/scripts/run_bilibili_live.py" = ["E402"] }

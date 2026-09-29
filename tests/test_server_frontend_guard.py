@@ -31,8 +31,10 @@ def _build_tmp_layout(tmp_path: Path, with_dist: bool) -> None:
         tmp_path / "conf.yaml",
     )
     shutil.copytree(REPO_ROOT / "characters", tmp_path / "characters")
-    for empty_dir in ("live2d-models", "backgrounds", "avatars", "web_tool"):
+    for empty_dir in ("live2d-models", "web_tool"):
         (tmp_path / empty_dir).mkdir()
+    # /libs 挂载（Cubism Core）需要 static/libs 存在
+    (tmp_path / "static" / "libs").mkdir(parents=True)
     if with_dist:
         dist = tmp_path / "frontend-minimal" / "dist"
         dist.mkdir(parents=True)
@@ -62,6 +64,7 @@ def test_root_redirect_route_exists(tmp_path, monkeypatch):
 
     routes = _routes_of(server)
     assert "/" in [path for path, _ in routes], "根路径重定向路由缺失"
+    assert "/libs" in [path for path, _ in routes], "Cubism Core /libs 挂载缺失"
     assert "frontend" not in [name for _, name in routes], "旧 frontend mount 回潮"
 
 
@@ -91,8 +94,9 @@ def test_en_template_validates(tmp_path, monkeypatch):
         tmp_path / "conf.yaml",
     )
     shutil.copytree(REPO_ROOT / "characters", tmp_path / "characters")
-    for empty_dir in ("live2d-models", "backgrounds", "avatars", "web_tool"):
+    for empty_dir in ("live2d-models", "web_tool"):
         (tmp_path / empty_dir).mkdir()
+    (tmp_path / "static" / "libs").mkdir(parents=True)
     monkeypatch.chdir(tmp_path)
     from src.open_llm_vtuber.config_manager import (
         apply_default_character,
@@ -101,3 +105,44 @@ def test_en_template_validates(tmp_path, monkeypatch):
     )
 
     validate_config(apply_default_character(read_yaml("conf.yaml")))
+
+
+RETIRED_FILES = (
+    "src/open_llm_vtuber/proxy_handler.py",
+    "src/open_llm_vtuber/proxy_message_queue.py",
+    "src/open_llm_vtuber/live/",
+    "legacy/README.md",
+    "requirements.txt",
+    ".pre-commit-config.yaml",
+)
+RETIRED_MARKERS = (  # (文件名后缀, 禁止子串)
+    ("server.py", '"/bg"'),
+    ("server.py", "AvatarStaticFiles"),
+    ("websocket_handler.py", "fetch-backgrounds"),
+    ("websocket_handler.py", "background-files"),
+    ("websocket_handler.py", "delete-history"),
+    ("websocket_handler.py", "history-deleted"),
+    ("websocket_handler.py", "ai-speak-signal"),
+    ("websocket_handler.py", "request-init-config"),
+    ("routes.py", "/live2d-models/info"),
+    ("routes.py", "init_proxy_route"),
+    ("conversation_utils.py", "force-new-message"),
+    ("service_context.py", '"config-switched"'),
+    ("character.py", "avatar"),
+    ("OpenLLMVTuber_GUI.py", "avatars"),
+)
+
+
+def test_retired_surfaces_absent():
+    """github-p2-precheck-b 退役面防回潮（H1/F1 裁决，2026-09-30）。"""
+    for path in RETIRED_FILES:
+        assert not (REPO_ROOT / path).exists(), f"退役文件回潮: {path}"
+    for suffix, marker in RETIRED_MARKERS:
+        matches = list(REPO_ROOT.rglob(suffix))
+        assert matches, f"锚文件不存在: {suffix}"
+        for m in matches:
+            if ".venv" in m.parts or "node_modules" in m.parts:
+                continue
+            assert marker not in m.read_text(encoding="utf-8", errors="replace"), (
+                f"退役标记 {marker!r} 回潮于 {m}"
+            )

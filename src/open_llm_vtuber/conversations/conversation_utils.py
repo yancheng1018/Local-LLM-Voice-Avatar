@@ -53,7 +53,6 @@ async def process_agent_output(
 ) -> str:
     """Process agent output with character information and optional translation"""
     output.display_text.name = character_config.character_name
-    output.display_text.avatar = character_config.avatar
 
     full_response = ""
     try:
@@ -193,15 +192,6 @@ async def finalize_conversation_turn(
         if not response:
             logger.warning(f"No playback completion response from {client_uid}")
             return
-
-    await websocket_send(json.dumps({"type": "force-new-message"}))
-
-    if broadcast_ctx and broadcast_ctx.broadcast_func:
-        await broadcast_ctx.broadcast_func(
-            broadcast_ctx.group_members,
-            {"type": "force-new-message"},
-            broadcast_ctx.current_client_uid,
-        )
 
     await send_conversation_end_signal(websocket_send, broadcast_ctx)
 

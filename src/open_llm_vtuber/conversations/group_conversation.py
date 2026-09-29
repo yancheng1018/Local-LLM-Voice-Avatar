@@ -306,7 +306,6 @@ async def handle_group_member_turn(
                 role="ai",
                 content=full_response,
                 name=context.character_config.character_name,
-                avatar=context.character_config.avatar,
             )
         else:
             logger.debug("Skipping storing AI response to history (proactive speak)")

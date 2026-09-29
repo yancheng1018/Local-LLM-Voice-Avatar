@@ -644,3 +644,23 @@ Live2D社およびお客様は、事前に相手方の書面による同意を�
 バージョン： 1.6
 
 改定日： 2025年2月3日
+
+---
+
+## 附注：Live2D Cubism Core 的再分发（Redistribution notice for Live2D Cubism Core）
+
+本仓库 `static/libs/live2dcubismcore.min.js` 是 Live2D Cubism Core 运行时（© Live2D Inc.）。
+它**不属于上述 Free Material License Agreement 的覆盖范围**，也**不受本项目的 MIT 许可约束**。
+该文件按 Live2D Proprietary Software License Agreement 中的 "Redistributable Code" 条款
+（协议原文见文件头注释所引 https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_en.html ）
+以 as-is 方式随本仓库一并分发，并完整保留其文件头版权注释；不得剥离版权信息，
+不得将其置于排除性许可（restrictive/exclusive license）之下再分发。
+
+The file `static/libs/live2dcubismcore.min.js` in this repository is the Live2D Cubism Core
+runtime (© Live2D Inc.). It is NOT covered by the Free Material License Agreement above, and
+it is NOT licensed under this project's MIT License. It is redistributed as-is together with
+this repository under the "Redistributable Code" terms of the Live2D Proprietary Software
+License Agreement (https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_en.html,
+as referenced in the file's copyright header), with its copyright header preserved intact;
+the header must not be stripped, and the file must not be redistributed under a restrictive
+or exclusive license.

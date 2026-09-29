@@ -13,7 +13,6 @@ class HistoryMessage(TypedDict):
     content: str
     # Optional display information for the message
     name: Optional[str]
-    avatar: Optional[str]
 
 
 def _is_safe_filename(filename: str) -> bool:
@@ -96,7 +95,6 @@ def store_message(
     role: Literal["human", "ai"],
     content: str,
     name: str | None = None,
-    avatar: str | None = None,
 ):
     """Store a message in a specific history file
 
@@ -106,7 +104,6 @@ def store_message(
         role: Message role ("human" or "ai")
         content: Message content
         name: Optional display name (default None)
-        avatar: Optional avatar URL (default None)
     """
     if not conf_uid or not history_uid:
         if not conf_uid:
@@ -137,8 +134,6 @@ def store_message(
     # Add optional display information if provided
     if name is not None:
         new_item["name"] = name
-    if avatar is not None:
-        new_item["avatar"] = avatar
 
     history_data.append(new_item)
 

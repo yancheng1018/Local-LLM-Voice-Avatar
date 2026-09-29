@@ -3,6 +3,7 @@
 命名定案见 research_上传github前准备.md §6。
 """
 
+import hashlib
 import tomli
 import yaml
 from pathlib import Path
@@ -142,3 +143,18 @@ def test_facade_no_legacy_name():
     assert 'FastAPI(title="Open-LLM-VTuber' not in server
     assert 'description="Open-LLM-VTuber' not in run_server
     assert "<title>Open-LLM-VTuber" not in html
+
+
+def test_live2d_core_vendored():
+    """static/libs 必须入库 Cubism Core（06 §0-C 裁决，P0 修复防回潮）。"""
+    core = REPO_ROOT / "static" / "libs" / "live2dcubismcore.min.js"
+    assert core.is_file(), "static/libs/live2dcubismcore.min.js 缺失（新克隆 Live2D 必挂）"
+    data = core.read_bytes()
+    assert len(data) == 206492, (
+        f"core 字节数异常: {len(data)}（上游基准 206492，2026-09-30 裁决 jsdelivr 渠道）"
+    )
+    assert (
+        hashlib.sha1(data).hexdigest()
+        == "6b35977308b3219a4dd0bbcfb72026d54fc5d852"
+    ), "core sha1 与上游基准不符"
+    assert b"Live2D" in data[:600], "core 版权头缺失"

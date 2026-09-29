@@ -27,7 +27,6 @@ If you just want to quickly create a new character with a different personality,
 character_config:
   conf_uid: 'my_new_character_001' # MUST be a unique ID
   character_name: 'Hoshino'        # REQUIRED. The name displayed in the UI, must be unique
-  avatar: 'hoshino.png'            # (Optional) Avatar file, place it in the /avatars folder
   persona_prompt: |
     You are a gentle and caring girl next door named Hoshino. You are a great listener and always provide warmth and encouragement.
 ````
@@ -86,11 +85,6 @@ Here is a breakdown of the core fields under `character_config`:
 
       - **Purpose**: The character's own name. This is both the name the AI uses in conversations **and** the label shown in the front-end UI's character selection list, so **it must be unique among all characters** — the UI maps this value back to a config file, and a duplicate would resolve to the wrong character.
       - **Example**: `'Mao'`
-
-  - `avatar` (string, optional):
-
-      - **Purpose**: The character's avatar image. Place the image file (e.g., .png, .jpg) in the `/avatars` folder at the project root and enter the filename here. If left blank, the UI will show the first letter of the character's name as a default avatar.
-      - **Example**: `'mao.png'`
 
   - `persona_prompt` (string):
 

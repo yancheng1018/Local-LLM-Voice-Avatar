@@ -147,8 +147,6 @@ SOVITS_WEIGHTS_PREFIX = "SoVITS_weights"
 # API 以 v4 DPO 启动（start_v4_dpo.py），应用非 v4 权重时给出警告
 CURRENT_GSV_VERSION_DIR = "GPT_weights_v4"
 
-AVATAR_DIR_CANDIDATES = ["avatars", "avatar"]
-
 ASR_ENGINE_KEY = "asr_model"
 ASR_ENGINES = [
     "faster_whisper",
@@ -481,7 +479,6 @@ class CharEntry(NamedTuple):
     display: str  # 下拉框显示文本："{角色名} ({文件名})"
     stem: str  # 角色 YAML 的文件名（不含扩展名）
     name: str  # character_name —— 与 Web UI 显示的一致
-    avatar: str  # 头像文件名
     uid: str  # conf_uid —— 唯一标识，聊天记录按它分目录
 
 
@@ -921,13 +918,6 @@ class LauncherWindow(QMainWindow):
         self.combo_character.currentIndexChanged.connect(self._on_character_changed)
         char_list_layout.addWidget(self.combo_character)
 
-        self.avatar_label = QLabel()
-        self.avatar_label.setFixedSize(96, 96)
-        self.avatar_label.setStyleSheet("border: 1px solid #ccc; background: #fafafa;")
-        self.avatar_label.setAlignment(Qt.AlignCenter)
-        self.avatar_label.setText("无头像")
-        char_list_layout.addWidget(self.avatar_label, alignment=Qt.AlignCenter)
-
         char_btn_row = QHBoxLayout()
         btn_new_char = QPushButton("新建")
         btn_del_char = QPushButton("删除")
@@ -993,28 +983,9 @@ class LauncherWindow(QMainWindow):
         self.char_edit_fields["language"] = w_lang
         char_edit_vbox.addWidget(info_box)
 
-        # ── 形象 ──（头像在 Live2D 模型上方）
+        # ── 形象 ──
         look_box = QGroupBox("形象")
         look_form = QFormLayout(look_box)
-
-        # 头像：下拉 + 刷新 + 导入
-        w_avatar = EditableCombo()
-        w_avatar.setToolTip(
-            "从 avatars/ 目录自动扫描，或点「导入」添加图片。留空表示不使用头像"
-        )
-        row_avatar = QHBoxLayout()
-        row_avatar.addWidget(w_avatar, stretch=1)
-        btn_refresh_avatar = QPushButton("↻")
-        btn_refresh_avatar.setFixedWidth(32)
-        btn_refresh_avatar.setToolTip("刷新头像列表")
-        btn_refresh_avatar.clicked.connect(self._populate_avatar_combo)
-        btn_import_avatar = QPushButton("导入...")
-        btn_import_avatar.setToolTip("从本地选择图片并复制到 avatars/ 目录")
-        btn_import_avatar.clicked.connect(self._import_avatar)
-        row_avatar.addWidget(btn_refresh_avatar)
-        row_avatar.addWidget(btn_import_avatar)
-        look_form.addRow("头像：", row_avatar)
-        self.char_edit_fields["avatar"] = w_avatar
 
         # Live2D 模型：下拉 + 刷新 + 打开目录 + 导入
         w_l2d = EditableCombo()
@@ -1455,7 +1426,6 @@ class LauncherWindow(QMainWindow):
         self._populate_vad()
         self._refresh_preset_list()
         self._populate_live2d_combo()
-        self._populate_avatar_combo()
         self._populate_voice_models()
 
         gsv_dir = self.launcher_cfg.get("gpt_sovits_root")
@@ -1503,7 +1473,6 @@ class LauncherWindow(QMainWindow):
             for f in files:
                 stem = f.stem
                 char_name = stem
-                avatar = ""
                 conf_uid = ""
                 try:
                     with open(f, "r", encoding="utf-8") as fp:
@@ -1512,12 +1481,11 @@ class LauncherWindow(QMainWindow):
                     # 显示名与 Web UI 保持一致：character_name（回退 conf_uid/文件名）
                     char_name = cc.get("character_name") or cc.get("conf_uid") or stem
                     conf_uid = cc.get("conf_uid") or ""
-                    avatar = cc.get("avatar") or ""
                 except Exception:
                     pass
                 display = f"{char_name} ({stem})"
                 self._character_entries.append(
-                    CharEntry(display, stem, char_name, avatar, conf_uid)
+                    CharEntry(display, stem, char_name, conf_uid)
                 )
 
         for entry in self._character_entries:
@@ -1525,7 +1493,7 @@ class LauncherWindow(QMainWindow):
 
         # 首位固定为「使用 conf.yaml 基础配置」——此时不指定默认角色
         self.combo_character.insertItem(0, BASE_CONFIG_ENTRY)
-        self._character_entries.insert(0, CharEntry(BASE_CONFIG_ENTRY, "", "", "", ""))
+        self._character_entries.insert(0, CharEntry(BASE_CONFIG_ENTRY, "", "", ""))
 
         # default_character 指针是"应用了哪个角色文件"的唯一依据。
         # 指针为空 → 基础配置项；指针缺失/指向不存在的文件 → 同样回落基础配置项，
@@ -1551,8 +1519,6 @@ class LauncherWindow(QMainWindow):
 
     def _on_character_changed(self, idx):
         if idx < 0 or idx >= len(self._character_entries):
-            self.avatar_label.setPixmap(QPixmap())
-            self.avatar_label.setText("无头像")
             for w in self.char_edit_fields.values():
                 w.setText("")
             self.char_edit_model_names.setText("")
@@ -1560,17 +1526,7 @@ class LauncherWindow(QMainWindow):
             return
 
         entry = self._character_entries[idx]
-        stem, avatar = entry.stem, entry.avatar
-
-        pix = self._find_avatar_pixmap(avatar)
-        if pix is not None and not pix.isNull():
-            self.avatar_label.setPixmap(
-                pix.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            )
-            self.avatar_label.setText("")
-        else:
-            self.avatar_label.setPixmap(QPixmap())
-            self.avatar_label.setText("无头像")
+        stem = entry.stem
 
         # 加载角色文件到右侧编辑器
         # 首项「使用 conf.yaml 基础配置」没有独立文件，直接编辑 conf.yaml 自身的角色
@@ -1595,17 +1551,6 @@ class LauncherWindow(QMainWindow):
 
         # 预览跟随当前角色的 Live2D 模型
         self._preview_current_character_l2d()
-
-    def _find_avatar_pixmap(self, avatar_name):
-        if not avatar_name:
-            return None
-        for d in AVATAR_DIR_CANDIDATES:
-            p = self.project_root / d / avatar_name
-            if p.exists():
-                pix = QPixmap(str(p))
-                if not pix.isNull():
-                    return pix
-        return None
 
     # ------------------------------------------------------------------
     # 角色配置编辑器
@@ -1642,7 +1587,6 @@ class LauncherWindow(QMainWindow):
                 "live2d_model_name": "",
                 "character_name": "",
                 "human_name": "",
-                "avatar": "",
                 # 回答语言（可在启动器下拉里改）
                 "language": "",
                 "persona_prompt": f"You are {name}, a friendly AI assistant.",
@@ -1796,69 +1740,6 @@ class LauncherWindow(QMainWindow):
         # 否则 addItems 之后 currentIndex 会变成 0，界面会显示一个其实没被选中的模型。
         w.addItem("")
         w.addItems(self._scan_live2d_model_names())
-        w.setText(current if current else "")
-
-    def _import_avatar(self):
-        """从本地选择图片，复制到 avatars/ 并选中。"""
-        if not self.project_root:
-            QMessageBox.warning(self, "未设置项目目录", "请先选择项目目录。")
-            return
-        path, _ = QFileDialog.getOpenFileName(
-            self,
-            "选择头像图片",
-            "",
-            "图片文件 (*.png *.jpg *.jpeg *.webp *.gif);;所有文件 (*)",
-        )
-        if not path:
-            return
-        path = Path(path)
-        # 优先 avatars/，不存在则创建
-        target_dir = self.project_root / AVATAR_DIR_CANDIDATES[0]
-        try:
-            target_dir.mkdir(parents=True, exist_ok=True)
-            target = target_dir / path.name
-            if target.exists() and target.resolve() != path.resolve():
-                reply = QMessageBox.question(
-                    self,
-                    "文件已存在",
-                    f"avatars/ 中已存在「{path.name}」，覆盖吗？",
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.No,
-                )
-                if reply != QMessageBox.Yes:
-                    return
-            if target.resolve() != path.resolve():
-                shutil.copy2(path, target)
-            self._log(f"[启动器] ✔ 头像已导入：{target.name}")
-        except Exception as e:
-            QMessageBox.critical(self, "导入失败", f"复制图片时出错：\n{e}")
-            return
-
-        self._populate_avatar_combo()
-        w = self.char_edit_fields.get("avatar")
-        if isinstance(w, EditableCombo):
-            w.setText(path.name)
-
-    def _populate_avatar_combo(self):
-        w = self.char_edit_fields.get("avatar")
-        if not isinstance(w, EditableCombo):
-            return
-        current = w.currentText()
-        w.clear()
-        names = []
-        if self.project_root:
-            for d in AVATAR_DIR_CANDIDATES:
-                p = self.project_root / d
-                if p.is_dir():
-                    names += [
-                        f.name
-                        for f in sorted(p.iterdir())
-                        if f.is_file()
-                        and f.suffix.lower()
-                        in (".png", ".jpg", ".jpeg", ".webp", ".gif")
-                    ]
-        w.addItem("")  # 空选项 = 不使用头像，避免默认选中第一个文件
-        w.addItems(sorted(set(names)))
         w.setText(current if current else "")
 
     def _model_dict_path(self) -> Path:

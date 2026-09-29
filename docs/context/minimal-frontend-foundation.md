@@ -11,7 +11,7 @@
 - 构建产物挂载：`server.py` 在 `/` catch-all 之前把 `frontend-minimal/dist`
   挂到 `/m`（目录存在才挂）；访问 `http://localhost:12393/m`
 - 构建：`cd frontend-minimal && npm run build`（含 tsc 类型检查）；改完必须重建才生效
-- Cubism Core 复用 `/libs/live2dcubismcore.min.js`（由原 frontend/ 挂 `/` 暴露）
+- Cubism Core 由后端 `static/libs/` 入库并挂载 `/libs` 供给（2026-09-30 修复，index.html:9 绝对路径引用）
 - 结构：`src/ws.ts`（按 type 可插拔注册，断线 2s 自动重连）、`src/audio.ts`
   （顺序播放队列 + 打断 + 回执）、`src/renderer/types.ts`（CharacterRenderer
   接口）、`src/renderer/l2d.ts`、`src/renderer/spine.ts`、`src/ui.ts`、`src/main.ts`

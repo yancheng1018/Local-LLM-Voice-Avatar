@@ -1,5 +1,4 @@
 import asyncio
-import json
 from typing import Dict, Optional, Callable
 
 import numpy as np
@@ -13,7 +12,6 @@ from .group_conversation import process_group_conversation
 from .single_conversation import process_single_conversation
 from .conversation_utils import EMOJI_LIST
 from .types import GroupConversationState
-from prompts import prompt_loader
 
 
 async def handle_conversation_trigger(
@@ -32,37 +30,7 @@ async def handle_conversation_trigger(
     """Handle triggers that start a conversation"""
     metadata = None
 
-    if msg_type == "ai-speak-signal":
-        try:
-            # Get proactive speak prompt from config
-            prompt_name = "proactive_speak_prompt"
-            prompt_file = context.system_config.tool_prompts.get(prompt_name)
-            if prompt_file:
-                user_input = prompt_loader.load_util(prompt_file)
-            else:
-                logger.warning("Proactive speak prompt not configured, using default")
-                user_input = "Please say something."
-        except Exception as e:
-            logger.error(f"Error loading proactive speak prompt: {e}")
-            user_input = "Please say something."
-
-        # Add metadata to indicate this is a proactive speak request
-        # that should be skipped in both memory and history
-        metadata = {
-            "proactive_speak": True,
-            "skip_memory": True,  # Skip storing in AI's internal memory
-            "skip_history": True,  # Skip storing in local conversation history
-        }
-
-        await websocket.send_text(
-            json.dumps(
-                {
-                    "type": "full-text",
-                    "text": "AI wants to speak something...",
-                }
-            )
-        )
-    elif msg_type == "text-input":
+    if msg_type == "text-input":
         user_input = data.get("text", "")
     else:  # mic-audio-end
         user_input = received_data_buffers[client_uid]
@@ -133,7 +101,6 @@ async def handle_individual_interrupt(
                 role="ai",
                 content=heard_response,
                 name=context.character_config.character_name,
-                avatar=context.character_config.avatar,
             )
             store_message(
                 conf_uid=context.character_config.conf_uid,
@@ -193,7 +160,6 @@ async def handle_group_interrupt(
                         role="ai",
                         content=heard_response,
                         name=context.character_config.character_name,
-                        avatar=context.character_config.avatar,
                     )
                     store_message(
                         conf_uid=member_ctx.character_config.conf_uid,

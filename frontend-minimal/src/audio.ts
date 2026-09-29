@@ -13,7 +13,7 @@ export interface AudioMessage {
   audio: string | null;
   volumes: number[];
   slice_length: number;
-  display_text?: { text?: string; name?: string; avatar?: string } | null;
+  display_text?: { text?: string; name?: string } | null;
   actions?: { expressions?: (number | string)[] } | null;
 }
 

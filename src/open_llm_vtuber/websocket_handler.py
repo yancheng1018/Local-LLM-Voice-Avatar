@@ -19,10 +19,9 @@ from .utils.stream_audio import prepare_audio_payload
 from .chat_history_manager import (
     create_new_history,
     get_history,
-    delete_history,
     get_history_list,
 )
-from .config_manager.utils import scan_config_alts_directory, scan_bg_directory
+from .config_manager.utils import scan_config_alts_directory
 from .conversations.conversation_handler import (
     handle_conversation_trigger,
     handle_group_interrupt,
@@ -67,9 +66,8 @@ class MessageType(Enum):
         "fetch-history-list",
         "fetch-and-set-history",
         "create-new-history",
-        "delete-history",
     ]
-    CONVERSATION = ["mic-audio-end", "text-input", "ai-speak-signal"]
+    CONVERSATION = ["mic-audio-end", "text-input"]
     CONFIG = [
         "fetch-configs",
         "switch-config",
@@ -119,20 +117,16 @@ class WebSocketHandler:
             "fetch-history-list": self._handle_history_list_request,
             "fetch-and-set-history": self._handle_fetch_history,
             "create-new-history": self._handle_create_history,
-            "delete-history": self._handle_delete_history,
             "interrupt-signal": self._handle_interrupt,
             "mic-audio-data": self._handle_audio_data,
             "mic-audio-end": self._handle_conversation_trigger,
             "raw-audio-data": self._handle_raw_audio_data,
             "text-input": self._handle_conversation_trigger,
-            "ai-speak-signal": self._handle_conversation_trigger,
             "fetch-configs": self._handle_fetch_configs,
             "switch-config": self._handle_config_switch,
             "fetch-live2d-models": self._handle_fetch_live2d_models,
             "switch-live2d-model": self._handle_live2d_model_switch,
-            "fetch-backgrounds": self._handle_fetch_backgrounds,
             "audio-play-start": self._handle_audio_play_start,
-            "request-init-config": self._handle_init_config_request,
             "heartbeat": self._handle_heartbeat,
         }
 
@@ -201,8 +195,8 @@ class WebSocketHandler:
                 {
                     "type": "set-model-and-conf",
                     "model_info": session_service_context.live2d_model.model_info,
-                    # 键名 conf_name 是前端的历史包袱（打包产物里硬编码读取它），
-                    # 值即角色显示名 character_name —— 前端用它反查配置文件
+                    # 键名 conf_name 是前端的历史包袱，值即角色显示名 character_name
+                    # —— 极简前端消费（main.ts 读值刷新当前角色，ui.ts setCharacters 按名选中）
                     "conf_name": session_service_context.character_config.character_name,
                     "conf_uid": session_service_context.character_config.conf_uid,
                     "client_uid": client_uid,
@@ -491,31 +485,6 @@ class WebSocketHandler:
                 )
             )
 
-    async def _handle_delete_history(
-        self, websocket: WebSocket, client_uid: str, data: dict
-    ):
-        """Handle deletion of chat history"""
-        history_uid = data.get("history_uid")
-        if not history_uid:
-            return
-
-        context = self.client_contexts[client_uid]
-        success = delete_history(
-            context.character_config.conf_uid,
-            history_uid,
-        )
-        await websocket.send_text(
-            json.dumps(
-                {
-                    "type": "history-deleted",
-                    "success": success,
-                    "history_uid": history_uid,
-                }
-            )
-        )
-        if history_uid == context.history_uid:
-            context.history_uid = None
-
     async def _handle_audio_data(
         self, websocket: WebSocket, client_uid: str, data: WSMessage
     ) -> None:
@@ -717,15 +686,6 @@ class WebSocketHandler:
             )
         )
 
-    async def _handle_fetch_backgrounds(
-        self, websocket: WebSocket, client_uid: str, data: WSMessage
-    ) -> None:
-        """Handle fetching available background images"""
-        bg_files = scan_bg_directory()
-        await websocket.send_text(
-            json.dumps({"type": "background-files", "files": bg_files})
-        )
-
     async def _handle_audio_play_start(
         self, websocket: WebSocket, client_uid: str, data: WSMessage
     ) -> None:
@@ -751,27 +711,6 @@ class WebSocketHandler:
     ) -> None:
         """Handle group info request"""
         await self.send_group_update(websocket, client_uid)
-
-    async def _handle_init_config_request(
-        self, websocket: WebSocket, client_uid: str, data: WSMessage
-    ) -> None:
-        """Handle request for initialization configuration"""
-        context = self.client_contexts.get(client_uid)
-        if not context:
-            context = self.default_context_cache
-
-        await websocket.send_text(
-            json.dumps(
-                {
-                    "type": "set-model-and-conf",
-                    "model_info": context.live2d_model.model_info,
-                    # 见 _send_initial_messages：键名保留，值为角色显示名
-                    "conf_name": context.character_config.character_name,
-                    "conf_uid": context.character_config.conf_uid,
-                    "client_uid": client_uid,
-                }
-            )
-        )
 
     async def _handle_heartbeat(
         self, websocket: WebSocket, client_uid: str, data: WSMessage
