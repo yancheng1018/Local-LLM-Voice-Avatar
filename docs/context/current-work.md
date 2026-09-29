@@ -1,7 +1,7 @@
 ## 当前阶段
 
 ### 阶段状态
-> **github-p2-precheck-a：上传物与文档批（已完成并验收通过 2026-09-30）。下一阶段：github-p2-precheck-b（后端清理与 Live2D Core 批）[2/4]**
+> **github-p2-precheck-b：后端清理与 Live2D Core 批（已完成并验收通过 2026-09-30）。下一阶段：github-p2-precheck-c（结构归置批）[3/4]**
 > 批 b/c/d 规格书已同步产出（temp_spec_github-p2-precheck-{b,c,d}.md），按 a→b→c→d 串行实施（共面文件多，不并发）；规划四疑点已裁决（2026-09-30：pixi 三节删并入批 b、core 渠道 jsdelivr 字节同上游、AGENTS.md 改动批准、avatar 链含 GUI 全删）。全部验收后回到 github-p2-release。
 
 ### 阶段路线图 · 上传github前准备
@@ -16,7 +16,7 @@
 | 4 | github-p1-facade | 改名四联动+版本 1.0.0+README 主写（Live2D 授权声明/多引擎亮点/快速层 pyttsx3） | 已验收 2026-09-29 | v1+v2 两轮落地：门面改名全仓+pyttsx3 配置链+一键联动+sherpa 守卫 |
 | 5 | github-p1-robust | 旧前端整体退役（目录+mount+启动检查+GUI 选项，根路径落 /m/）+新克隆冒烟（pyttsx3 必做） | 已验收 2026-09-29 | 依赖批4；规格 temp_spec_github-p1-robust.md；2026-09-29 用户裁决取清除式（删目录删代码），非守卫式 |
 | 6 | github-p2-precheck-a | 上传物与文档批：模板死键删除+默认值离线对齐（R24/R25）+README 订正（D1-D3）+索引忽略磁盘清理（B1/B2/B4/B5）+A3 提交信息守卫+C3 模板守卫 | 已验收 2026-09-30 | 规格 temp_spec_github-p2-precheck-a.md；拍板依据 research_上传前查漏-06 §0 G/D/A 组 |
-| 7 | github-p2-precheck-b | 后端清理与 Live2D Core 批：/libs core 入库修复（P0）+H 组 15 行死代码删除+F 删历史流程+D7/D9/D8 订正 | 规划完成 | 依赖批 a；规格 temp_spec_github-p2-precheck-b.md；core 渠道=jsdelivr（2026-09-30 裁决，206492B 同上游+sha1 守卫）；pixi 死配置并入本批删（2026-09-30 裁决） |
+| 7 | github-p2-precheck-b | 后端清理与 Live2D Core 批：/libs core 入库修复（P0）+H 组 15 行死代码删除+F 删历史流程+D7/D9/D8 订正 | 已验收 2026-09-30 | 依赖批 a；规格 temp_spec_github-p2-precheck-b.md；core 渠道=jsdelivr（2026-09-30 裁决，206492B 同上游+sha1 守卫）；pixi 死配置并入本批删（2026-09-30 裁决） |
 | 8 | github-p2-precheck-c | 结构归置批：建 scripts/ 归置 4 个 live2d 脚本（R10）+prompts 并入 src 删死链（R11+R20）+minimal-frontend-live2d 拆分（R30）+归档行数豁免口径 | 规划完成 | 依赖批 b；规格 temp_spec_github-p2-precheck-c.md；含 AGENTS 索引两行并一行补偿（2026-09-30 用户已批准） |
 | 9 | github-p2-precheck-d | GSV 适配器批：start_gsv_api.py 通用 CLI+GUI 合同收敛（手动/一键统一）+external/ 整体退役+README GSV 节重写+TTS 音频链路约定入档 | 规划完成 | 依赖批 c；规格 temp_spec_github-p2-precheck-d.md；E=B+ 终态（2026-09-30 补裁）；含 1 项人工验收（GSV 一键启动观感） |
 | 10 | github-p2-release | 建仓（先私有）→显式 refspec push→tag v1.0.0+Release→收尾 | 未开始 | push 需用户明确确认；git 身份已固化 AGENTS 契约（D6 闭合 2026-09-30）；演示图后补（D2 人工子项）；前置：批 6-9 全部验收 |

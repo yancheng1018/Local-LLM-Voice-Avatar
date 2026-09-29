@@ -19,9 +19,9 @@
 git ls-files -i -c --exclude-standard
 ```
 
-当前实测命中 17 项（`avatars/` 2 项、`backgrounds/` 15 项），
-都是**刻意保留追踪**的：改它们要 `git add -f`（voices/ 私有资产已随 github-p0-privacy
-批出索引，不再落进忽略范围；计数为批后口径 2026-09-29）。
+2026-09-30 批 b 后口径：**无 tracked-but-ignored 项**（`avatars/` 2 项、`backgrounds/` 15 项
+已随 github-p2-precheck-b `git rm --cached` 出索引保磁盘，finalize_exec_distill-b1 已随批 a
+出索引；voices/ 私有资产更早已随 github-p0-privacy 出索引）。
 
 ### 本仓库的忽略策略
 
@@ -124,6 +124,8 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
 - 活引用排查排除文档自身时用 `rg --glob='!<文件名>'` 或 `grep -rn --exclude=<文件名>`；用路径子串
   做 `grep -v` 会把正文里引用该文件名的**内容引用**一并误伤（distill-b1 审查实证）。
 - git log 机读解析须用消息体不可能含的字节作条目分隔（如 format=%x01%H%x00%B）；%H%x00%B 的 \0 只分隔 hash 与消息体、条目间无分隔符，按 \0 切分会错位致白名单失效（github-p2-precheck-a 实踩，tests/test_repo_privacy_guard.py）。
+- 删 NamedTuple/dataclass 字段或整个模块时，用 rg "<类名>(" / rg "import <模块>" 审全部调用点——裸位置参数对按删除关键字的 rg 清扫不可见（批 b CharEntry 5 参残留致启动器启动即崩，rg/ast/ruff 三层全漏、人工验收实踩；运行守卫=tests/test_gui_smoke.py 离屏实例化）。
+- 删除面的清扫命令路径必须含仓库根入口脚本（run_server.py），删模块后补导入冒烟（uv run python -c "from src.open_llm_vtuber.config_manager import Config"）——批 b 的 run_server.py enable_proxy 与 main.py live_config 两处漏网同源于此。
 
 ### 相关工具
 
