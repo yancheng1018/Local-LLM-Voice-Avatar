@@ -26,7 +26,7 @@ git ls-files -i -c --exclude-standard
 ### 本仓库的忽略策略
 
 - `live2d-models/*` 整体忽略，仅 `!mao_pro/` 一个上游示例模型入库（shizuku 已删，其死白名单行随 distill-b2 清理）。
-- `models/`、`Spine-models/`、`voices/`、`avatars/`、`backgrounds/` 忽略但**保磁盘**。
+- `models/`、`Spine-models/`、`voices/` 忽略但**保磁盘**（avatars/、backgrounds/ 已随 github-p2-precheck-c 删盘退役）。
 - `frontend/`（旧官方前端）已于 github-p1-robust（2026-09-29）整体退役：目录删除，server.py mount
   与 run_server.py 启动检查删除，GUI 前端选项删除，根路径 307 引导 /m/；防回潮守卫 =
   tests/test_server_frontend_guard.py。恢复路径 = 上游 https://github.com/Open-LLM-VTuber/Open-LLM-VTuber-Web
@@ -112,7 +112,8 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
 
 ### 施工习惯（踩过的坑）
 
-- `git mv` **不会**自动创建目标父目录，批量搬移前先确认父目录存在。
+- `git mv` **不会**自动创建目标父目录，批量搬移前先确认父目录存在；目录级整移相反——目标已存在
+  会嵌套成 B/A，应目标缺席时整移（批 c 实操）。
 - 为分批提交而做全量 `git reset` 会**丢掉 `git mv` 的 rename 暂存**，导致旧路径
   删除未入暂存、仓库同时存在新旧两份。改用 `git restore --staged <path>` 逐项撤。
 - 删除**已追踪**文件要用 `git rm`（才进暂存区）；未追踪的临时产物用普通删除即可。
@@ -129,10 +130,12 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
 
 ### 相关工具
 
-- `scan_live2d_models.py`：只读扫描 `live2d-models/`，生成 `live2d_scan_report.md`
+- `scripts/scan_live2d_models.py`：只读扫描 `live2d-models/`，生成 `live2d_scan_report.md`
   （该报告已忽略，属可重生成产物）。
-- `fit_live2d_scale.py`：按 moc3 画布尺寸自动标定 `model_dict.json` 的 `kScale`
+- `scripts/fit_live2d_scale.py`：按 moc3 画布尺寸自动标定 `model_dict.json` 的 `kScale`
   （自动备份 `.bak`）。
+- `scripts/fix_live2d_idle_groups.py` / `scripts/fix_live2d_touch_data.py`：补 Idle/Talk 别名组 /
+  从 l2d.su 站点数据回填触摸链（用法见各脚本头注释）。
 
 ### Temp/ 悬空引用订正（git_stage3）
 
@@ -190,6 +193,7 @@ echo "存在但索引未提：";      comm -13 /tmp/idx.txt /tmp/act.txt
 > 「存在但索引未提」列出 temp_spec_* / impl_report_* / finalize_exec_* / distill_draft_* / 本规格
 > 与存量归档（research_* / verify_* / manual_* / l2dsu抓取模型说明.md）属正常（临时产物与研究
 > 归档，不入索引）。其余即为索引欠账，须补。
+> 行数检查中 docs/context 的研究/规格归档类（research_*、manual_*、verify_*、l2dsu抓取模型说明.md、spec-*）超 200 行属容忍口径，不计欠账（先例 r4=948、l2dsu=601）。
 
 （并入自原 docs/context/MAINTENANCE.md，doc-lifecycle stage1 合并；
 其「文件体系总览」表因与 AGENTS.md 索引双头维护且已过时而废止，
