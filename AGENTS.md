@@ -1,17 +1,9 @@
-# AGENTS.md · Open-LLM-VTuber v1.2.1-zh 项目上下文
+# AGENTS.md · Local-LLM-Voice-Avatar 项目上下文
 
 ## 项目概述
 
-Open-LLM-VTuber v1.2.1-zh：完全离线运行的语音交互 AI 伴侣，支持 Live2D 虚拟形象、实时语音对话与视觉感知，Python（FastAPI + WebSocket）跨平台应用。
-硬件：RTX 3070 Ti（8GB VRAM）；LLM：Ollama + qwen3.5:9b（Q4_K_M 量化）；TTS：GPT-SoVITS v4 DPO。
-
-## 关键端口
-
-| 服务 | 端口 |
-|------|------|
-| Ollama | 11434 |
-| GPT-SoVITS | 9880 |
-| Open-LLM-VTuber | 12393 |
+Local-LLM-Voice-Avatar（基于 Open-LLM-VTuber v1.2.1 二次开发，v1.0.0 起独立演进）：完全离线运行的语音交互 AI 伴侣，支持 Live2D 虚拟形象、实时语音对话与视觉感知，Python（FastAPI + WebSocket）跨平台应用。
+关键端口：主服务 12393（前端 /m/）；外部引擎端口以各模块文档与配置模板为准，新引擎端口不进本文件。
 
 ## 高频命令
 
@@ -31,11 +23,6 @@ GUI 启动器（推荐；自动使用 .venv-gui，环境缺失时会给出创建
 
 ## ⚠️ 硬性契约速查
 
-- Ollama 已改用原生 /api/chat 接口，勿回退（详见 docs/context/ollama-backend.md）
-- streaming_mode 必须是字符串（详见 docs/context/ollama-backend.md）
-- 角色自我认知名来自 persona_prompt，不是 character_name（详见 docs/context/config-system.md）
-- 默认角色是指针方案（v2.6 起）（详见 docs/context/config-system.md）
-- 动 Live2D 前必读 docs/context/live2d.md 的硬性契约
 - git 提交身份：yancheng1018 <55277749+yancheng1018@users.noreply.github.com>，勿用旧占位身份（公开仓库隐私；换机/新克隆须先设）
 
 ## 目录速览
@@ -84,12 +71,6 @@ config_templates/                  默认配置模板
 - 归档文件：docs/context/archive.md
 - 模块知识索引：即上方「按需加载索引」表
 
-## 当前进行中
-
-极简自研前端（frontend-minimal/）主线阶段与热区触摸 r2 系列（含 stage7 调试叠加层）均已完成并验收通过（2026-09-16）。
-待办、下一步与细节见 docs/context/current-work.md。
-上下文文件已于 2026-09-13 重构，详见 docs/context/archive.md
-
 ## 维护规则
 
 - 根文件 ≤ 100 行，超限就压缩或再拆
@@ -97,4 +78,4 @@ config_templates/                  默认配置模板
 - 新增结论先归域：写进对应模块文件；只有「任何任务都可能踩」的红线才升级到根文件
 - 索引表与实际文件名严格一致，改名必须同步
 - 每完成一个阶段，跑一次行数检查和索引表一致性检查
-- 默认不推送到互联网：本仓库为本地定制版，除非明确要求，不执行 git push
+- 默认不执行 git push：push 属发布动作，须用户明确要求（github-p2-release 阶段亦须用户确认）

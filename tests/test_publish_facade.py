@@ -167,3 +167,13 @@ def test_live2d_core_vendored():
         == "6b35977308b3219a4dd0bbcfb72026d54fc5d852"
     ), "core sha1 与上游基准不符"
     assert b"Live2D" in data[:600], "core 版权头缺失"
+
+
+def test_agents_md_facade():
+    """AGENTS.md 门面守卫：新项目名与自有端口在位，旧身份/硬件快照/外部端口不得回潮（批 e）。"""
+    text = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Local-LLM-Voice-Avatar" in text
+    assert "12393" in text
+    for legacy in ("Open-LLM-VTuber v1.2.1-zh", "v4 DPO", "qwen3.5", "本地定制版"):
+        assert legacy not in text, f"AGENTS.md 残留旧门面: {legacy}"
+    assert len(text.splitlines()) <= 100, "AGENTS.md 超过 100 行硬上限"
