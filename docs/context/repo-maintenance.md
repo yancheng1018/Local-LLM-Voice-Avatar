@@ -76,6 +76,8 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
   正斜杠前缀过滤**恒不命中**、形同虚设；要按路径排除用 `grep -rn --exclude="<模式>"`。
 - grep pattern 以 `/` 开头（如 `/finalize`）会被 Git Bash 的 MSYS 路径转换改写成
   Windows 路径，结果**伪 0**；用 `[/]finalize` 写法或 `MSYS_NO_PATHCONV=1` 规避。
+- 普通 `grep -r` 在本环境会静默漏扫（github-p2-release 同日两实测：`-rln` 命中 1/8 文件、
+  `-rn` 命中 0/8，find+xargs 实为 8）；全仓递归检索一律 `find -name "*.md" -print0 | xargs -0 grep` 口径
 - 活引用排查排除文档自身时用 `rg --glob='!<文件名>'` 或 `grep -rn --exclude=<文件名>`；用路径子串
   做 `grep -v` 会把正文里引用该文件名的**内容引用**一并误伤（distill-b1 审查实证）。
 - git log 机读解析须用消息体不可能含的字节作条目分隔（如 format=%x01%H%x00%B）；%H%x00%B 的 \0 只分隔 hash 与消息体、条目间无分隔符，按 \0 切分会错位致白名单失效（github-p2-precheck-a 实踩，tests/test_repo_privacy_guard.py）。
