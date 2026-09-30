@@ -1,8 +1,8 @@
 ## 当前阶段
 
 ### 阶段状态
-> **github-p2-precheck-d：GSV 适配器批+repo-maintenance 拆分（已完成并验收通过 2026-09-30）。下一阶段：github-p2-precheck-e（AGENTS.md 治理批）[5/5]**
-> 实施+审查+验收 2026-09-30：194 passed（基线 189+5）；external/ 整体退役；GUI 启动合同收敛（手动/一键统一跑适配器+传选择）；repo-maintenance 拆出 repo-ignore-policy.md。审查裁决：疑点①（§5 清扫 vs 守卫字面量）守卫保留、清扫以生产路径零命中为准；契约候选1 降级 scripts README 一行、候选2 驳回（详见 finalize_exec_github-p2-precheck-d.md）。批 e（AGENTS.md 治理）规格已出，实施前先 /review-spec；全部验收后回到 github-p2-release。
+> **github-p2-precheck-e：AGENTS.md 治理批（已完成并验收通过 2026-09-30）。下一阶段：github-p2-release（建仓（先私有）→显式 refspec push→tag v1.0.0+Release→收尾）[11/11]**
+> 实施+审查+验收 2026-09-30：195 passed（基线 194+1）；AGENTS.md 100→81 行（投影 83，空行合并口径已入 spec-writing 遗留项）；门面守卫 test_agents_md_facade 转正；契约候选 0。批 11 前置全齐，push 须用户明确确认。
 
 ### 阶段路线图 · 上传github前准备
 > 把仓库整理为可公开发布的 GitHub 仓库（已定名 Local-LLM-Voice-Avatar，分发名 local-llm-voice-avatar）；共 11 阶段；建立于 2026-09-29（2026-09-30 增补批 6-9 查漏补缺，依据 research_上传前查漏 系列六包+汇总+拍板 06 §0 终态；同日增补批 10 AGENTS.md 治理，用户授权）
@@ -19,7 +19,7 @@
 | 7 | github-p2-precheck-b | 后端清理与 Live2D Core 批：/libs core 入库修复（P0）+H 组 15 行死代码删除+F 删历史流程+D7/D9/D8 订正 | 已验收 2026-09-30 | 依赖批 a；规格 temp_spec_github-p2-precheck-b.md；core 渠道=jsdelivr（2026-09-30 裁决，206492B 同上游+sha1 守卫）；pixi 死配置并入本批删（2026-09-30 裁决） |
 | 8 | github-p2-precheck-c | 结构归置批：建 scripts/ 归置 4 个 live2d 脚本（R10）+prompts 并入 src 删死链（R11+R20）+minimal-frontend-live2d 拆分（R30）+归档行数豁免口径 | 已验收 2026-09-30 | 依赖批 b；规格 temp_spec_github-p2-precheck-c.md；含 AGENTS 索引两行并一行补偿（2026-09-30 用户已批准）；+avatar/backgrounds 残留清理（2026-09-30 用户裁决并入），实施完成自审查通过 |
 | 9 | github-p2-precheck-d | GSV 适配器批：start_gsv_api.py 通用 CLI+GUI 合同收敛（手动/一键统一）+external/ 整体退役+README GSV 节重写+TTS 音频链路约定入档+repo-maintenance 拆分（B 裁决） | 已验收 2026-09-30 | 依赖批 c；规格 temp_spec_github-p2-precheck-d.md（2026-09-30 复核二修）；E=B+ 终态；含 1 项人工验收（GSV 一键启动观感） |
-| 10 | github-p2-precheck-e | AGENTS.md 治理批：改名对齐+硬件/模型行删除+关键端口节退役为概述一行（极简）+硬性契约下放 5 条+「当前进行中」节退役+push 措辞 | 规划完成 | 依赖批 d；规格 temp_spec_github-p2-precheck-e.md；100→83 行；模块文档零改动（契约正文已实证在档）；2026-09-30 用户授权增批 |
+| 10 | github-p2-precheck-e | AGENTS.md 治理批：改名对齐+硬件/模型行删除+关键端口节退役为概述一行（极简）+硬性契约下放 5 条+「当前进行中」节退役+push 措辞 | 已验收 2026-09-30 | 依赖批 d；规格 temp_spec_github-p2-precheck-e.md；100→83 行；模块文档零改动（契约正文已实证在档）；2026-09-30 用户授权增批 |
 | 11 | github-p2-release | 建仓（先私有）→显式 refspec push→tag v1.0.0+Release→收尾 | 未开始 | push 需用户明确确认；git 身份已固化 AGENTS 契约（D6 闭合 2026-09-30）；演示图后补（D2 人工子项）；前置：批 6-10 全部验收 |
 
 ### 收尾待办
@@ -59,6 +59,8 @@
 - [distill-b2] 收尾两项待拍板：① l2dsu抓取模型说明.md 是否登记 AGENTS.md 索引表（自荐
   「l2d.su 数据源抓取」条目，索引增删属用户）；② 合并版 spec-l2dsu-engine.md 601 行超标按
   归档容忍口径确认（先例 r4=948）——①拍板后自改或指示执行，②默认容忍无需动作
+- [github-p2-precheck-e] 规格行数账边界空行口径并入 spec-writing.md（本批投影 83 实得 81：
+  节删除后相邻空行合并未计入账）——与 d① 同触发点（下次规格模板维护），届时合并处理
 - [github-p2-precheck-d] 收尾三项（2026-09-30 审查登记）：① 规格收尾清扫模板与守卫测试
   字面量自指冲突——裁决口径已定（生产路径零命中为准，tests/ 卫生由 pytest 兜底），
   spec-writing.md 模板注记待下次规格模板维护并入（批 e 范围限 AGENTS.md，另择时机）；
