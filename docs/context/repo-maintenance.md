@@ -81,6 +81,7 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
 - git log 机读解析须用消息体不可能含的字节作条目分隔（如 format=%x01%H%x00%B）；%H%x00%B 的 \0 只分隔 hash 与消息体、条目间无分隔符，按 \0 切分会错位致白名单失效（github-p2-precheck-a 实踩，tests/test_repo_privacy_guard.py）。
 - 删 NamedTuple/dataclass 字段或整个模块时，用 rg "<类名>(" / rg "import <模块>" 审全部调用点——裸位置参数对按删除关键字的 rg 清扫不可见（批 b CharEntry 5 参残留致启动器启动即崩，rg/ast/ruff 三层全漏、人工验收实踩；运行守卫=tests/test_gui_smoke.py 离屏实例化）。
 - 删除面的清扫命令路径必须含仓库根入口脚本（run_server.py），删模块后补导入冒烟（uv run python -c "from src.open_llm_vtuber.config_manager import Config"）——批 b 的 run_server.py enable_proxy 与 main.py live_config 两处漏网同源于此。
+- git ls-remote 对附注 tag 返回 tag 对象 sha；校验提交指向须加 ^{} 解引用后缀——github-p2-release 实踩（规格断言照抄 ls-remote refs/tags/<t> 得到对象 sha，险误判不一致）
 
 ### 相关工具
 

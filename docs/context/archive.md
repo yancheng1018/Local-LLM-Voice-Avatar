@@ -91,3 +91,5 @@
 ## 2026-09-15 拆分 minimal-frontend.md
 - 259 行超 200 上限（/split-module），按域拆为 4 分册 + 总入口索引：minimal-frontend-foundation.md（阶段一工程/协议 + 阶段三历史/口型，81 行）、minimal-frontend-live2d.md（阶段四手势/目光/心跳 + stage2 参数引擎 + stage3 复位，110 行）、minimal-frontend-spine.md（阶段二，47 行）、minimal-frontend-model-switch.md（stage4，20 行），总入口 29 行；原内容逐字保留
 - 留下：AGENTS.md 索引表 1 行扩为 5 行；distill_draft_minimal-frontend.md 受阻候选 #3/#6/#7/#8/#10/#14/#15 解锁待入档（落点 model-switch/foundation/live2d）；research_plan_live2d.md:47、spec-l2d-touch-engine.md:21 的 minimal-frontend.md 行号指针已漂移（未改，遗留候选）；遗留节「mao_pro 表情验收未完成」与阶段四「验收完成」条目存在新旧矛盾，保留原文待清理
+
+> 上传github前准备路线图（2026-09-29~09-30，11 阶段全部验收）：p0-隐私出库+历史抹除+mailmap → p0-占位通用化+GSV脚本收录 → p0-默认测试角色 → p1-改名四联动+v1.0.0+README → p1-旧前端退役+新克隆冒烟 → p2-precheck-a 上传物与文档 → b 后端清理+Live2D Core → c 结构归置 → d GSV适配器+external退役 → e AGENTS治理 → p2-release 建仓私有+push v1-release:main+tag v1.0.0+Release（暂缓公开走 A 线）

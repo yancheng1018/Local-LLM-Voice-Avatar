@@ -1,26 +1,7 @@
 ## 当前阶段
 
 ### 阶段状态
-> **github-p2-precheck-e：AGENTS.md 治理批（已完成并验收通过 2026-09-30）。下一阶段：github-p2-release（建仓（先私有）→显式 refspec push→tag v1.0.0+Release→收尾）[11/11]**
-> 实施+审查+验收 2026-09-30：195 passed（基线 194+1）；AGENTS.md 100→81 行（投影 83，空行合并口径已入 spec-writing 遗留项）；门面守卫 test_agents_md_facade 转正；契约候选 0。批 11 前置全齐，push 须用户明确确认。
-
-### 阶段路线图 · 上传github前准备
-> 把仓库整理为可公开发布的 GitHub 仓库（已定名 Local-LLM-Voice-Avatar，分发名 local-llm-voice-avatar）；共 11 阶段；建立于 2026-09-29（2026-09-30 增补批 6-9 查漏补缺，依据 research_上传前查漏 系列六包+汇总+拍板 06 §0 终态；同日增补批 10 AGENTS.md 治理，用户授权）
-> 阶段划分依据 research_上传github前准备.md §7 分批表；事实基准 temp_spec_github_publish.md
-
-| # | 阶段 | 目标一句话 | 状态 | 备注（依赖/前置） |
-|---|------|-----------|------|------------------|
-| 1 | github-p0-privacy | 私人资产出索引+文档B档脱敏+filter-repo 抹历史与 mailmap 改写 | 已验收 2026-09-29 | 守卫常量去名化+作者名改写 yancheng1018 已随收尾落地 |
-| 2 | github-p0-decouple | GUI:573 占位文案通用化+收录 start_v4_dpo.bat/.py（注明 v2pro-20250604）+私有声音名 grep 守卫测试落位 | 已验收 2026-09-29 | 实查无 stop 配套脚本（§8-② 消解）；收录版=lint 修正无逻辑改动；20260604 系笔误已订正（查漏 D5） |
-| 3 | github-p0-characters | ja_test 本地改名 shinano.yaml+忽略项换名+新建大众化默认测试角色入库 | 已验收 2026-09-29 | 依赖批1；新角色人设内容需用户过目（zh_demo 已随规格批准过目） |
-| 4 | github-p1-facade | 改名四联动+版本 1.0.0+README 主写（Live2D 授权声明/多引擎亮点/快速层 pyttsx3） | 已验收 2026-09-29 | v1+v2 两轮落地：门面改名全仓+pyttsx3 配置链+一键联动+sherpa 守卫 |
-| 5 | github-p1-robust | 旧前端整体退役（目录+mount+启动检查+GUI 选项，根路径落 /m/）+新克隆冒烟（pyttsx3 必做） | 已验收 2026-09-29 | 依赖批4；规格 temp_spec_github-p1-robust.md；2026-09-29 用户裁决取清除式（删目录删代码），非守卫式 |
-| 6 | github-p2-precheck-a | 上传物与文档批：模板死键删除+默认值离线对齐（R24/R25）+README 订正（D1-D3）+索引忽略磁盘清理（B1/B2/B4/B5）+A3 提交信息守卫+C3 模板守卫 | 已验收 2026-09-30 | 规格 temp_spec_github-p2-precheck-a.md；拍板依据 research_上传前查漏-06 §0 G/D/A 组 |
-| 7 | github-p2-precheck-b | 后端清理与 Live2D Core 批：/libs core 入库修复（P0）+H 组 15 行死代码删除+F 删历史流程+D7/D9/D8 订正 | 已验收 2026-09-30 | 依赖批 a；规格 temp_spec_github-p2-precheck-b.md；core 渠道=jsdelivr（2026-09-30 裁决，206492B 同上游+sha1 守卫）；pixi 死配置并入本批删（2026-09-30 裁决） |
-| 8 | github-p2-precheck-c | 结构归置批：建 scripts/ 归置 4 个 live2d 脚本（R10）+prompts 并入 src 删死链（R11+R20）+minimal-frontend-live2d 拆分（R30）+归档行数豁免口径 | 已验收 2026-09-30 | 依赖批 b；规格 temp_spec_github-p2-precheck-c.md；含 AGENTS 索引两行并一行补偿（2026-09-30 用户已批准）；+avatar/backgrounds 残留清理（2026-09-30 用户裁决并入），实施完成自审查通过 |
-| 9 | github-p2-precheck-d | GSV 适配器批：start_gsv_api.py 通用 CLI+GUI 合同收敛（手动/一键统一）+external/ 整体退役+README GSV 节重写+TTS 音频链路约定入档+repo-maintenance 拆分（B 裁决） | 已验收 2026-09-30 | 依赖批 c；规格 temp_spec_github-p2-precheck-d.md（2026-09-30 复核二修）；E=B+ 终态；含 1 项人工验收（GSV 一键启动观感） |
-| 10 | github-p2-precheck-e | AGENTS.md 治理批：改名对齐+硬件/模型行删除+关键端口节退役为概述一行（极简）+硬性契约下放 5 条+「当前进行中」节退役+push 措辞 | 已验收 2026-09-30 | 依赖批 d；规格 temp_spec_github-p2-precheck-e.md；100→83 行；模块文档零改动（契约正文已实证在档）；2026-09-30 用户授权增批 |
-| 11 | github-p2-release | 建仓（先私有）→显式 refspec push→tag v1.0.0+Release→收尾 | 未开始 | push 需用户明确确认；git 身份已固化 AGENTS 契约（D6 闭合 2026-09-30）；演示图后补（D2 人工子项）；前置：批 6-10 全部验收 |
+> **github-p2-release 及所属功能线全部完成并验收通过（2026-09-30）。当前无既定下一阶段，等待新需求**
 
 ### 收尾待办
 
@@ -67,6 +48,16 @@
   ② GUI 版本推导裸目录边缘：_gsv_launch_command 对无后缀 GPT_weights 目录权重派生非法
   version 串——现实包裸目录为空不可达，触发=用户向裸目录放权重并选择，症状驱动时加
   派生值校验；③ _await_api 可选加固：感知进程早退免 120s 空轮询误报，非必需随手改时带上
+- [github-p2-release] S9 公开态验证补跑：用户在 GitHub Settings 把仓库切 Public 后跑三项
+  curl（首页 200 / releases 200 / releases/tag/v1.0.0 页含 v1.0.0 ≥1）；触发时机=切公开后
+  即跑（本阶段裁决 A 线暂缓公开，命令已内联无需回查规格）
+- [github-p2-release] D2 README 演示图后补（人工子项）：用户录屏/截图后补进 README，随附
+  commit+push（届时 push 仍需用户确认）；原由路线图行 11 备注承载，归档前抢救登记
+- [github-p2-release] 发版自动化+打包分发候选（用户问答提出 2026-09-30，未立项）：① 装
+  gh CLI（winget install GitHub.cli + gh auth login）使 gh release create 可自动化；②
+  Actions 打 tag 自动建 Release；③ portable zip/安装包分发工程；待用户拍板是否立项
+- [github-p2-release] 规格 S1 门禁「工作树干净」宜注记「允许状态入口未提交改动（规划协议
+  产物）」：与 precheck-e/d① 同触发点，下次规格模板维护时并入 spec-writing.md
 
 
 ### 相关背景
