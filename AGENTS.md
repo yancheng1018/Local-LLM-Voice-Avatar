@@ -53,6 +53,7 @@ config_templates/                  默认配置模板
 | 加忽略/资产出库/隐私守卫 | docs/context/repo-ignore-policy.md |
 | 改后端/Ollama/streaming/加引擎 | docs/context/ollama-backend.md |
 | 续接工作/排优先级 | docs/context/current-work.md |
+| 定方向/排优先级/版本目标（roadmap） | docs/context/roadmap.md |
 | 查历史决策/仓库重组历程与施工踩坑 | docs/context/archive.md · docs/context/spec-git-reorganize.md |
 | 开发极简自研前端（总入口/遗留） | docs/context/minimal-frontend.md |
 | 极简前端 工程/协议/历史/口型 | docs/context/minimal-frontend-foundation.md |
@@ -67,7 +68,8 @@ config_templates/                  默认配置模板
 
 供用户级命令（~/.zcode/commands/）解析本项目上下文用：
 - 当前状态入口：docs/context/current-work.md
-- 文档目录：docs/context/（temp_spec / impl_report / fix_instruction / research_* 均在此）
+- 项目 roadmap 文件：docs/context/roadmap.md
+- 文档目录：docs/context/（阶段文件 {{stage}}.spec/.fix/.report/.close 与 research.* 均在此；存量旧名文件不迁移，处置时按旧名定位）
 - 归档文件：docs/context/archive.md
 - 模块知识索引：即上方「按需加载索引」表
 

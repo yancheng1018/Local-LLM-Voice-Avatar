@@ -120,13 +120,22 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
 
 | 内容 | 谁写 | 什么时候 |
 |------|------|---------|
-| 新结论、新契约、踩坑记录 | Agent（/doc-record） | 每次会话结束，由你指示 |
+| 新结论、新契约、踩坑记录 | Agent（对话指示落笔；走工作流阶段时由 /review-spec 收尾裁决） | 会话结束或阶段收尾，由你指示 |
 | 当前进展、待处理遗留 | 强模型（/plan-feature、/review-spec） | 阶段开始/收尾 |
 | 模块边界调整、索引表增删 | 你 | 归属不对/新建删除文件时 |
 | 删除过时内容 | 你 | 定期扫一眼时 |
 
 存量研究文档处置口径（distill 系列，2026-09-29）：大纲/分诊类计划文档随执行完成删除；成品取证
 记录保留作证据链（教训：r3 研究文档删除后其裁决证据不可复核）；成品提炼后文首加处置行标注结论去向（distill-b3 起）。
+
+### 模块文档拆分（超 200 行时；原 /split-module 职责，2026-10-01 下沉至此）
+
+1. 列出文档全部二级标题及行数，出拆分方案表 `| 新文件 | 收录的二级标题 | 预估行数 |`，等用户确认
+2. 确认后切片生成同目录新文件（kebab-case 命名，体现关注点）；原文件改「索引 + 指针」或直接删除
+3. 同步更新项目 AGENTS.md 索引表——这是唯一允许更新指令文件的例外场景，仅限索引行
+4. 项目声明了归档文件时记录本次拆分；不修改其他模块文件内容
+5. 拆分后每文件 ≤ 200 行（项目自声明上限则从其声明）；索引表文件名与实际严格一致
+先例：2026-09-15 minimal-frontend.md 拆 4 分册（见 archive.md）
 
 关键提醒：Agent 不会自动更新文档，这是特性。若 Agent 在代码任务后静默更新文档，
 任务有 bug 时错误行为会被记成「预期行为」，下个会话就会把错误当规则。
@@ -149,11 +158,12 @@ echo "索引提到但不存在：";  comm -23 /tmp/idx.txt /tmp/act.txt
 echo "存在但索引未提：";      comm -13 /tmp/idx.txt /tmp/act.txt
 ```
 
-> 「存在但索引未提」列出 temp_spec_* / impl_report_* / finalize_exec_* / distill_draft_* / 本规格
-> 与存量归档（research_* / verify_* / manual_* / l2dsu抓取模型说明.md）属正常（临时产物与研究
+> 「存在但索引未提」列出阶段产物（新命名 {{stage}}.spec/.fix/.report/.close、research.*.outline；
+> 存量旧名 temp_spec_* / impl_report_* / fix_instruction_* / finalize_exec_* 未迁移同此口径）
+> 与存量归档（research_* / manual_* / l2dsu抓取模型说明.md）属正常（临时产物与研究
 > 归档，不入索引）。其余即为索引欠账，须补。
 > 行数检查中 docs/context 的研究/规格归档类（research_*、manual_*、verify_*、l2dsu抓取模型说明.md、spec-*）超 200 行属容忍口径，不计欠账（先例 r4=948、l2dsu=601）。
 
 （并入自原 docs/context/MAINTENANCE.md，doc-lifecycle stage1 合并；
 其「文件体系总览」表因与 AGENTS.md 索引双头维护且已过时而废止，
-「日常流程」节因已被 /doc-record 等命令取代而不迁移。）
+「日常流程」节因已被用户级工作流命令取代而不迁移。）

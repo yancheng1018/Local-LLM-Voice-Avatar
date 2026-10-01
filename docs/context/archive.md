@@ -93,3 +93,40 @@
 - 留下：AGENTS.md 索引表 1 行扩为 5 行；distill_draft_minimal-frontend.md 受阻候选 #3/#6/#7/#8/#10/#14/#15 解锁待入档（落点 model-switch/foundation/live2d）；research_plan_live2d.md:47、spec-l2d-touch-engine.md:21 的 minimal-frontend.md 行号指针已漂移（未改，遗留候选）；遗留节「mao_pro 表情验收未完成」与阶段四「验收完成」条目存在新旧矛盾，保留原文待清理
 
 > 上传github前准备路线图（2026-09-29~09-30，11 阶段全部验收）：p0-隐私出库+历史抹除+mailmap → p0-占位通用化+GSV脚本收录 → p0-默认测试角色 → p1-改名四联动+v1.0.0+README → p1-旧前端退役+新克隆冒烟 → p2-precheck-a 上传物与文档 → b 后端清理+Live2D Core → c 结构归置 → d GSV适配器+external退役 → e AGENTS治理 → p2-release 建仓私有+push v1-release:main+tag v1.0.0+Release（暂缓公开走 A 线）
+
+## 2026-10-01 存量收尾清单归档销毁（workflow-audit 批次3）
+
+> 机制补账：收尾清单（finalize_exec_*，新命名 {{stage}}.close.md）执行完毕后压缩归档并自删
+> （research_工作流复审.md 裁决）；本批为存量 13 份一次性清理，彼时命令尚无销毁流程。
+> 各阶段业务结论已由上方对应日期节与 git log 承载，此处只登记清单执行终态：
+
+- distill-b1/b2/b3（09-29）：12 文件入账 commit 64e4e3f；24 文件入账 commit 77a5c5d；
+  current-work 终态写入（research存量提炼线收口）
+- github-p0-characters / p0-decouple / p0-privacy / p1-facade_v2（09-29）：产物删除；
+  空名单防御+定向守卫 2 passed；审查状态同步 commit 3c85a3b；测试 docstring 去规格引用
+- github-p2-precheck-a / b（09-30）：repo-maintenance 施工习惯补记；precheck-c（09-30）：
+  三跑终成（首跑条目矛盾经修订、二跑 .zcodeignore 文件集差异、三跑 7 条全过
+  commit b588ae5 + cb6d2e1）；precheck-d（09-30）：7 条全过 commit ff07e99 + 36a4322；
+  precheck-e（09-30）：AGENTS 治理主提交 2f9e8a4
+- github-p2-release（09-30）：7 条全过（条目 7 首跑停止、补裁后成功 commit a706a3a）；
+  路线图压缩行已入本文件
+
+## 2026-10-01 工作流体系优化（workflow-audit，对话式执行+review-spec 审查收尾）
+
+- 用户级（~/.zcode/）：AGENTS.md 增「命令公共约定」（模块定位/文档目录/查阅规则/停止条件/
+  阶段文件字典与生命周期出口）与「状态入口结构规范」两节（38→75 行）；第 5 条例外改 B 案
+  口径、第 10 条阶段产物新命名。命令 9→8：删 plan-tests（职责并 plan-feature）；删
+  split-module（B 案，步骤下沉 repo-maintenance「模块文档拆分」节）；新增 plan-roadmap
+  （方向层：探讨五要素/入册逐条点头/调整留痕/版本收口提醒）；plan-feature 加 roadmap 出身闸
+  +对账 8 条归并 4 组；review-spec 加 roadmap 回写/版本号裁决（uv version --bump，版本目标集
+  清空才 bump）/清单自删尾条目/组级大纲处置；plan-research+research-doc 组研究编组（组级
+  大纲兼进度表，末位完成者删）；implement-spec/replan 补 stage 推导（.vN 去后缀）；参数全线
+  去 module/task-description（AI 按项目索引自定位，≤3 文档）
+- 阶段文件新命名：{{stage}}.spec（.vN 修订版）/.fix（覆盖式单份）/.report/.close +
+  research.{{topic}}(.outline)；存量旧名不迁移，处置按旧名定位
+- 项目侧：roadmap.md 建册（backlog 8 条=README 2+遗留待立项 6，均「构想」，升格走
+  /plan-roadmap）；AGENTS.md 索引+绑定节；repo-maintenance 下沉拆分步骤+阶段文件口径+
+  doc-record 引用订正；spec-writing 适用范围行换新命名（审查补漏）；13 份存量 finalize_exec
+  压缩归档后删除（见上方同日节）
+- 决策记录：split-module B 案（用户裁决 2026-10-01）；规格书=本阶段 research_工作流复审.md
+  v2，机制本体已全量落于命令与两级 AGENTS.md，原文随本阶段删除
