@@ -18,9 +18,10 @@
 | 1 | 公开克隆修复批：test_live2d_model_data 加公开克隆 skip + model_dict.json 精简为 mao_pro + 调试残留清理（vad/silero.py:205 print、l2d.ts:718 / fit_live2d_scale.py:5 注释私有模型名） | 已完成（2026-10-07） | 克隆模拟实测 in_use=['mao_pro']，known 断言缺 5 私有模型必红；model_dict 42 条含 41 舰船死条目；skip 参照 test_characters_manifest.py:84 现成模式；修完跑全量 195；2026-10-07 补盘克隆红面另含 test_l2d_touch_data 全文件/test_l2d_circle_dial.test_xinnong_data 无守卫直读本机数据，并入本阶段 S10 一并 skip 化（规划复盘发现，非审查遗漏外的扩项） | 审查 B1/B3/B6 |
 | 2 | l2d.su JS 快照出库：git rm docs/assets/su_modelRuntime-BDk3g7Pb.js + su_modelRuntime_strings.json + ignore 条目 + docs/assets/README.md 归档清单注明出库原因与重抓路径 | 已完成（2026-10-08） | 全库唯一「别人的表达」类内容（站点引擎 JS 原样快照 202KB+衍生解码表；引擎复刻代码与逆向结论文档系原创表达，保留）；历史清理已裁决不做 rewrite（2026-10-07 用户拍板 A 口径：原告现实性≈0、JS 可按抓取说明随时重采、保 10-08 时间线；以归档清单主动声明替代，残余风险中和），与 #3 无顺序耦合 | 审查 B2 |
 | 3 | 发布完整性：提交 p3-public-a/b 存量产出与簿记 + push v1-release + 确认 v1.0.0 tag 在远程 | 已完成（2026-10-08） | origin 无 v1-release 跟踪引用、本地领先 origin/main 4 提交（+7189b4f）；待提交面 9 文件（p3-b 实施 6+簿记 3，archive.md:142 登记归并本条）；v1.0.0 tag 规划时 ls-remote 实证已在远程且与本地一致（2d8780c/acf9ad1），S6 转纯校验；push 须用户确认 | 审查 B4/基线1 |
-| 4 | 干净目录实测 15 分钟快速开始（全新克隆 uv sync→npm build→模板 conf→对话） | 进行中（github-p3-public-d） | docs 无历史实测记录；git archive 模拟已暴露 #1 必红，修完 #1/#2 后一次通过；依赖网络（拉包） | 审查 基线4 |
-| 5 | 切 public + S9 公开态验证（GitHub Settings 切 Public，三项 curl：首页 200 / releases 200 / releases/tag/v1.0.0 页含 v1.0.0） | 已立项 | 账号操作无法自动化（人工项）；切公开后即跑 | 遗留 [github-p2-release] S9 升格 |
+| 4 | 干净目录实测 15 分钟快速开始（全新克隆 uv sync→npm build→模板 conf→对话） | 已完成（2026-10-08） | docs 无历史实测记录；git archive 模拟已暴露 #1 必红，修完 #1/#2 后一次通过；依赖网络（拉包）；功能一次通过；「约15分钟」弱网直连不成立（pull 24.5min+ASR 999MB 瓶颈）；衍生 #7 微修复批 | 审查 基线4 |
+| 5 | 切 public + S9 公开态验证（GitHub Settings 切 Public，三项 curl：首页 200 / releases 200 / releases/tag/v1.0.0 页含 v1.0.0） | 已立项 | 账号操作无法自动化（人工项）；切公开后即跑。切公开前置门禁（2026-10-08 疑点裁决）：push v1-release（本地领先 2 纯 docs 提交 a91e2c8/cf03a58，fast-forward）+ main 停旧处置（推平或切默认分支，届时二选一） | 遗留 [github-p2-release] S9 升格 |
 | 6 | README 增补「相对上游的改动总览」10 项浓缩表 | 已立项 | 现 README 无该节（仅核心特性 6 条+Roadmap 3 条）；素材在 docs/context 各册浓缩即可。触摸引擎三层方案（2026-10-07 用户拍板）：表内占 2 行（触摸规则引擎/手势+参数驱动）+ 核心特性现有 bullet 补半句适配口径（Azur Lane 类 touch.json 模型解锁全部特性、mao_pro 走启发式兜底）+ 不独立成节，主角位留给 #9 演示 GIF | 审查 基线3 |
+| 7 | 微修复批：.gitattributes 加 `static/libs/* -text` 根治新克隆 CRLF 测试红（test_live2d_core_vendored 字节断言 206492 vs 检出 206500）；可选子项 `*.bat text eol=crlf` 待拍板 | 已立项 | #1 修复盲区补丁：git archive 模拟不走 smudge 测不出、主仓库工作树 LF 恒绿掩盖；根修=属性层，现有字节断言原样保留作回归守卫（不碰测试代码）；复验用现成 LLMVA-clean-clone-test pull 后重检出 | 实测 p3-public-d S3.5 发现，2026-10-08 用户立项 |
 
 ## Backlog（未分版本）
 
@@ -57,3 +58,8 @@
 - 2026-10-08 #3 完成（github-p3-public-c 验收通过）：实施 6+簿记 3 两提交入库（4435346+1000463）、v1-release 已推远程、tag v1.0.0 远程一致；#4/#5/#6 待续
 - 2026-10-08 #4 开工（github-p3-public-d 规划完成，待弱模型实施）：实测型任务零代码改动；
   克隆须 -b v1-release（main 停旧）；Ollama 模型口径默认忠实 pull qwen2.5:latest（疑点待裁决）
+- 2026-10-08 #4 实施完成（github-p3-public-d，待 /review-spec；提交 cf03a58 未推）：功能
+  一次通过，「约 15 分钟」弱网直连不成立（瓶颈=pull 24.5min+ASR 999MB，详见 report）。
+  疑点四项裁决落档：S3.5 未停追认；#5 门禁补 push v1-release+main 处置；微修复批立项
+  （#7）；Enter/isComposing 记遗留+人工现场已备
+- 2026-10-08 #4 完成（github-p3-public-d 验收通过）：功能一次通过，弱网不成立详见归档；cf03a58 与本收尾提交均未推，并入 #5 门禁 push

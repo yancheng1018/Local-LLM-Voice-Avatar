@@ -1,7 +1,7 @@
 ## 当前阶段
 
 ### 阶段状态
-> **github-p3-public-d：干净目录实测 15 分钟快速开始（规划完成 v2 拷打修订，待弱模型实施）**
+> **github-p3-public-d 已完成并验收通过（2026-10-08）。v1.0.1 后续条目（#5 切 public / #6 README 增补 / #7 微修复批）已立项待规划，见 roadmap.md；当前无既定下一阶段，等待新需求**
 
 ### 收尾待办
 
@@ -64,8 +64,22 @@
   uv run 前缀（裸 ruff 在 uv 布局不可移植，本批实测换行解决）；② 行数累加以插入
   文本逐行粘贴计数为准（本批 ±1~2 偏差源于规格取整口径）——与 precheck-e/d①/
   p2-release S1 门禁注记同触发点（下次规格模板维护），届时合并处理
-- [github-p3-public-c] 远程 main 停旧：v1-release 已推、main 停在 acf9ad1 落后 6+ 提交——
-  转公开（roadmap #5）前需推 main 或切默认分支，版本收口时裁决
+- [github-p3-public-c/d] 远程分支停旧：main 停 acf9ad1 落后 6+ 提交；v1-release 本地领先
+  2 纯 docs 提交（a91e2c8/cf03a58）未推，远程 roadmap 状态与现实自相矛盾——转公开
+  （roadmap #5）前置门禁一并收口：push v1-release + main 推平/切默认分支二选一裁决
+- [前端/ui.ts] Enter 发送缺 isComposing 保护：中文 IME 组词期回车选字的 keydown e.key
+  同为 'Enter' 会被误当发送（ui.ts:38-40 无保护）；触发=下次动 ui.ts。（原附带的 Enter
+  自动化未触发现象已结案：2026-10-08 人工实测通过，系嵌入浏览器派分工件，见 report §7.4）
+- [spec-writing] 阻塞红/非阻塞红条款：规格「测试失败→停下」应区分阻塞被测路径的红
+  （必须停）与旁路卫生守卫的非阻塞红（记录后可继续，报告显式声明+事后追认）；
+  依据 p3-public-d S3.5 实战追认（report §10）——与 precheck-e/d①/p2-release S1 注记/
+  p3-public-b 两处补注同触发点（下次规格模板维护），届时合并处理
+- [github-p3-public-d] 干净克隆目录 C:/Coding/Application/LLMVA-clean-clone-test 保留（克隆
+  1.7GB+models 1.1GB，审查裁决 2）：roadmap #7 微修复批复验需重检出——触发时机=#7 复验
+  通过后删除
+- [github-p3-public-d] README 快速开始弱网注记建议未立项（两处大下载 ollama qwen2.5 ~4.7GB+
+  首启 ASR 999MB；hf-mirror 预置 models/<dir>/ 原生跳过下载；ASR 就绪无专属日志行的排障
+  注记候选）——触发=下次 README 维护（#6 增补顺带）或用户拍板
 
 
 ### 相关背景
