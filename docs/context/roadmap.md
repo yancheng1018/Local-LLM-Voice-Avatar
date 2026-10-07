@@ -21,7 +21,7 @@
 | 4 | 干净目录实测 15 分钟快速开始（全新克隆 uv sync→npm build→模板 conf→对话） | 已完成（2026-10-08） | docs 无历史实测记录；git archive 模拟已暴露 #1 必红，修完 #1/#2 后一次通过；依赖网络（拉包）；功能一次通过；「约15分钟」弱网直连不成立（pull 24.5min+ASR 999MB 瓶颈）；衍生 #7 微修复批 | 审查 基线4 |
 | 5 | 切 public + S9 公开态验证（GitHub Settings 切 Public，三项 curl：首页 200 / releases 200 / releases/tag/v1.0.0 页含 v1.0.0） | 已立项 | 账号操作无法自动化（人工项）；切公开后即跑。切公开前置门禁（2026-10-08 疑点裁决）：push v1-release（本地领先 2 纯 docs 提交 a91e2c8/cf03a58，fast-forward）+ main 停旧处置（推平或切默认分支，届时二选一） | 遗留 [github-p2-release] S9 升格 |
 | 6 | README 增补「相对上游的改动总览」10 项浓缩表 | 已立项 | 现 README 无该节（仅核心特性 6 条+Roadmap 3 条）；素材在 docs/context 各册浓缩即可。触摸引擎三层方案（2026-10-07 用户拍板）：表内占 2 行（触摸规则引擎/手势+参数驱动）+ 核心特性现有 bullet 补半句适配口径（Azur Lane 类 touch.json 模型解锁全部特性、mao_pro 走启发式兜底）+ 不独立成节，主角位留给 #9 演示 GIF | 审查 基线3 |
-| 7 | 微修复批：.gitattributes 加 `static/libs/* -text` 根治新克隆 CRLF 测试红（test_live2d_core_vendored 字节断言 206492 vs 检出 206500）；可选子项 `*.bat text eol=crlf` 待拍板 | 已立项 | #1 修复盲区补丁：git archive 模拟不走 smudge 测不出、主仓库工作树 LF 恒绿掩盖；根修=属性层，现有字节断言原样保留作回归守卫（不碰测试代码）；复验用现成 LLMVA-clean-clone-test pull 后重检出 | 实测 p3-public-d S3.5 发现，2026-10-08 用户立项 |
+| 7 | 微修复批：.gitattributes 加 `static/libs/* -text` 根治新克隆 CRLF 测试红（test_live2d_core_vendored 字节断言 206492 vs 检出 206500）；可选子项 `*.bat text eol=crlf` 待拍板 | 已完成（2026-10-08） | #1 修复盲区补丁：git archive 模拟不走 smudge 测不出、主仓库工作树 LF 恒绿掩盖；根修=属性层，现有字节断言原样保留作回归守卫（不碰测试代码）；复验用现成 LLMVA-clean-clone-test pull 后重检出 | 实测 p3-public-d S3.5 发现，2026-10-08 用户立项 |
 
 ## Backlog（未分版本）
 
@@ -63,3 +63,8 @@
   疑点四项裁决落档：S3.5 未停追认；#5 门禁补 push v1-release+main 处置；微修复批立项
   （#7）；Enter/isComposing 记遗留+人工现场已备
 - 2026-10-08 #4 完成（github-p3-public-d 验收通过）：功能一次通过，弱网不成立详见归档；cf03a58 与本收尾提交均未推，并入 #5 门禁 push
+- 2026-10-08 剩余三序裁决 #7→#6→#5，#7 开工（github-p3-public-e 规划完成，待弱模型实施）：
+  #7 先行=公开质量门禁（新克隆首跑即红）且复验环境现成；#6 次之=README 是公开首页，
+  转 public 前内容齐备；#5 收尾=切 public 不可逆+push 门禁须用户确认，#6/#7 提交并入
+  前置 push 一次推齐。#7 可选子项 *.bat text eol=crlf 默认不含、待拍板
+- 2026-10-08 #7 完成（github-p3-public-e 验收通过）：.gitattributes 双钉（static/libs -text + *.bat crlf）根治新克隆 CRLF 红，主仓/克隆双侧绿（0693c2d）

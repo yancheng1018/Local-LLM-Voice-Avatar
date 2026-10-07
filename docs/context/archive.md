@@ -148,3 +148,7 @@
 ## 2026-10-08 干净目录实测 15 分钟快速开始（github-p3-public-d，会话弱模型实施+review-spec 审查收尾）
 
 - 收尾清单执行（2026-10-08）：github-p3-public-d / 7 条全过 / commit 7c624eb / 快速开始实测落地：功能一次通过、「约15分钟」弱网直连不成立（pull 24.5min+ASR 999MB），#7 微修复批与 #5 门禁立项，EOL 契约入档，S8 回归补证 200 passed in 44.90s，人工验收通过
+
+## 2026-10-08 .gitattributes 根治新克隆 CRLF 测试红（github-p3-public-e，会话弱模型实施+review-spec 审查收尾）
+
+- 收尾清单执行（2026-10-08）：github-p3-public-e / 6 条全过 / 修复 0693c2d·簿记 012baef / .gitattributes 双钉根治新克隆 CRLF 红，主仓 200 绿+克隆红→绿复验，复验克隆目录已清理，人工验收通过

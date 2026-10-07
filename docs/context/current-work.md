@@ -1,7 +1,20 @@
 ## 当前阶段
 
 ### 阶段状态
-> **github-p3-public-d 已完成并验收通过（2026-10-08）。v1.0.1 后续条目（#5 切 public / #6 README 增补 / #7 微修复批）已立项待规划，见 roadmap.md；当前无既定下一阶段，等待新需求**
+> github-p3-public-e 已完成并验收通过（2026-10-08）。下一阶段：github-p3-public-f——README 增补「相对上游改动总览」10 项浓缩表（roadmap #6）[6/7]
+
+### 阶段路线图 · github-p3-public
+> v1.0.1 转 public 收口：目标集 7 条全部终态；共 7 阶段；建立于 2026-10-08
+
+| # | 阶段 | 目标一句话 | 状态 | 备注（依赖/前置） |
+|---|------|-----------|------|------------------|
+| 1 | github-p3-public-a | 公开克隆修复批（skip 化+model_dict 精简+残留清理） | 已验收 2026-10-07 | roadmap v1.0.1 #1 |
+| 2 | github-p3-public-b | l2d.su JS 快照出库+归档清单 | 已验收 2026-10-08 | roadmap #2 |
+| 3 | github-p3-public-c | 发布完整性（存量提交+push v1-release+tag 校验） | 已验收 2026-10-08 | roadmap #3 |
+| 4 | github-p3-public-d | 干净目录实测 15 分钟快速开始 | 已验收 2026-10-08 | roadmap #4 |
+| 5 | github-p3-public-e | .gitattributes 根治新克隆 CRLF 测试红 | 已验收 2026-10-08 | roadmap #7；剩余三序裁决先行（#7→#6→#5，2026-10-08） |
+| 6 | github-p3-public-f | README 增补「相对上游改动总览」10 项浓缩表 | 未开始 | roadmap #6；规划时吸收遗留「弱网注记候选」 |
+| 7 | github-p3-public-g | 切 public+S9 公开态三项 curl 验证 | 未开始 | roadmap #5；前置=push v1-release（须用户确认）+main 停旧二选一裁决 |
 
 ### 收尾待办
 
@@ -80,12 +93,12 @@
   p3-d 收尾实测（4a01ed3→7c624eb 回填补账）——与 precheck-e/d①/p2-release S1 注记/
   p3-public-b 两处补注/阻塞红条款同触发点（下次规格模板维护），届时合并处理；
   用户级 /review-spec 命令文件措辞修正归用户
-- [github-p3-public-d] 干净克隆目录 C:/Coding/Application/LLMVA-clean-clone-test 保留（克隆
-  1.7GB+models 1.1GB，审查裁决 2）：roadmap #7 微修复批复验需重检出——触发时机=#7 复验
-  通过后删除
 - [github-p3-public-d] README 快速开始弱网注记建议未立项（两处大下载 ollama qwen2.5 ~4.7GB+
   首启 ASR 999MB；hf-mirror 预置 models/<dir>/ 原生跳过下载；ASR 就绪无专属日志行的排障
   注记候选）——触发=下次 README 维护（#6 增补顺带）或用户拍板
+- [github-p3-public-e] README/文档口径建议：克隆内全量≈190 passed+10 skipped（skip 面=#1
+  公开克隆守卫按设计生效），避免误读为缺用例——触发=github-p3-public-f（roadmap #6
+  README 增补）规划时吸收
 
 
 ### 相关背景
