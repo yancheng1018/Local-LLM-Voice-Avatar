@@ -84,6 +84,7 @@ git ls-files -s frontend          # 期望：无输出（不是"首列非 160000
 - 删 NamedTuple/dataclass 字段或整个模块时，用 rg "<类名>(" / rg "import <模块>" 审全部调用点——裸位置参数对按删除关键字的 rg 清扫不可见（批 b CharEntry 5 参残留致启动器启动即崩，rg/ast/ruff 三层全漏、人工验收实踩；运行守卫=tests/test_gui_smoke.py 离屏实例化）。
 - 删除面的清扫命令路径必须含仓库根入口脚本（run_server.py），删模块后补导入冒烟（uv run python -c "from src.open_llm_vtuber.config_manager import Config"）——批 b 的 run_server.py enable_proxy 与 main.py live_config 两处漏网同源于此。
 - git ls-remote 对附注 tag 返回 tag 对象 sha；校验提交指向须加 ^{} 解引用后缀——github-p2-release 实踩（规格断言照抄 ls-remote refs/tags/<t> 得到对象 sha，险误判不一致）
+- github.com 直连间歇阻断时（ls-remote/push 报 Failed to connect after ~21s），netstat 列本机监听端口 + curl 经代理探 github.com 定端口（本机实测 7890 Clash 系），再 git -c http.proxy=http://127.0.0.1:<port> 一次性走代理——不改全局配置（github-p3-public-c 实踩：直连三连败、代理一次成）
 
 ### 相关工具
 

@@ -17,7 +17,7 @@
 |---|------|------|-------------|------|
 | 1 | 公开克隆修复批：test_live2d_model_data 加公开克隆 skip + model_dict.json 精简为 mao_pro + 调试残留清理（vad/silero.py:205 print、l2d.ts:718 / fit_live2d_scale.py:5 注释私有模型名） | 已完成（2026-10-07） | 克隆模拟实测 in_use=['mao_pro']，known 断言缺 5 私有模型必红；model_dict 42 条含 41 舰船死条目；skip 参照 test_characters_manifest.py:84 现成模式；修完跑全量 195；2026-10-07 补盘克隆红面另含 test_l2d_touch_data 全文件/test_l2d_circle_dial.test_xinnong_data 无守卫直读本机数据，并入本阶段 S10 一并 skip 化（规划复盘发现，非审查遗漏外的扩项） | 审查 B1/B3/B6 |
 | 2 | l2d.su JS 快照出库：git rm docs/assets/su_modelRuntime-BDk3g7Pb.js + su_modelRuntime_strings.json + ignore 条目 + docs/assets/README.md 归档清单注明出库原因与重抓路径 | 已完成（2026-10-08） | 全库唯一「别人的表达」类内容（站点引擎 JS 原样快照 202KB+衍生解码表；引擎复刻代码与逆向结论文档系原创表达，保留）；历史清理已裁决不做 rewrite（2026-10-07 用户拍板 A 口径：原告现实性≈0、JS 可按抓取说明随时重采、保 10-08 时间线；以归档清单主动声明替代，残余风险中和），与 #3 无顺序耦合 | 审查 B2 |
-| 3 | 发布完整性：提交 p3-public-a/b 存量产出与簿记 + push v1-release + 确认 v1.0.0 tag 在远程 | 进行中（关联 github-p3-public-c） | origin 无 v1-release 跟踪引用、本地领先 origin/main 4 提交（+7189b4f）；待提交面 9 文件（p3-b 实施 6+簿记 3，archive.md:142 登记归并本条）；v1.0.0 tag 规划时 ls-remote 实证已在远程且与本地一致（2d8780c/acf9ad1），S6 转纯校验；push 须用户确认 | 审查 B4/基线1 |
+| 3 | 发布完整性：提交 p3-public-a/b 存量产出与簿记 + push v1-release + 确认 v1.0.0 tag 在远程 | 已完成（2026-10-08） | origin 无 v1-release 跟踪引用、本地领先 origin/main 4 提交（+7189b4f）；待提交面 9 文件（p3-b 实施 6+簿记 3，archive.md:142 登记归并本条）；v1.0.0 tag 规划时 ls-remote 实证已在远程且与本地一致（2d8780c/acf9ad1），S6 转纯校验；push 须用户确认 | 审查 B4/基线1 |
 | 4 | 干净目录实测 15 分钟快速开始（全新克隆 uv sync→npm build→模板 conf→对话） | 已立项 | docs 无历史实测记录；git archive 模拟已暴露 #1 必红，修完 #1/#2 后一次通过；依赖网络（拉包） | 审查 基线4 |
 | 5 | 切 public + S9 公开态验证（GitHub Settings 切 Public，三项 curl：首页 200 / releases 200 / releases/tag/v1.0.0 页含 v1.0.0） | 已立项 | 账号操作无法自动化（人工项）；切公开后即跑 | 遗留 [github-p2-release] S9 升格 |
 | 6 | README 增补「相对上游的改动总览」10 项浓缩表 | 已立项 | 现 README 无该节（仅核心特性 6 条+Roadmap 3 条）；素材在 docs/context 各册浓缩即可。触摸引擎三层方案（2026-10-07 用户拍板）：表内占 2 行（触摸规则引擎/手势+参数驱动）+ 核心特性现有 bullet 补半句适配口径（Azur Lane 类 touch.json 模型解锁全部特性、mao_pro 走启发式兜底）+ 不独立成节，主角位留给 #9 演示 GIF | 审查 基线3 |
@@ -54,3 +54,4 @@
 - 2026-10-08 #2 完成（github-p3-public-b 验收通过）；#3 开工（github-p3-public-c 规划完成）：
   待提交面从「2 簿记」修正为 9 文件全集（p3-b 按规格授权边界不提交，archive 登记）；
   v1.0.0 tag 规划时实证已在远程且与本地一致；网络实测间歇可通
+- 2026-10-08 #3 完成（github-p3-public-c 验收通过）：实施 6+簿记 3 两提交入库（4435346+1000463）、v1-release 已推远程、tag v1.0.0 远程一致；#4/#5/#6 待续
