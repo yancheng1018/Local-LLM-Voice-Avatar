@@ -140,3 +140,7 @@
 ## 2026-10-08 l2d.su JS 快照出库（github-p3-public-b，会话弱模型实施+review-spec 审查收尾）
 
 - 收尾清单执行（2026-10-08）：github-p3-public-b / 6 条全过 / commit 无（按规格授权边界本阶段不提交，簿记统一归 roadmap #3） / l2d.su JS 快照出库落地：git rm 两文件+忽略规则+守卫测试+README/spec-l2dsu 出库注记与重采说明齐备，人工验收通过
+
+## 2026-10-08 发布完整性（github-p3-public-c，会话弱模型实施+review-spec 审查收尾）
+
+- 收尾清单执行（2026-10-08）：github-p3-public-c / 6 条全过 / commit a91e2c8 / 发布完整性落地：9 文件两提交入库（4435346+1000463）+v1-release 已推远程+v1.0.0 tag 远程一致，人工验收通过
