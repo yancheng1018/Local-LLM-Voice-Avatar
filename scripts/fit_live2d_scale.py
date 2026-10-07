@@ -2,7 +2,7 @@
 
 前端渲染缩放 = moc3 逻辑画布尺寸 × CurrentKScale（= kScale×2），
 逻辑画布 = CanvasInfo 像素尺寸 / PixelsPerUnit。逻辑画布大小因模型而异
-（mao_pro 高 1.45 单位、xinnong_6 高 20 单位），共用 kScale 必然有的模型溢出屏幕。
+（mao_pro 高 1.45 单位、游戏系模型可达 20 单位），共用 kScale 必然有的模型溢出屏幕。
 
 标定基准：mao_pro 在 kScale=0.5 时显示正常 → 目标系数
     kScale = 0.724 / 逻辑高度（0.724 = 0.5 × 8400/5800），宽度兜底 kScale ≤ 1.0/逻辑宽度。
@@ -19,7 +19,7 @@ CanvasInfo 解析（依据 OpenL2D/moc3ingbird 的 moc3 格式逆向，v3~v5 通
     u32 @0x44 → CanvasInfo 偏移；该处 5 个 float = PixelsPerUnit, OriginX, OriginY,
     CanvasWidth(px), CanvasHeight(px)。
 
-用法：uv run python scripts/fit_live2d_scale.py   （自动备份 model_dict.json 为 .bak）
+用法：uv run python scripts/fit_live2d_scale.py   （自动备份 active 登记表为 .bak，写回 active 登记表）
 """
 
 import json
@@ -82,13 +82,16 @@ def compute_kscale(ppu, width, height) -> float | None:
 
 
 def main() -> None:
-    with open(MODEL_DICT_PATH, encoding="utf-8") as f:
+    local = os.path.join(ROOT, "model_dict.local.json")
+    # local 存在即整份取代基准（规则权威见 live2d_model.resolve_model_dict_path；与 scan_live2d_models.py 内联副本互指）
+    dict_path = local if os.path.isfile(local) else MODEL_DICT_PATH
+    with open(dict_path, encoding="utf-8") as f:
         models = json.load(f)
 
-    # 备份当前 model_dict.json
-    bak = MODEL_DICT_PATH + ".bak"
+    # 备份当前 active 登记表（active=local 时备份落 model_dict.local.json.bak，已 gitignore）
+    bak = dict_path + ".bak"
     with (
-        open(MODEL_DICT_PATH, encoding="utf-8") as src,
+        open(dict_path, encoding="utf-8") as src,
         open(bak, "w", encoding="utf-8") as dst,
     ):
         dst.write(src.read())
@@ -121,9 +124,9 @@ def main() -> None:
         )
 
     if changed:
-        with open(MODEL_DICT_PATH, "w", encoding="utf-8") as f:
+        with open(dict_path, "w", encoding="utf-8") as f:
             json.dump(models, f, indent=4, ensure_ascii=False)
-    print(f"\n已更新 {changed}/{len(models)} 个条目（备份: model_dict.json.bak）")
+    print(f"\n已更新 {changed}/{len(models)} 个条目（备份: {os.path.basename(bak)}）")
 
 
 if __name__ == "__main__":

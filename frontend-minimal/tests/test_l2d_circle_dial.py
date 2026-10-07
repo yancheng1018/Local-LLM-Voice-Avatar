@@ -5,6 +5,7 @@
 """
 
 import json
+import pytest
 import re
 from pathlib import Path
 
@@ -59,7 +60,8 @@ def test_overlay_T_not_interactive():
 
 
 def test_xinnong_data():
-    t = json.loads(
-        (ROOT / "live2d-models/xinnong_6/touch.json").read_text(encoding="utf-8")
-    )
+    p = ROOT / "live2d-models/xinnong_6/touch.json"
+    if not p.is_file():
+        pytest.skip("xinnong_6 touch.json 不存在（公开克隆语义）")
+    t = json.loads(p.read_text(encoding="utf-8"))
     assert {r.get("shipSkinId") for r in t["rules"]} == {307085}

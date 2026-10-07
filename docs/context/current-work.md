@@ -1,7 +1,7 @@
 ## 当前阶段
 
 ### 阶段状态
-> **github-p2-release 及所属功能线全部完成并验收通过（2026-09-30）。当前无既定下一阶段，等待新需求**
+> **github-p3-public-a 及所属功能线全部完成并验收通过（2026-10-07）。当前无既定下一阶段，等待新需求**
 
 ### 收尾待办
 
@@ -48,16 +48,18 @@
   ② GUI 版本推导裸目录边缘：_gsv_launch_command 对无后缀 GPT_weights 目录权重派生非法
   version 串——现实包裸目录为空不可达，触发=用户向裸目录放权重并选择，症状驱动时加
   派生值校验；③ _await_api 可选加固：感知进程早退免 120s 空轮询误报，非必需随手改时带上
-- [github-p2-release] S9 公开态验证补跑：用户在 GitHub Settings 把仓库切 Public 后跑三项
-  curl（首页 200 / releases 200 / releases/tag/v1.0.0 页含 v1.0.0 ≥1）；触发时机=切公开后
-  即跑（本阶段裁决 A 线暂缓公开，命令已内联无需回查规格）
-- [github-p2-release] D2 README 演示图后补（人工子项）：用户录屏/截图后补进 README，随附
-  commit+push（届时 push 仍需用户确认）；原由路线图行 11 备注承载，归档前抢救登记
 - [github-p2-release] 发版自动化+打包分发候选（用户问答提出 2026-09-30，未立项）：① 装
   gh CLI（winget install GitHub.cli + gh auth login）使 gh release create 可自动化；②
   Actions 打 tag 自动建 Release；③ portable zip/安装包分发工程；待用户拍板是否立项
 - [github-p2-release] 规格 S1 门禁「工作树干净」宜注记「允许状态入口未提交改动（规划协议
   产物）」：与 precheck-e/d① 同触发点，下次规格模板维护时并入 spec-writing.md
+- [github-p3-public-a] 私有名残留口径复议：l2d.ts:674/:678（触摸引擎实例锚，抹名有
+  信息损失）、live2d.md:96/:111、fit_live2d_scale.py:12-13、fix_live2d_touch_data.py、
+  docs/context ~15 文件与前端测试内联数据中的私有模型名；审查 B6 已裁决接受现状，
+  触发时机=下次隐私口径复议或转 public 后外部反馈（2026-10-07 用户裁决不并入本批）
+- [github-p3-public-a] ruff 格式债：fit_live2d_scale.py / scan_live2d_models.py /
+  test_repo_privacy_guard.py 基线 Would reformat ×3（2026-10-07 实测，ruff 0.9.1）——
+  不入本批（避免无关重排混入 diff）；触发时机=下次规格模板维护或独立小清理批
 
 
 ### 相关背景

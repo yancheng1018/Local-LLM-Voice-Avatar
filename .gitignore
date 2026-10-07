@@ -29,6 +29,8 @@ conf.yaml
 conf.yaml.bak
 conf.yaml.backup
 model_dict.json.bak
+model_dict.local.json
+model_dict.local.json.bak
 
 # ---------- 逆向/扫描临时产物 ----------
 Temp/

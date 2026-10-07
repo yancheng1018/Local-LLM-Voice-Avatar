@@ -1,4 +1,6 @@
 import json
+from pathlib import Path
+
 import chardet
 from loguru import logger
 
@@ -103,29 +105,7 @@ class Live2dModel:
 
         self.live2d_model_name = model_name
 
-        try:
-            file_content = self._load_file_content(self.model_dict_path)
-            model_dict = json.loads(file_content)
-        except FileNotFoundError as file_e:
-            logger.critical(
-                f"Model dictionary file not found at {self.model_dict_path}."
-            )
-            raise file_e
-        except json.JSONDecodeError as json_e:
-            logger.critical(
-                f"Error decoding JSON from model dictionary file at {self.model_dict_path}."
-            )
-            raise json_e
-        except UnicodeError as uni_e:
-            logger.critical(
-                f"Error reading model dictionary file at {self.model_dict_path}."
-            )
-            raise uni_e
-        except Exception as e:
-            logger.critical(
-                f"Error occurred while reading model dictionary file at {self.model_dict_path}."
-            )
-            raise e
+        model_dict = load_model_dict(self.model_dict_path)
 
         # Find the model in the model_dict
         matched_model = next(
@@ -150,8 +130,7 @@ class Live2dModel:
     ) -> list[dict[str, str]]:
         """Return public Live2D selector entries; exclude Spine/malformed records."""
 
-        content = Live2dModel._load_file_content(model_dict_path)
-        raw = json.loads(content)
+        raw = load_model_dict(model_dict_path)
 
         if not isinstance(raw, list):
             raise ValueError("model_dict.json must be a list")
@@ -219,3 +198,47 @@ class Live2dModel:
                 target_str = target_str[:start_index] + target_str[end_index:]
                 lower_str = lower_str[:start_index] + lower_str[end_index:]
         return target_str
+
+
+def resolve_model_dict_path(model_dict_path: str = "model_dict.json") -> str:
+    """active 登记表路径：同名兄弟文件 <stem>.local<suffix> 存在即整份取代基准。
+    公开克隆无 local 文件 → 基准即 active。本规则为唯一权威，
+    scripts/scan_live2d_models.py · fit_live2d_scale.py · launcher 为脚本/独立
+    venv 场景的内联副本（各文件注释互指）。"""
+    path = Path(model_dict_path)
+    local_sibling = path.with_name(f"{path.stem}.local{path.suffix}")
+    if local_sibling.is_file():
+        return str(local_sibling)
+    return model_dict_path
+
+
+def load_model_dict(model_dict_path: str = "model_dict.json") -> list[dict]:
+    """读 active 登记表并解析；错误语义（logger.critical + 原样 raise
+    FileNotFoundError/JSONDecodeError/UnicodeError）沿用 _lookup_model_info
+    原读段；非 list 抛 ValueError。"""
+    active_path = resolve_model_dict_path(model_dict_path)
+
+    try:
+        file_content = Live2dModel._load_file_content(active_path)
+        raw = json.loads(file_content)
+    except FileNotFoundError as file_e:
+        logger.critical(f"Model dictionary file not found at {active_path}.")
+        raise file_e
+    except json.JSONDecodeError as json_e:
+        logger.critical(
+            f"Error decoding JSON from model dictionary file at {active_path}."
+        )
+        raise json_e
+    except UnicodeError as uni_e:
+        logger.critical(f"Error reading model dictionary file at {active_path}.")
+        raise uni_e
+    except Exception as e:
+        logger.critical(
+            f"Error occurred while reading model dictionary file at {active_path}."
+        )
+        raise e
+
+    if not isinstance(raw, list):
+        raise ValueError(f"model dictionary file at {active_path} must be a list")
+
+    return raw

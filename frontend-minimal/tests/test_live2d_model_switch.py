@@ -78,6 +78,59 @@ def test_list_frontend_models_runtime_filters(tmp_path):
     assert Live2dModel.list_frontend_models(str(model_dict)) == [{"name": "good"}]
 
 
+def test_load_model_dict_prefers_local_sibling(tmp_path):
+    """local 兄弟文件存在即整份取代基准（swap 非合并）：resolve 指 local、
+    load 只返回 local 条目（基准条目不可见）、list_frontend_models 只见 local 名字。"""
+    base = tmp_path / "model_dict.json"
+    base.write_text(
+        json.dumps([{"name": "base_only", "url": "/live2d-models/b/b.model3.json"}]),
+        encoding="utf-8",
+    )
+    local_entries = [
+        {"name": "base_only", "url": "/live2d-models/local/local.model3.json"},
+        {"name": "local_extra", "url": "/live2d-models/e/e.model3.json"},
+    ]
+    local = tmp_path / "model_dict.local.json"
+    local.write_text(json.dumps(local_entries), encoding="utf-8")
+
+    sys.path.insert(0, str(ROOT / "src"))
+    try:
+        from open_llm_vtuber.live2d_model import (
+            Live2dModel,
+            load_model_dict,
+            resolve_model_dict_path,
+        )
+    finally:
+        sys.path.pop(0)
+
+    assert resolve_model_dict_path(str(base)) == str(local)
+    loaded = load_model_dict(str(base))
+    assert loaded == local_entries, "local 存在时基准条目不可见（取代非合并）"
+    assert Live2dModel.list_frontend_models(str(base)) == [
+        {"name": "base_only"},
+        {"name": "local_extra"},
+    ]
+
+
+def test_load_model_dict_base_only_without_sibling(tmp_path):
+    """无 local 兄弟文件时回退基准文件（公开克隆路径）。"""
+    base = tmp_path / "model_dict.json"
+    base_entries = [{"name": "base_only", "url": "/live2d-models/b/b.model3.json"}]
+    base.write_text(json.dumps(base_entries), encoding="utf-8")
+
+    sys.path.insert(0, str(ROOT / "src"))
+    try:
+        from open_llm_vtuber.live2d_model import (
+            load_model_dict,
+            resolve_model_dict_path,
+        )
+    finally:
+        sys.path.pop(0)
+
+    assert resolve_model_dict_path(str(base)) == str(base)
+    assert load_model_dict(str(base)) == base_entries
+
+
 # ---- 后端：basic_memory_agent.py（v2 §2）----
 
 

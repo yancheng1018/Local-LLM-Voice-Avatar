@@ -6,6 +6,7 @@
 """
 
 import json
+import pytest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]  # 仓库根
@@ -26,7 +27,10 @@ TARGETS = [
 
 
 def load(name: str) -> dict:
-    return json.loads((MODELS / name / "touch.json").read_text(encoding="utf-8"))
+    p = MODELS / name / "touch.json"
+    if not p.is_file():
+        pytest.skip(f"{name} touch.json 不存在（公开克隆语义）")
+    return json.loads(p.read_text(encoding="utf-8"))
 
 
 def test_nine_models_rule_counts():

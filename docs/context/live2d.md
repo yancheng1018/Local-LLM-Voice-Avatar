@@ -63,6 +63,9 @@ Live2D 模型切到对应表情
    `active_model_switches`）。当前 per-client while 循环是顺序调度、check/add 间无 await，并不会真的
    发生竞争；此锁是给未来「消息任务化调度」留的保险——谁往中间插一个 await，两份并发切换就都能穿过。
    出现第二个持锁 handler 时，把该模式升格为通用 WS 条目。
+10. **公开仓库登记表只含 mao_pro**（`test_live2d_model_data.py` 钉死）；本机私有模型
+    全量放 `model_dict.local.json`（gitignored，存在即整份取代基准），服务端/脚本/启动器
+    一律经 `resolve_model_dict_path()` 取 active 路径，fit/GUI 回写也只写 active 文件。
 
 ### model_dict.json 字段实测情况
 
@@ -125,11 +128,8 @@ Live2D 模型切到对应表情
   只报告不修改。
   模型入库脚本链：导入后依次跑 `scan_live2d_models.py`（体检报告）→
   `fix_live2d_idle_groups.py`（补别名组）→ `fit_live2d_scale.py`（算 kScale）。
-- 曾尝试解析 moc3 顶点数据自动求人物包围盒（用户需求「全自动」），因 keyform
-  多层间接索引（artMeshKeyforms 数 ≠ artMeshes 数、需经 keyformSourcesBeginIndices
-  间接定位）且无可靠格式文档而放弃；如要重试，可考虑在 Node 里加载 Cubism Core
-  官方 WASM 用 `drawables.vertexPositions` API——卡点是本地拿不到 core 的 wasm
-  二进制（官方 CDN/npm 只发加载器）。
+- 曾尝试解析 moc3 顶点自动求人物包围盒，因 keyform 多层间接索引且无可靠格式文档
+  而放弃；重试方向：Node 加载 Cubism Core WASM 用 `drawables.vertexPositions`。
 
 ### 后端与前端各自能改什么
 

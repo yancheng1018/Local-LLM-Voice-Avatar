@@ -202,7 +202,6 @@ async def vad_main():
         async for chunk in tqdm(data_wrapper(websocket), desc="Audio chunk"):
             # print(len(chunk))
             for _bytes in vad.detect_speech(chunk):
-                print(_bytes[:44])
                 # await audio_queue.put(_bytes)
                 pass
 

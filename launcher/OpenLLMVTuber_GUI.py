@@ -1743,7 +1743,10 @@ class LauncherWindow(QMainWindow):
         w.setText(current if current else "")
 
     def _model_dict_path(self) -> Path:
-        return self.project_root / "model_dict.json"
+        # active 登记表：model_dict.local.json 存在即整份取代基准（规则权威见
+        # live2d_model.resolve_model_dict_path；GUI 独立 venv 禁 import 项目代码，此为内联副本）
+        local = self.project_root / "model_dict.local.json"
+        return local if local.exists() else self.project_root / "model_dict.json"
 
     def _load_model_dict(self) -> list:
         p = self._model_dict_path()

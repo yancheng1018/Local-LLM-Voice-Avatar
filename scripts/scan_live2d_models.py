@@ -64,7 +64,10 @@ def scan_model_dir(model_dir: str) -> dict | None:
 
 
 def main() -> None:
-    with open(MODEL_DICT_PATH, encoding="utf-8") as f:
+    local = os.path.join(ROOT, "model_dict.local.json")
+    # local 存在即整份取代基准（规则权威见 live2d_model.resolve_model_dict_path；与 fit_live2d_scale.py 内联副本互指）
+    dict_path = local if os.path.isfile(local) else MODEL_DICT_PATH
+    with open(dict_path, encoding="utf-8") as f:
         model_dict = json.load(f)
     registered = {m["name"]: m for m in model_dict}
 

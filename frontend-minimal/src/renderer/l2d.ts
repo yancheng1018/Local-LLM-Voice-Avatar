@@ -715,7 +715,7 @@ export class L2DRenderer implements CharacterRenderer {
     const model = await Live2DModel.from(modelInfo.url, {
       autoHitTest: false,
       autoFocus: true,
-      // 关闭库的 Idle 组自动随机播放（xinnong_6 的 Idle 组 15 条，静置自动跳——研究报告 §5.5）。
+      // 关闭库的 Idle 组自动随机播放（部分模型 Idle 组多达 15 条，静置自动跳——研究报告 §5.5）。
       // 只能是非空字面量：库仅在 truthy 时覆盖 groups.idle（cubism4.es.js:8540）；不存在的组名
       // 使 startRandomMotion 安全返回 false（:8683）。idle 播放统一走本地 playIdleOnce()。
       idleMotionGroup: '__no_auto_idle__',

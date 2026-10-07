@@ -25,6 +25,8 @@ PRIVATE_PATH_PREFIXES = (
     "docs/context/finalize_exec_github-p0-",
     "docs/context/research_上传github前准备",
     "docs/context/research_plan_上传github前准备",
+    # github-p3-public-a：本机私有模型登记表（存在即整份取代基准），41 条私有登记不得回索引
+    "model_dict.local.json",
 )
 
 

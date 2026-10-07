@@ -12,17 +12,29 @@
 import json
 from pathlib import Path
 
+import pytest
 import yaml
+
+from src.open_llm_vtuber.live2d_model import load_model_dict
 
 ROOT = Path(__file__).resolve().parent.parent
 CHARACTERS_DIR = ROOT / "characters"
 MODEL_DICT = ROOT / "model_dict.json"
+OVERLAY = ROOT / "model_dict.local.json"
+PUBLIC_KNOWN = {"mao_pro"}
+FULL_KNOWN = {
+    "wuqi_3",
+    "guanghui_9",
+    "feiteliedadi_3",
+    "feiteliedadi_4",
+    "mao_pro",
+    "xinnong_6",
+}
 
 
 def registered_model_urls() -> dict[str, str]:
     """已登记的 Live2D 模型 name -> url；按 list_frontend_models 的口径排除 Spine（.skel）。"""
-    with open(MODEL_DICT, encoding="utf-8") as f:
-        entries = json.load(f)
+    entries = load_model_dict(str(MODEL_DICT))
     return {
         e["name"]: e["url"]
         for e in entries
@@ -57,15 +69,16 @@ def motion_groups(model_name: str) -> dict[str, list]:
 def test_inuse_names_resolved_and_nonempty() -> None:
     names = in_use_model_names()
     assert names, "未解析出任何在用 Live2D 模型名"
-    known = {
-        "wuqi_3",
-        "guanghui_9",
-        "feiteliedadi_3",
-        "feiteliedadi_4",
-        "mao_pro",
-        "xinnong_6",
-    }
-    assert known <= names, f"解析结果缺少已知在用模型: {sorted(known - names)}"
+    if OVERLAY.is_file():
+        # 本机（model_dict.local.json 在）：6 个已知在用名全验，断言强度不降
+        assert FULL_KNOWN <= names, (
+            f"解析结果缺少已知在用模型: {sorted(FULL_KNOWN - names)}"
+        )
+    else:
+        # 公开克隆（无 local）：私有名不可存在，只验公开可存在项 mao_pro
+        assert PUBLIC_KNOWN <= names, (
+            f"解析结果缺少已知在用模型: {sorted(PUBLIC_KNOWN - names)}"
+        )
 
 
 def test_inuse_models_have_exact_idle_group() -> None:
@@ -82,3 +95,30 @@ def test_inuse_models_have_exact_idle_group() -> None:
     assert not violations, (
         "在用模型缺少可用 Idle 组（空闲动作不会播放）：\n" + "\n".join(violations)
     )
+
+
+def test_model_dict_base_public_trimmed() -> None:
+    """基准 model_dict.json 只含 mao_pro（公开克隆语义）；私有条目回流基准即红。"""
+    with open(MODEL_DICT, encoding="utf-8") as f:
+        entries = json.load(f)
+    assert len(entries) == 1, f"基准 model_dict.json 应恰 1 条，实得 {len(entries)}"
+    entry = entries[0]
+    assert entry["name"] == "mao_pro"
+    assert entry["url"].endswith("mao_pro.model3.json")
+    assert isinstance(entry.get("emotionMap"), dict)
+
+
+def test_mao_pro_entry_not_drifted() -> None:
+    """mao_pro 条目在基准与本机 local 两份中须逐字段一致，防调优只落 local、公开侧静默陈旧。"""
+    if not OVERLAY.is_file():
+        pytest.skip(f"{OVERLAY.name} 不存在（公开克隆语义，无双份可比）")
+    with open(MODEL_DICT, encoding="utf-8") as f:
+        base_entries = json.load(f)
+    with open(OVERLAY, encoding="utf-8") as f:
+        local_entries = json.load(f)
+    base = [e for e in base_entries if e.get("name") == "mao_pro"]
+    local = [e for e in local_entries if e.get("name") == "mao_pro"]
+    assert len(base) == 1 and len(local) == 1, (
+        f"mao_pro 条目数异常：基准 {len(base)} 条，local {len(local)} 条"
+    )
+    assert base[0] == local[0], "mao_pro 条目在基准与 local 间发生漂移"
