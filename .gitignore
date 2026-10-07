@@ -71,5 +71,9 @@ characters/spine_test.yaml
 docs/assets/_ships_cache/
 docs/assets/su_ships-CN.json
 
+# ---------- 站点引擎 JS 快照出库（github-p3-public-b，他人表达不入公开库） ----------
+docs/assets/su_modelRuntime-*.js
+docs/assets/su_modelRuntime_strings.json
+
 # ---------- 私有声音名守卫名单（github-p0-decouple，本地文件不入库） ----------
 tests/private_names.local.txt

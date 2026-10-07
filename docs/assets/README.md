@@ -12,8 +12,8 @@
 
 | 产物 | 用途 | 复核方式 |
 |------|------|---------|
-| `su_modelRuntime-BDk3g7Pb.js` | 站点引擎 JS 原始快照（201,926 字节，2026-09-17） | 直接读；混淆字符串按下方脚本还原 |
-| `su_modelRuntime_strings.json` | 解码后的字符串表（642 条，键=解码入参十六进制） | `su_survey_touch_json.py` 同目录脚本；或按 spec-l2dsu-engine §1 的 Node 片段重建解码器 |
+| `su_modelRuntime-BDk3g7Pb.js` | 站点引擎 JS 原始快照（201,926 字节，2026-09-17）；**已出库（2026-10-08，github-p3-public-b：他人表达不入公开库，git rm 出索引并删盘）** | 恢复/重采见下方「引擎 JS 出库与重采说明」 |
+| `su_modelRuntime_strings.json` | 解码后的字符串表（642 条，键=解码入参十六进制）；**已出库（同上，2026-10-08）** | 恢复/重采见下方「引擎 JS 出库与重采说明」；重建解码器仍按 spec-l2dsu-engine §1 的 Node 片段 |
 | `su_ships-CN.json` | 站点全量索引（prefab→shipGroupId、皮肤清单），2.8MB；**已出库（本地保留磁盘，不入库，2026-09-29）** | 直接读；survey 脚本的索引源 |
 | `_ships_cache/site_<group>.json` | 33 组站点数据快照（研究期 4 症状组 + 普查/修复全量缓存，6.6MB）；**已出库（本地保留磁盘，不入库，2026-09-29）** | 直接读；含各皮肤完整 `live2dTouch`；可用脚本 `--fetch` 重新采集 |
 | `su_survey_touch_json.py` | **touch.json 皮肤匹配普查脚本**（发现 9/36 错配） | `python docs/assets/su_survey_touch_json.py <repo_root> [--fetch]` |
@@ -30,6 +30,16 @@ live2d 皮肤（dynamicType=='live2d'，过滤后空再降级）。重下脚本 
 
 > 重新采集注意：站点数据端点 `https://l2d.su/data/ships/CN/<shipGroupId>.json` 有防盗链，
 > 请求必须带 `User-Agent` + `Referer: https://l2d.su/`，否则 403。
+
+**引擎 JS 出库与重采说明（github-p3-public-b，2026-10-08）**：上方两份快照系
+l2d.su 站点引擎（modelRuntime 分块）原样拷贝，属他人表达，转公开仓库前已整体出库
+（用户裁决 A 口径：不做历史 rewrite，以本清单主动声明替代）。恢复两条路：
+① 历史恢复——本仓历史仍含该文件：`git log --oneline -- docs/assets/su_modelRuntime-BDk3g7Pb.js`
+定位出库前提交，再 `git show <commit>:docs/assets/su_modelRuntime-BDk3g7Pb.js > <目标路径>`；
+② 站点重采——原 URL `https://l2d.su/assets/modelRuntime-<hash>.js`（哈希随站点构建变化，
+从 `https://l2d.su/cn/` 页面源码/网络面板定位当前分块名；本地归档名另加 `su_` 前缀），
+须带 `User-Agent` + `Referer: https://l2d.su/`（同上方防盗链口径）。重采后须与
+`spec-l2dsu-engine.md` 既有结论交叉比对（站点可能已更新，告诫同下方历史记录节末段）。
 
 ---
 

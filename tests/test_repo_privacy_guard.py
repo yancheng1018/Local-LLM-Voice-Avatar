@@ -27,6 +27,9 @@ PRIVATE_PATH_PREFIXES = (
     "docs/context/research_plan_上传github前准备",
     # github-p3-public-a：本机私有模型登记表（存在即整份取代基准），41 条私有登记不得回索引
     "model_dict.local.json",
+    # github-p3-public-b：站点引擎 JS 快照出库（他人表达不入公开库；横杠前缀通配重采哈希名）
+    "docs/assets/su_modelRuntime-",
+    "docs/assets/su_modelRuntime_strings.json",
 )
 
 
@@ -133,3 +136,28 @@ def test_private_names_absent_from_commit_messages():
         if any(name in msg for name in names) and h not in KNOWN_HISTORICAL_OFFENDERS
     )
     assert leaked == [], f"私有名进入新的提交信息体: {leaked}"
+
+
+def test_removed_engine_snapshot_paths_are_ignored():
+    """github-p3-public-b：站点引擎 JS 快照出库后的忽略规则守卫。
+
+    重采回同目录的快照必须被 .gitignore 命中而不误入库（含哈希名变化探针）；
+    同目录入库脚本 su_survey_touch_json.py 不得被规则误伤（负对照）。
+    """
+    for path in (
+        "docs/assets/su_modelRuntime-BDk3g7Pb.js",
+        "docs/assets/su_modelRuntime_strings.json",
+        "docs/assets/su_modelRuntime-NewHash99.js",  # 重采后哈希名可能变化，模式须覆盖
+    ):
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", path],
+            cwd=REPO_ROOT,
+            capture_output=True,
+        )
+        assert result.returncode == 0, f"{path} 未被忽略规则命中"
+    result = subprocess.run(
+        ["git", "check-ignore", "-q", "docs/assets/su_survey_touch_json.py"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+    )
+    assert result.returncode == 1, "su_survey_touch_json.py 被忽略规则误伤（模式过宽）"

@@ -452,8 +452,8 @@ trigger_name 出现: 6 条（type10 用）
 
 | 文件 | 内容 |
 |------|------|
-| `su_modelRuntime-BDk3g7Pb.js` | 站点引擎 JS 原始快照（201,926 字节，2026-09-17） |
-| `su_modelRuntime_strings.json` | 解码后的字符串表（642 条，键=入参十六进制） |
+| `su_modelRuntime-BDk3g7Pb.js` | 站点引擎 JS 原始快照（201,926 字节，2026-09-17）；已出库（2026-10-08，github-p3-public-b，恢复/重采路径见 docs/assets/README.md） |
+| `su_modelRuntime_strings.json` | 解码后的字符串表（642 条，键=入参十六进制）；已出库（同上） |
 | `su_ships-CN.json` | 站点全量索引（prefab→shipGroupId、皮肤清单） |
 | `_ships_cache/site_20703.json` | 站点光辉 shipGroup 全量数据（含 guanghui_7/guanghui_9 皮肤规则） |
 | `_ships_cache/site_20516.json` | 站点狮 shipGroup 全量数据（含 shi/shi_2/shi_3 皮肤规则） |
