@@ -74,6 +74,12 @@
   （必须停）与旁路卫生守卫的非阻塞红（记录后可继续，报告显式声明+事后追认）；
   依据 p3-public-d S3.5 实战追认（report §10）——与 precheck-e/d①/p2-release S1 注记/
   p3-public-b 两处补注同触发点（下次规格模板维护），届时合并处理
+- [spec-writing] 收尾清单固定尾条目 sha 引用规则：要求归档行内写「amend 后实际 sha」属
+  同提交自引用（不动点不可达），原地 amend 修复必重演滞后一代——应改为「行内写已存在
+  提交的 sha（如实施提交）或 git log --grep 检索键，或显式设计后续回填提交」；依据
+  p3-d 收尾实测（4a01ed3→7c624eb 回填补账）——与 precheck-e/d①/p2-release S1 注记/
+  p3-public-b 两处补注/阻塞红条款同触发点（下次规格模板维护），届时合并处理；
+  用户级 /review-spec 命令文件措辞修正归用户
 - [github-p3-public-d] 干净克隆目录 C:/Coding/Application/LLMVA-clean-clone-test 保留（克隆
   1.7GB+models 1.1GB，审查裁决 2）：roadmap #7 微修复批复验需重检出——触发时机=#7 复验
   通过后删除
