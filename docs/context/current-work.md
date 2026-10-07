@@ -1,7 +1,7 @@
 ## 当前阶段
 
 ### 阶段状态
-> **github-p3-public-a 及所属功能线全部完成并验收通过（2026-10-07）。当前无既定下一阶段，等待新需求**
+> **github-p3-public-c：发布完整性——提交 p3-public-a/b 存量产出与簿记（实施 6+簿记 3 两提交）+ push v1-release（用户确认门）+ 确认 v1.0.0 tag 在远程（实施中）**
 
 ### 收尾待办
 
@@ -60,6 +60,10 @@
 - [github-p3-public-a] ruff 格式债：fit_live2d_scale.py / scan_live2d_models.py /
   test_repo_privacy_guard.py 基线 Would reformat ×3（2026-10-07 实测，ruff 0.9.1）——
   不入本批（避免无关重排混入 diff）；触发时机=下次规格模板维护或独立小清理批
+- [github-p3-public-b] spec-writing 模板两处补注候选：① 测试命令块工具命令写
+  uv run 前缀（裸 ruff 在 uv 布局不可移植，本批实测换行解决）；② 行数累加以插入
+  文本逐行粘贴计数为准（本批 ±1~2 偏差源于规格取整口径）——与 precheck-e/d①/
+  p2-release S1 门禁注记同触发点（下次规格模板维护），届时合并处理
 
 
 ### 相关背景

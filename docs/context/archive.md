@@ -132,3 +132,11 @@
   v2，机制本体已全量落于命令与两级 AGENTS.md，原文随本阶段删除
 - 收尾清单执行（2026-10-01）：workflow-audit / 5 条全过 / commit db007cd / 人工验收通过，
   机制落档完毕（新工作流自本条起为项目现行机制）
+
+## 2026-10-07 公开克隆修复批（github-p3-public-a，工作流实施+review-spec 审查收尾）
+
+- 收尾清单执行（2026-10-07）：github-p3-public-a / 7 条全过 / commit 7189b4f / 公开克隆修复批落地（model_dict 精简 mao_pro+local 整份取代机制），人工验收通过
+
+## 2026-10-08 l2d.su JS 快照出库（github-p3-public-b，会话弱模型实施+review-spec 审查收尾）
+
+- 收尾清单执行（2026-10-08）：github-p3-public-b / 6 条全过 / commit 无（按规格授权边界本阶段不提交，簿记统一归 roadmap #3） / l2d.su JS 快照出库落地：git rm 两文件+忽略规则+守卫测试+README/spec-l2dsu 出库注记与重采说明齐备，人工验收通过
