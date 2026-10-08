@@ -44,7 +44,7 @@
   直接切换（websocket_handler.py:38-40 语义）；角色卡无 emotions 键（无表情映射，
   镜头不追求表情切换）；语言 ja。
 - 录制环境就绪度（拷打期取证代理 2026-10-08）：frontend-minimal/dist 已构建
-  （index.html 2026-10-08 23:03）；voices/ 三卡在位（信濃/光辉/加藤惠，激活链=
+  （index.html 2026-10-08 23:03）；voices/ 三卡在位（激活链=
   conf.yaml:364 `ref_audio_path` → `voices\光辉\ref.wav`，text/prompt_lang 均 ja）；
   `scripts/gpt_sovits/start_gsv_api.py` 在位且曾执行（有 __pycache__）；前端切角色
   命令源级锚 `frontend-minimal/src/main.ts:367`（`ws.send({ type: 'switch-config',
