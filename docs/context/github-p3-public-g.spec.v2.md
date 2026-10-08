@@ -9,7 +9,8 @@
 > ③ GitHub Release 对象确认建过（p2-release 档案在案），S9 第三项判据维持原样；
 > ④ S5 三项 curl 加 30s×3 重试窗口（切公开生效可能秒级延迟）；
 > ⑤ 全量基线红（隐私守卫：spec-demo-gif.md:47 私有声音名，f 收尾入库晚于最后一次
-> 211 绿实跑）并入本阶段前置 S0.5 修复，不另立阶段。
+> 211 绿实跑）并入本阶段前置 S0.5 修复，不另立阶段（涉事私有声音名在规格内一律以
+> 「该私有声音名」指代——规格文本自身同受隐私守卫约束，不入字面量）。
 > 取证（2026-10-09 工作流「github-p3-public-g 拷打取证」，18 项核对 17 符合）：
 > origin/main=acf9ad1、origin/v1-release=1000463、tag v1.0.0 解引用=acf9ad1（经代理
 > ls-remote 实证）；本地 HEAD=eb83117、仅 v1-release 分支、身份 yancheng1018 ✓；
@@ -90,19 +91,19 @@ git ls-remote origin refs/heads/v1-release    # 直连试一次（容忍约 25s 
 ### S0.5 隐私守卫红修复（工具可完成；拷打裁决⑤）
 
 依据（供审查）：失败实证=tests/test_repo_privacy_guard.py:98 断言（拷打期全量实跑
-1 failed/210 passed）；`git grep` 全仓（除 tests）「加藤惠」唯一命中 spec-demo-gif.md:47，
+1 failed/210 passed）；`git grep` 全仓（除 tests）该私有声音名唯一命中 spec-demo-gif.md:47，
 该行入库于 f 收尾提交、晚于 f 阶段最后一次 211 绿实跑。修复必须落在 v1-release
 （切 main 之前）：v1-release 冻结分支的 tip 公开后必须干净，两分支共享本修复提交。
 历史提交中的残留与 B6 已接受现状同类（2026-10-07 用户裁决，不重写历史）。
 
 ```bash
-git grep -n "加藤惠" -- . ':!tests'
+git grep -n "<私有声音名>" -- . ':!tests'
 # 期望唯一命中：docs/context/spec-demo-gif.md:47；出现任何其他命中 → 停下报告（本步骤仅覆盖实证面）
 ```
 
-1. 编辑 docs/context/spec-demo-gif.md 第 47 行：将该行「voices/ 三卡在位（信濃/光辉/加藤惠，激活链=」
-   改写为「voices/ 三卡在位（激活链=」——只删括号内三个私有名与分隔顿号，行内其余
-   原文一字不动，不改文件其他行。
+1. 编辑 docs/context/spec-demo-gif.md 第 47 行：删除该行「voices/ 三卡在位（…）」
+   括号内三个私有声音名与分隔顿号（改后该行括号内仅余「激活链=」起头的原文），
+   行内其余原文一字不动，不改文件其他行。
 2. 复跑守卫单测：
 
 ```bash
