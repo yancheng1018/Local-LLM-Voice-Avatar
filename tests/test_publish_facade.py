@@ -157,14 +157,15 @@ def test_gui_gsv_contract():
 def test_live2d_core_vendored():
     """static/libs 必须入库 Cubism Core（06 §0-C 裁决，P0 修复防回潮）。"""
     core = REPO_ROOT / "static" / "libs" / "live2dcubismcore.min.js"
-    assert core.is_file(), "static/libs/live2dcubismcore.min.js 缺失（新克隆 Live2D 必挂）"
+    assert core.is_file(), (
+        "static/libs/live2dcubismcore.min.js 缺失（新克隆 Live2D 必挂）"
+    )
     data = core.read_bytes()
     assert len(data) == 206492, (
         f"core 字节数异常: {len(data)}（上游基准 206492，2026-09-30 裁决 jsdelivr 渠道）"
     )
     assert (
-        hashlib.sha1(data).hexdigest()
-        == "6b35977308b3219a4dd0bbcfb72026d54fc5d852"
+        hashlib.sha1(data).hexdigest() == "6b35977308b3219a4dd0bbcfb72026d54fc5d852"
     ), "core sha1 与上游基准不符"
     assert b"Live2D" in data[:600], "core 版权头缺失"
 
@@ -177,3 +178,63 @@ def test_agents_md_facade():
     for legacy in ("Open-LLM-VTuber v1.2.1-zh", "v4 DPO", "qwen3.5", "本地定制版"):
         assert legacy not in text, f"AGENTS.md 残留旧门面: {legacy}"
     assert len(text.splitlines()) <= 100, "AGENTS.md 超过 100 行硬上限"
+
+
+README_DELTA_HEADING = "## 相对上游的改动总览"
+README_DELTA_ROW_ANCHORS = ("触摸规则引擎", "手势+参数驱动")
+README_WEAKNET_ANCHORS = (
+    "4.7",
+    "hf-mirror",
+    "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17",
+)
+README_TESTNOTE_ANCHORS = ("190 passed", "10 skipped", "非缺用例")
+
+
+def _readme_section(readme: str, heading: str) -> str:
+    """截取 README 中指定二级标题到下一个二级标题之间的正文。"""
+    start = readme.index(heading)
+    body = readme[start + len(heading) :]
+    next_h2 = body.find("\n## ")
+    return body if next_h2 == -1 else body[:next_h2]
+
+
+def test_readme_upstream_delta_table():
+    """相对上游改动总览：表头+数据共 11 行（10 项），触摸引擎占 2 行（roadmap #6 口径）。"""
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    assert README_DELTA_HEADING in readme, "缺少「相对上游的改动总览」节"
+    rows = [
+        line
+        for line in _readme_section(readme, README_DELTA_HEADING).splitlines()
+        if line.startswith("|") and "---" not in line
+    ]
+    assert len(rows) == 11, f"表头+数据行应共 11 行，实得 {len(rows)}"
+    for anchor in README_DELTA_ROW_ANCHORS:
+        assert any(anchor in row for row in rows[1:]), f"触摸引擎行缺失锚点: {anchor}"
+    assert "解锁全部触摸特性" in readme, "核心特性 bullet 缺少触摸适配口径半句"
+
+
+def test_readme_quickstart_weaknet_notes():
+    """快速开始弱网注记：两处大下载体积与预置跳过渠道（p3-public-d 遗留吸收）。"""
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    for anchor in README_WEAKNET_ANCHORS:
+        assert anchor in readme, f"README 缺少弱网注记锚点: {anchor}"
+
+
+def test_readme_test_count_note():
+    """测试口径注记：公开克隆 skip 面说明，避免误读为缺用例（p3-public-e 遗留吸收）。"""
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    for anchor in README_TESTNOTE_ANCHORS:
+        assert anchor in readme, f"README 缺少测试口径注记锚点: {anchor}"
+
+
+def test_readme_demo_gif():
+    """README 演示 GIF：资产在位、GIF 魔数、体积 ≤10MB、README 引用+归档登记（roadmap #9）。"""
+    gif = REPO_ROOT / "docs" / "assets" / "demo.gif"
+    assert gif.is_file(), "docs/assets/demo.gif 缺失（演示图未产出）"
+    data = gif.read_bytes()
+    assert data[:4] == b"GIF8", "demo.gif 魔数不符（非 GIF 格式）"
+    assert len(data) <= 10 * 1024 * 1024, f"demo.gif 超 10MB 上限: {len(data)}"
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    assert "docs/assets/demo.gif" in readme, "README 未嵌入演示 GIF"
+    listing = (REPO_ROOT / "docs" / "assets" / "README.md").read_text(encoding="utf-8")
+    assert "demo.gif" in listing, "docs/assets/README.md 未登记 demo.gif"

@@ -64,6 +64,7 @@ config_templates/                  默认配置模板
 | 极简前端 模型切换/allowlist | docs/context/minimal-frontend-model-switch.md |
 | 查 Live2D 触摸引擎设计与 l2d.su 逆向 | docs/context/spec-l2d-touch-engine.md · docs/context/spec-l2dsu-engine.md |
 | 写规格书（断言盘点/锚点/基线/行数预检） | docs/context/spec-writing.md |
+| 重录 README 演示 GIF（镜头/转制/降级工序） | docs/context/spec-demo-gif.md |
 
 ## 用户级工作流绑定
 

@@ -2,6 +2,7 @@
 
 > 本目录用于存放 **不可由代码重新生成的知识资产**（逆向产物、采集快照、证据文件）。
 > 与 `docs/context/` 的分工：`context/` 放结论与规则，本目录放可复核的原始证据。
+> 2026-10-08 起兼收对外演示媒体（README 引用的自录产物，登记入现行归档清单）。
 
 ## 当前状态（2026-09-17 更新）
 
@@ -17,6 +18,7 @@
 | `su_ships-CN.json` | 站点全量索引（prefab→shipGroupId、皮肤清单），2.8MB；**已出库（本地保留磁盘，不入库，2026-09-29）** | 直接读；survey 脚本的索引源 |
 | `_ships_cache/site_<group>.json` | 33 组站点数据快照（研究期 4 症状组 + 普查/修复全量缓存，6.6MB）；**已出库（本地保留磁盘，不入库，2026-09-29）** | 直接读；含各皮肤完整 `live2dTouch`；可用脚本 `--fetch` 重新采集 |
 | `su_survey_touch_json.py` | **touch.json 皮肤匹配普查脚本**（发现 9/36 错配） | `python docs/assets/su_survey_touch_json.py <repo_root> [--fetch]` |
+| `demo.gif` | README 首屏演示动图（自录：待机→对话口型→拖拽→调试栏热区点按→切 rangbaer_5→复位，无声循环 ≤10MB；github-p3-public-f） | 直接观看；重录按 docs/context/spec-demo-gif.md §3 |
 
 **touch.json 数据源规则（动作链条修正候选 A1 降级，2026-09-17）**：本地
 `live2d-models/<name>/touch.json` 必须来自站点**同名 prefab 精确匹配**且 rules 非空的

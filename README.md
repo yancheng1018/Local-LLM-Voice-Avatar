@@ -2,12 +2,14 @@
 
 完全离线运行的本地语音 AI 伴侣：LLM 对话 × 语音识别与合成 × Live2D 动态形象，数据不出本机。
 
+<p align="center"><img src="docs/assets/demo.gif" width="480" alt="语音对话与 Live2D 触摸交互演示（无声循环）"></p>
+
 ## 核心特性
 
 - **完全离线**：默认配置（Ollama + 本地语音模型）零云依赖，断网可用，隐私数据不出本机。
 - **引擎可插拔**：5 类 LLM（其中 llama_cpp_llm 需自行安装 llama-cpp-python 且本项目未经实测）、7 种语音识别、16 种语音合成引擎，改一个配置字段即可切换，任意组合。
 - **Ollama 原生接入**：走 Ollama 原生 `/api/chat` 接口，显式支持 `num_gpu` / `num_ctx` / 思考模式 / 模型预热。
-- **自研极简前端**：轻量 Live2D 舞台，带触摸/手势交互引擎，可自定义模型与互动热区。
+- **自研极简前端**：轻量 Live2D 舞台，带触摸/手势交互引擎，可自定义模型与互动热区——Azur Lane 类 touch.json 模型解锁全部触摸特性，mao_pro 等无规则数据模型走启发式兜底。
 - **GUI 启动器**：一键启动全套服务，内置「声音模型体系」——声音卡管理与 GPT-SoVITS 权重热切换。
 - **开箱即用的形象**：内置 Live2D 官方示例模型 mao_pro，克隆后即可对话。
 
@@ -25,7 +27,7 @@ cp config_templates/conf.ZH.default.yaml conf.yaml   # Windows PowerShell 用 co
 
 然后：
 
-1. 拉一个 Ollama 模型（配置默认已指向 Ollama）：`ollama pull qwen2.5:latest`。
+1. 拉一个 Ollama 模型（配置默认已指向 Ollama）：`ollama pull qwen2.5:latest`（约 4.7GB，弱网耗时较长）。
    想用其他模型，改 `conf.yaml` 中 `agent_config.llm_configs.ollama_llm.model` 即可。
 2. 启动：
 
@@ -33,7 +35,7 @@ cp config_templates/conf.ZH.default.yaml conf.yaml   # Windows PowerShell 用 co
 uv run run_server.py
 ```
 
-浏览器打开 `http://127.0.0.1:12393` 即可对话。首次启动会自动下载语音识别模型，之后完全离线运行。
+浏览器打开 `http://127.0.0.1:12393` 即可对话。首次启动会自动下载语音识别模型（SenseVoice，约 1GB，源为 GitHub Releases），下载完成前语音对话不可用，之后完全离线运行。弱网环境可先手动获取模型放入 `models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/`（目录或同名压缩包已存在即跳过自动下载；镜像渠道如 hf-mirror.com）。
 
 ## 进阶配置
 
@@ -80,6 +82,25 @@ pyttsx3 音质有限。sherpa-onnx 提供明显更自然的离线中文合成：
 感谢上游项目的优秀工作。本仓库版本号自 1.0.0 起独立演进，与上游版本号无关。
 上游文档见 [open-llm-vtuber.github.io](https://open-llm-vtuber.github.io/)（源仓库
 [open-llm-vtuber.github.io](https://github.com/Open-LLM-VTuber/open-llm-vtuber.github.io)）。
+
+## 相对上游的改动总览
+
+自 v1.2.1 切分以来的主要差异浓缩为 10 项（细节见 docs/context/ 各模块文档与提交历史）：
+
+| # | 改动 | 说明 |
+|---|------|------|
+| 1 | 自研极简前端 | 从零重写的唯一前端（入口 `/m/`）：轻量 Live2D 舞台、WS 协议子集、音频队列、聊天历史与口型同步；上游官方前端整体退役 |
+| 2 | Live2D 触摸规则引擎 | Azur Lane 类 `touch.json` 规则驱动交互：热区、动作链、冷却与条件门槛 |
+| 3 | 手势+参数驱动引擎 | 拖拽步进链、目光跟随、参数写入与一键复位；无规则数据的模型走启发式兜底 |
+| 4 | Live2D 调试栏与热区叠加层 | 前端内置可视化调试：热区/参数/动作实时查看 |
+| 5 | Spine 渲染支持 | 极简前端同时支持 Spine 模型（上游 Cubism 专属前端无法加载） |
+| 6 | 前端模型切换与 allowlist | 同角色多 Live2D 模型切换，白名单控制可选集 |
+| 7 | Ollama 原生接入 | `ollama_native_llm` 走原生 `/api/chat`：显式 `num_gpu` / `num_ctx`、思考模式、模型预热 |
+| 8 | GUI 启动器 | PySide6 一键启动全套服务，环境自检与缺失提示 |
+| 9 | 声音模型体系 | 声音卡管理、参考音频与 GPT-SoVITS 权重热切换（GUI 内置） |
+| 10 | 模型维护脚本链 | Live2D 扫描/标定/修复 4 件 + GPT-SoVITS API 启动适配器（`scripts/`） |
+
+> 运行测试：`uv run --extra test python -m pytest -q`。新克隆内预期约 190 passed + 10 skipped——跳过项为公开克隆守卫按设计生效（关联本机私有数据的用例），非缺用例。
 
 ## Live2D 素材授权声明
 
