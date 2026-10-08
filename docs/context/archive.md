@@ -152,3 +152,7 @@
 ## 2026-10-08 .gitattributes 根治新克隆 CRLF 测试红（github-p3-public-e，会话弱模型实施+review-spec 审查收尾）
 
 - 收尾清单执行（2026-10-08）：github-p3-public-e / 6 条全过 / 修复 0693c2d·簿记 012baef / .gitattributes 双钉根治新克隆 CRLF 红，主仓 200 绿+克隆红→绿复验，复验克隆目录已清理，人工验收通过
+
+## 2026-10-09 README 演示 GIF+改动总览（github-p3-public-f，会话弱模型档实施+review-spec 审查收尾）
+
+- 收尾清单执行（2026-10-09）：github-p3-public-f / 5 条全过 / 实施 1ca4837 / README 改动总览 10 项表+弱网/测试口径注记+演示 GIF 挂载（人工录制+AI 转制，64.5s/9.67MB），全量 211 passed，人工验收通过；spec.v2 升格 spec-demo-gif.md

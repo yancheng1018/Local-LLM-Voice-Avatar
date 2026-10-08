@@ -1,10 +1,11 @@
 ## 当前阶段
 
 ### 阶段状态
-> github-p3-public-e 已完成并验收通过（2026-10-08）。下一阶段：github-p3-public-f——README 增补「相对上游改动总览」10 项浓缩表（roadmap #6）[6/7]
+> github-p3-public-f：README 增补「相对上游改动总览」10 项浓缩表+弱网/测试口径注记+演示 GIF（kazagumo 出镜）录制挂载已完成并验收通过（2026-10-09）。下一阶段：github-p3-public-g 切 public+S9 公开态三项 curl 验证 [7/8]
 
 ### 阶段路线图 · github-p3-public
-> v1.0.1 转 public 收口：目标集 7 条全部终态；共 7 阶段；建立于 2026-10-08
+> v1.0.1 转 public 收口：目标集 8 条全部终态；共 8 阶段；建立于 2026-10-08（第 8 阶段
+> 2026-10-08 经用户增补，见 roadmap 调整记录）
 
 | # | 阶段 | 目标一句话 | 状态 | 备注（依赖/前置） |
 |---|------|-----------|------|------------------|
@@ -13,8 +14,9 @@
 | 3 | github-p3-public-c | 发布完整性（存量提交+push v1-release+tag 校验） | 已验收 2026-10-08 | roadmap #3 |
 | 4 | github-p3-public-d | 干净目录实测 15 分钟快速开始 | 已验收 2026-10-08 | roadmap #4 |
 | 5 | github-p3-public-e | .gitattributes 根治新克隆 CRLF 测试红 | 已验收 2026-10-08 | roadmap #7；剩余三序裁决先行（#7→#6→#5，2026-10-08） |
-| 6 | github-p3-public-f | README 增补「相对上游改动总览」10 项浓缩表 | 未开始 | roadmap #6；规划时吸收遗留「弱网注记候选」 |
+| 6 | github-p3-public-f | README 增补「相对上游改动总览」10 项浓缩表+演示 GIF 录制挂载 | 已验收 2026-10-09 | roadmap #6+Backlog #9 并入（2026-10-08 用户指示）；出镜=kazagumo/fengyun_4（拍板+stage h 修复）；镜头含调试栏/热区框+F 切 rangbaer_5；吸收遗留两条（spec §9）；R-1 Idle 组红已授权修复（207 绿 2026-10-08，spec §0） |
 | 7 | github-p3-public-g | 切 public+S9 公开态三项 curl 验证 | 未开始 | roadmap #5；前置=push v1-release（须用户确认）+main 停旧二选一裁决 |
+| 8 | github-p3-public-h | 新模型登记缺口修复批（补录两模型+None 守卫） | 已验收 2026-10-08 | roadmap #8（2026-10-08 增补）；守卫 4 处（:197/:350/:399 日志/:712）；降级契约入 minimal-frontend-model-switch.md；spec/report 已出库（检索键见 archive） |
 
 ### 收尾待办
 
@@ -50,9 +52,8 @@
   fix_live2d_idle_groups.py → fit_live2d_scale.py 脚本链内嵌进启动器导入流程
   （自动检测 + 一键修复 + 报告展示）；轻量版工作流（导入后手动跑脚本链）随
   leftover-triage_stage1 建立，launcher 集成暂缓待立项（2026-09-16 用户裁决）
-- [distill-b2] 收尾两项待拍板：① l2dsu抓取模型说明.md 是否登记 AGENTS.md 索引表（自荐
-  「l2d.su 数据源抓取」条目，索引增删属用户）；② 合并版 spec-l2dsu-engine.md 601 行超标按
-  归档容忍口径确认（先例 r4=948）——①拍板后自改或指示执行，②默认容忍无需动作
+- [distill-b2] 合并版 spec-l2dsu-engine.md 601 行超标按归档容忍口径确认（先例 r4=948）——
+  默认容忍无需动作；原①索引登记已作废（l2dsu抓取模型说明.md 整文件出库，2026-10-09 用户裁决 A）
 - [github-p2-precheck-e] 规格行数账边界空行口径并入 spec-writing.md（本批投影 83 实得 81：
   节删除后相邻空行合并未计入账）——与 d① 同触发点（下次规格模板维护），届时合并处理
 - [github-p2-precheck-d] 收尾三项（2026-09-30 审查登记）：① 规格收尾清扫模板与守卫测试
@@ -93,13 +94,19 @@
   p3-d 收尾实测（4a01ed3→7c624eb 回填补账）——与 precheck-e/d①/p2-release S1 注记/
   p3-public-b 两处补注/阻塞红条款同触发点（下次规格模板维护），届时合并处理；
   用户级 /review-spec 命令文件措辞修正归用户
-- [github-p3-public-d] README 快速开始弱网注记建议未立项（两处大下载 ollama qwen2.5 ~4.7GB+
-  首启 ASR 999MB；hf-mirror 预置 models/<dir>/ 原生跳过下载；ASR 就绪无专属日志行的排障
-  注记候选）——触发=下次 README 维护（#6 增补顺带）或用户拍板
-- [github-p3-public-e] README/文档口径建议：克隆内全量≈190 passed+10 skipped（skip 面=#1
-  公开克隆守卫按设计生效），避免误读为缺用例——触发=github-p3-public-f（roadmap #6
-  README 增补）规划时吸收
+- [新模型登记缺口取证 2026-10-08] GUI 角色编辑器模型下拉=「active 登记表∪live2d-models
+  目录名」（OpenLLMVTuber_GUI.py:1718-1728），可合法选中后端查表必失败的未登记名
+  （本次 kazagumo 故障入口，roadmap v1.0.1 #8 连带发现）：暂缓，并入 backlog #4
+  （新模型入库完整性检测 launcher 集成）立项时一并裁决
+- [github-p3-public-h] 规格模板补注候选：守卫类规格的守卫点枚举须自检「守卫落地后才
+  可达的新路径」（switch 成功尾部日志即此类盲区，v2 拷打未扫到，依据 report §6）——
+  与 precheck-e/d①/p2-release S1 注记等同触发点（下次规格模板维护），届时合并处理
 
+- [github-p3-public-f] 施工经验三条待并入下次规格模板维护（与 precheck-e/d①/p2-release
+  S1 注记等同触发点合并处理）：①录屏类规格直接写「分段录制+拼接」口径（单段装不下两轮
+  对话+切换冷却）；②gdigrab 后台任务桌面原点=右屏（双屏拼接偏移，exit 127 坑）；
+  ③IAB tab.recording 本环境 301ms 伪产物弃用。另：README Roadmap「已完成」列表可选补
+  「演示 GIF」一行（公开门面口径，待用户拍板）
 
 ### 相关背景
 > 极简自研前端设计与踩坑：docs/context/minimal-frontend.md

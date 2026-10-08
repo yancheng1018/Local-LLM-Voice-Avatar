@@ -18,6 +18,7 @@ PRIVATE_PATH_PREFIXES = (
     "characters/Illustrious.yaml",
     "characters/azuma.yaml",
     "characters/shinano.yaml",  # github-p0-characters 改名后条目（本地保留角色，不得回索引）
+    "characters/kazagumo.yaml",  # github-p3-public-f 演示出镜舰船卡（本地保留，用户裁决 2026-10-09 不入库）
     "characters/spine_test.yaml",
     "docs/assets/_ships_cache/",
     "docs/assets/su_ships-CN.json",
@@ -30,6 +31,7 @@ PRIVATE_PATH_PREFIXES = (
     # github-p3-public-b：站点引擎 JS 快照出库（他人表达不入公开库；横杠前缀通配重采哈希名）
     "docs/assets/su_modelRuntime-",
     "docs/assets/su_modelRuntime_strings.json",
+    "docs/context/l2dsu抓取模型说明.md",  # 本地抓取工序手册（2026-10-09 出库，本地保留，rm --cached 先于本行执行）
 )
 
 

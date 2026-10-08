@@ -20,8 +20,9 @@
 | 3 | 发布完整性：提交 p3-public-a/b 存量产出与簿记 + push v1-release + 确认 v1.0.0 tag 在远程 | 已完成（2026-10-08） | origin 无 v1-release 跟踪引用、本地领先 origin/main 4 提交（+7189b4f）；待提交面 9 文件（p3-b 实施 6+簿记 3，archive.md:142 登记归并本条）；v1.0.0 tag 规划时 ls-remote 实证已在远程且与本地一致（2d8780c/acf9ad1），S6 转纯校验；push 须用户确认 | 审查 B4/基线1 |
 | 4 | 干净目录实测 15 分钟快速开始（全新克隆 uv sync→npm build→模板 conf→对话） | 已完成（2026-10-08） | docs 无历史实测记录；git archive 模拟已暴露 #1 必红，修完 #1/#2 后一次通过；依赖网络（拉包）；功能一次通过；「约15分钟」弱网直连不成立（pull 24.5min+ASR 999MB 瓶颈）；衍生 #7 微修复批 | 审查 基线4 |
 | 5 | 切 public + S9 公开态验证（GitHub Settings 切 Public，三项 curl：首页 200 / releases 200 / releases/tag/v1.0.0 页含 v1.0.0） | 已立项 | 账号操作无法自动化（人工项）；切公开后即跑。切公开前置门禁（2026-10-08 疑点裁决）：push v1-release（本地领先 2 纯 docs 提交 a91e2c8/cf03a58，fast-forward）+ main 停旧处置（推平或切默认分支，届时二选一） | 遗留 [github-p2-release] S9 升格 |
-| 6 | README 增补「相对上游的改动总览」10 项浓缩表 | 已立项 | 现 README 无该节（仅核心特性 6 条+Roadmap 3 条）；素材在 docs/context 各册浓缩即可。触摸引擎三层方案（2026-10-07 用户拍板）：表内占 2 行（触摸规则引擎/手势+参数驱动）+ 核心特性现有 bullet 补半句适配口径（Azur Lane 类 touch.json 模型解锁全部特性、mao_pro 走启发式兜底）+ 不独立成节，主角位留给 #9 演示 GIF | 审查 基线3 |
+| 6 | README 增补「相对上游的改动总览」10 项浓缩表 | 已完成（2026-10-09） | 现 README 无该节（仅核心特性 6 条+Roadmap 3 条）；素材在 docs/context 各册浓缩即可。触摸引擎三层方案（2026-10-07 用户拍板）：表内占 2 行（触摸规则引擎/手势+参数驱动）+ 核心特性现有 bullet 补半句适配口径（Azur Lane 类 touch.json 模型解锁全部特性、mao_pro 走启发式兜底）+ 不独立成节，主角位留给 #9 演示 GIF | 审查 基线3 |
 | 7 | 微修复批：.gitattributes 加 `static/libs/* -text` 根治新克隆 CRLF 测试红（test_live2d_core_vendored 字节断言 206492 vs 检出 206500）；可选子项 `*.bat text eol=crlf` 待拍板 | 已完成（2026-10-08） | #1 修复盲区补丁：git archive 模拟不走 smudge 测不出、主仓库工作树 LF 恒绿掩盖；根修=属性层，现有字节断言原样保留作回归守卫（不碰测试代码）；复验用现成 LLMVA-clean-clone-test pull 后重检出 | 实测 p3-public-d S3.5 发现，2026-10-08 用户立项 |
+| 8 | 新模型登记缺口修复批：fengyun_4/rangbaer_5 补录 model_dict.local.json + live2d_model None 解引用守卫 3 处 | 进行中(github-p3-public-h) | 两症状同根因=两新模型未登记本机 active 表 .local（42 条含 wuqi_3 故吾妻正常，实证 2026-10-08）；「无法启动」实为服务已起、WS 连接链 websocket_handler.py:197 无守卫解引用 None.model_info 砖死全部连接（traceback=logs/debug_2026-10-08.log 05:03）；修复=①补录两模型+Idle 别名组+kScale 回填（rangbaer_5 无角色卡不影响下拉显示，下拉源=登记表）②守卫 3 处（websocket_handler.py:197、service_context.py:712/:350）兑现 proceed-without-Live2D 容错（:682 规划期核实由切换成功路径保证非 None，免守卫）；GUI 编辑器下拉「表∪目录名」陷阱（OpenLLMVTuber_GUI.py:1718-1728）不并入、列遗留；演示口径=舰船模型仅 README 展示不分发资源（用户拍板 2026-10-08）；两 plan 首核已闭环（rangbaer_5 不在表实证、live2d_model_names=[] 为原始字段日志非缺陷） | 故障报告 2026-10-08 + 取证型子代理闭环（traceback 在案） |
 
 ## Backlog（未分版本）
 
@@ -35,7 +36,7 @@
 | 6 | Piper TTS 接入（离线低资源语音合成） | 构想 | 离线低资源 TTS 引擎接入，复用现有 TTS 引擎架构 | README Roadmap |
 | 7 | 语音合成引擎体系持续演进 | 构想 | 长期方向；具体子项依赖各引擎接入结论（含 #6） | README Roadmap |
 | 8 | live2d动作链条 阶段 C（type9/11/15 条件门槛/冷却/dynamicFlag/tips/参数权威层） | 构想 | 前置：站点面板↔模型双路径研究未取证（research2 §3.1 定案一半）；先补研究再规划 | 遗留 [live2d动作链条] |
-| 9 | 演示视频/GIF 录制并挂 README（1-2 分钟全链路：ASR→LLM→TTS→Live2D 动效） | 已立项 | 环境已齐备零缺项（ollama qwen3.5:9b / GSV 光辉权重 / voices 声音卡 / dist 已构建 / conf 激活链就绪）；public 后补挂，随附 commit+push 须用户确认；录屏含舰船画面的形象传播风险由用户拍板 | 遗留 [github-p2-release] D2 升格 + 审查 基线2 |
+| 9 | 演示视频/GIF 录制并挂 README（1-2 分钟全链路：ASR→LLM→TTS→Live2D 动效） | 已完成（2026-10-09） | 2026-10-08 用户指示提前并入 f 阶段（原 public 后补挂作废）；同日拍板：舰船出镜风险自担、无声 GIF 入库（docs/assets ≤10MB）、角色 kazagumo（fengyun_4，登记由 stage h 完成）、ASR 不展示改文字输入；commit+push 仍须用户确认 | 遗留 [github-p2-release] D2 升格 + 审查 基线2 |
 
 > 初始登记为「构想」，未从 current-work 待处理遗留移除——正式升格/排序/版本归属由
 > /plan-roadmap 逐条确认后执行（升格时才从遗留移除）。
@@ -68,3 +69,25 @@
   转 public 前内容齐备；#5 收尾=切 public 不可逆+push 门禁须用户确认，#6/#7 提交并入
   前置 push 一次推齐。#7 可选子项 *.bat text eol=crlf 默认不含、待拍板
 - 2026-10-08 #7 完成（github-p3-public-e 验收通过）：.gitattributes 双钉（static/libs -text + *.bat crlf）根治新克隆 CRLF 红，主仓/克隆双侧绿（0693c2d）
+- 2026-10-08 #6 开工（github-p3-public-f 规划完成，待弱模型实施）：吸收遗留弱网注记+
+  克隆测试口径两条（已移除）；触摸引擎表内 2 行+bullet 半句口径维持 2026-10-07 拍板；
+  基线实跑 200 passed
+- 2026-10-08 #6 暂停，新增 #8 新模型登记缺口修复批（已立项）并裁决排序 #8→#6→#5
+  （替代原 #7→#6→#5 序）：kazagumo「无法启动」与下拉缺模型同根因实证（两新模型未登记
+  .local 表+WS 连接链无守卫解引用，取证型子代理闭环）；#6 README 演示素材依赖模型可用
+  故让位；GUI 编辑器下拉陷阱列遗留不入子项
+- 2026-10-08 #8 开工（github-p3-public-h 规划完成，待弱模型实施）：守卫点核实收敛为
+  3 处（:197/:712/:350；:682 由切换成功路径保证非 None 免守卫）；前端契约实证 main.ts
+  对 model_info 空值现成降级；两 plan 首核闭环（rangbaer_5 不在表实证、
+  live2d_model_names=[] 为原始字段日志非缺陷）；规格预检排雷两处=fit 全量跑会打红
+  mao_pro 双份一致断言（只回填两条）、补录后 fengyun_4 进 in_use 必须 Idle 别名组
+- 2026-10-08 #9 并入 #6（用户指示，原 public 后补挂作废）：拍板=舰船出镜风险自担、
+  无声 GIF 入库 ≤10MB（docs/assets）、角色 kazagumo（fengyun_4）、ASR 不展示改文字
+  输入；commit+push 仍须用户确认。附实证：用户手修 fengyun_4 后主仓 1 failed/206
+  passed（动作组名回退小写 idle 触 h 域 Idle 组契约红）——f 实施前置 R-1，修复归属
+  待用户裁决
+- 2026-10-08 R-1 裁决执行（用户授权顺手修复）：fix_live2d_idle_groups.py 重跑
+  fixed=2（fengyun_4+rangbaer_5 同批回退一并修复），全量 207 passed 复绿；同批追加
+  拍板：切换镜头目标=rangbaer_5（无 allowlist 键回退全局名单已核实）、新增调试栏+
+  热区叠加层展示镜头（入 f spec §3 R2）
+- 2026-10-09 #6/#9 完成（github-p3-public-f 验收通过）：README 改动总览 10 项表+弱网/测试口径注记+演示 GIF（64.5s/9.67MB 无声循环）挂载，全量 211 passed，spec.v2 升格 spec-demo-gif.md；#5 待续（切 public 前置门禁=push v1-release+main 停旧二选一，须用户确认）

@@ -535,7 +535,7 @@ update(dt, now) {
 
 > 数据源为舰船级 `/data/ships/CN/<shipGroupId>.json` 的 `ship.skins[].model.live2dTouch`（§5）。
 > 顶层键集 per-ship 有差异（207037 系=6 键；wuqi_3=4 键无 tips/dragRate；guanghui_9=5 键有 tips 无
-> dragRate）——不要假设固定键集，解析按需取（l2dsu抓取模型说明 §3-2）。
+> dragRate）——不要假设固定键集，解析按需取。
 
 顶层键（tips/dragRate/parameterRange 结论按 2026-09-27 hotzone-arch 复审 §4 修订）：
 

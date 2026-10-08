@@ -48,6 +48,7 @@ docs/context/research_上传github前准备.md
 docs/context/research_plan_上传github前准备.md
 docs/context/research_plan_上传github前准备查漏*.md
 docs/context/research_上传前查漏-*.md
+docs/context/l2dsu抓取模型说明.md
 
 # ---------- Python 缓存与虚拟环境 ----------
 __pycache__/
@@ -67,6 +68,7 @@ characters/Friedrich.yaml
 characters/Illustrious.yaml
 characters/azuma.yaml
 characters/shinano.yaml
+characters/kazagumo.yaml
 characters/spine_test.yaml
 docs/assets/_ships_cache/
 docs/assets/su_ships-CN.json
