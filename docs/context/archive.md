@@ -156,3 +156,7 @@
 ## 2026-10-09 README 演示 GIF+改动总览（github-p3-public-f，会话弱模型档实施+review-spec 审查收尾）
 
 - 收尾清单执行（2026-10-09）：github-p3-public-f / 5 条全过 / 实施 1ca4837 / README 改动总览 10 项表+弱网/测试口径注记+演示 GIF 挂载（人工录制+AI 转制，64.5s/9.67MB），全量 211 passed，人工验收通过；spec.v2 升格 spec-demo-gif.md
+
+## 2026-10-08 新模型登记缺口修复批（github-p3-public-h，会话弱模型实施+review-spec 审查收尾）
+
+- 收尾清单执行（2026-10-09）：github-p3-public-h / 5 条全过 / 簿记 6ed6910 / 未登记模型补录+None 守卫 4 处落地，kazagumo 恢复可用、下拉含两新模型，207 passed，人工验收通过

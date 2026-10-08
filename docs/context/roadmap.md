@@ -22,7 +22,7 @@
 | 5 | 切 public + S9 公开态验证（GitHub Settings 切 Public，三项 curl：首页 200 / releases 200 / releases/tag/v1.0.0 页含 v1.0.0） | 已立项 | 账号操作无法自动化（人工项）；切公开后即跑。切公开前置门禁（2026-10-08 疑点裁决）：push v1-release（本地领先 2 纯 docs 提交 a91e2c8/cf03a58，fast-forward）+ main 停旧处置（推平或切默认分支，届时二选一） | 遗留 [github-p2-release] S9 升格 |
 | 6 | README 增补「相对上游的改动总览」10 项浓缩表 | 已完成（2026-10-09） | 现 README 无该节（仅核心特性 6 条+Roadmap 3 条）；素材在 docs/context 各册浓缩即可。触摸引擎三层方案（2026-10-07 用户拍板）：表内占 2 行（触摸规则引擎/手势+参数驱动）+ 核心特性现有 bullet 补半句适配口径（Azur Lane 类 touch.json 模型解锁全部特性、mao_pro 走启发式兜底）+ 不独立成节，主角位留给 #9 演示 GIF | 审查 基线3 |
 | 7 | 微修复批：.gitattributes 加 `static/libs/* -text` 根治新克隆 CRLF 测试红（test_live2d_core_vendored 字节断言 206492 vs 检出 206500）；可选子项 `*.bat text eol=crlf` 待拍板 | 已完成（2026-10-08） | #1 修复盲区补丁：git archive 模拟不走 smudge 测不出、主仓库工作树 LF 恒绿掩盖；根修=属性层，现有字节断言原样保留作回归守卫（不碰测试代码）；复验用现成 LLMVA-clean-clone-test pull 后重检出 | 实测 p3-public-d S3.5 发现，2026-10-08 用户立项 |
-| 8 | 新模型登记缺口修复批：fengyun_4/rangbaer_5 补录 model_dict.local.json + live2d_model None 解引用守卫 3 处 | 进行中(github-p3-public-h) | 两症状同根因=两新模型未登记本机 active 表 .local（42 条含 wuqi_3 故吾妻正常，实证 2026-10-08）；「无法启动」实为服务已起、WS 连接链 websocket_handler.py:197 无守卫解引用 None.model_info 砖死全部连接（traceback=logs/debug_2026-10-08.log 05:03）；修复=①补录两模型+Idle 别名组+kScale 回填（rangbaer_5 无角色卡不影响下拉显示，下拉源=登记表）②守卫 3 处（websocket_handler.py:197、service_context.py:712/:350）兑现 proceed-without-Live2D 容错（:682 规划期核实由切换成功路径保证非 None，免守卫）；GUI 编辑器下拉「表∪目录名」陷阱（OpenLLMVTuber_GUI.py:1718-1728）不并入、列遗留；演示口径=舰船模型仅 README 展示不分发资源（用户拍板 2026-10-08）；两 plan 首核已闭环（rangbaer_5 不在表实证、live2d_model_names=[] 为原始字段日志非缺陷） | 故障报告 2026-10-08 + 取证型子代理闭环（traceback 在案） |
+| 8 | 新模型登记缺口修复批：fengyun_4/rangbaer_5 补录 model_dict.local.json + live2d_model None 解引用守卫 3 处 | 已完成（2026-10-08） | 两症状同根因=两新模型未登记本机 active 表 .local（42 条含 wuqi_3 故吾妻正常，实证 2026-10-08）；「无法启动」实为服务已起、WS 连接链 websocket_handler.py:197 无守卫解引用 None.model_info 砖死全部连接（traceback=logs/debug_2026-10-08.log 05:03）；修复=①补录两模型+Idle 别名组+kScale 回填（rangbaer_5 无角色卡不影响下拉显示，下拉源=登记表）②守卫 3 处（websocket_handler.py:197、service_context.py:712/:350）兑现 proceed-without-Live2D 容错（:682 规划期核实由切换成功路径保证非 None，免守卫）；GUI 编辑器下拉「表∪目录名」陷阱（OpenLLMVTuber_GUI.py:1718-1728）不并入、列遗留；演示口径=舰船模型仅 README 展示不分发资源（用户拍板 2026-10-08）；两 plan 首核已闭环（rangbaer_5 不在表实证、live2d_model_names=[] 为原始字段日志非缺陷） | 故障报告 2026-10-08 + 取证型子代理闭环（traceback 在案） |
 
 ## Backlog（未分版本）
 
@@ -91,3 +91,4 @@
   拍板：切换镜头目标=rangbaer_5（无 allowlist 键回退全局名单已核实）、新增调试栏+
   热区叠加层展示镜头（入 f spec §3 R2）
 - 2026-10-09 #6/#9 完成（github-p3-public-f 验收通过）：README 改动总览 10 项表+弱网/测试口径注记+演示 GIF（64.5s/9.67MB 无声循环）挂载，全量 211 passed，spec.v2 升格 spec-demo-gif.md；#5 待续（切 public 前置门禁=push v1-release+main 停旧二选一，须用户确认）
+- 2026-10-08 #8 完成（github-p3-public-h 验收通过）：未登记模型补录+None 守卫 4 处落地（守卫点较规划 +1=switch 成功尾部日志 :399），全量 207 passed；#6/#5 待续（排序 #6→#5）
