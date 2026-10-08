@@ -194,7 +194,9 @@ class WebSocketHandler:
             json.dumps(
                 {
                     "type": "set-model-and-conf",
-                    "model_info": session_service_context.live2d_model.model_info,
+                    "model_info": session_service_context.live2d_model.model_info
+                    if session_service_context.live2d_model
+                    else None,
                     # 键名 conf_name 是前端的历史包袱，值即角色显示名 character_name
                     # —— 极简前端消费（main.ts 读值刷新当前角色，ui.ts setCharacters 按名选中）
                     "conf_name": session_service_context.character_config.character_name,

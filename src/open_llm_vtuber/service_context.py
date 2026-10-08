@@ -347,7 +347,10 @@ class ServiceContext:
         Only BasicMemoryAgent exposes the two public capabilities used here
         (set_live2d_model / set_system); other agents are rejected outright.
         """
-        if self.live2d_model.live2d_model_name == model_name:
+        if (
+            self.live2d_model is not None
+            and self.live2d_model.live2d_model_name == model_name
+        ):
             return
 
         # 先构造候选：失败时旧模型、旧提示词完全不变
@@ -393,9 +396,7 @@ class ServiceContext:
             raise
 
         self.system_prompt = prompt  # 仅在所有步骤成功后提交，避免半套状态对外可见
-        logger.info(
-            f"Switched Live2D model: {old_model.live2d_model_name} -> {model_name}"
-        )
+        logger.info(f"Switched Live2D model: {old_model_name} -> {model_name}")
 
     def init_asr(self, asr_config: ASRConfig) -> None:
         # 与 init_vad 一致：asr_model 为 None 表示禁用，不做任何初始化。
@@ -709,7 +710,9 @@ class ServiceContext:
                     json.dumps(
                         {
                             "type": "set-model-and-conf",
-                            "model_info": self.live2d_model.model_info,
+                            "model_info": self.live2d_model.model_info
+                            if self.live2d_model
+                            else None,
                             # 键名 conf_name 是前端的历史包袱，值即角色显示名
                             # —— 极简前端消费（main.ts 读值刷新，ui.ts setCharacters 按名选中）
                             "conf_name": self.character_config.character_name,

@@ -46,3 +46,11 @@ config-system.md「指针方案」节，Agent 重绑定见 live2d.md 硬性契�
   `modelName === currentLive2DModelName` 直接 return，重选同一模型无法恢复；
   清空后重选**任何**模型（含刚失败那个）都会发出 switch 请求并收到 `set-model-and-conf`
   回推触发完整重载，一步恢复（后端同名切换是 no-op 但仍回发，故无需改动后端）
+
+**live2d_model=None 降级契约（github-p3-public-h）**：init_live2d 容错失败后
+live2d_model=None，连接不拒、降级服务。所有 set-model-and-conf 发送点
+（_send_initial_messages / handle_config_switch）守卫 None、model_info 发 null——前端
+main.ts 对空值现成降级（未配置模型）；switch_live2d_model None 态视为可切换（含成功
+尾部日志用 old_model_name 不解引用模型对象），下拉重选任意已登记模型即恢复。新模型
+入库须走登记（GUI 模型页扫描补录/导入流程），只放目录不登记=查表必失败（未登记名抛
+KeyError）。
