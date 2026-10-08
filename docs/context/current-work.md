@@ -1,7 +1,7 @@
 ## 当前阶段
 
 ### 阶段状态
-> github-p3-public-f：README 增补「相对上游改动总览」10 项浓缩表+弱网/测试口径注记+演示 GIF（kazagumo 出镜）录制挂载已完成并验收通过（2026-10-09）。下一阶段：github-p3-public-g 切 public+S9 公开态三项 curl 验证 [7/8]
+> github-p3-public-g：切 public+S9 公开态三项 curl 验证（实施中）[7/8]
 
 ### 阶段路线图 · github-p3-public
 > v1.0.1 转 public 收口：目标集 8 条全部终态；共 8 阶段；建立于 2026-10-08（第 8 阶段
@@ -15,7 +15,7 @@
 | 4 | github-p3-public-d | 干净目录实测 15 分钟快速开始 | 已验收 2026-10-08 | roadmap #4 |
 | 5 | github-p3-public-e | .gitattributes 根治新克隆 CRLF 测试红 | 已验收 2026-10-08 | roadmap #7；剩余三序裁决先行（#7→#6→#5，2026-10-08） |
 | 6 | github-p3-public-f | README 增补「相对上游改动总览」10 项浓缩表+演示 GIF 录制挂载 | 已验收 2026-10-09 | roadmap #6+Backlog #9 并入（2026-10-08 用户指示）；出镜=kazagumo/fengyun_4（拍板+stage h 修复）；镜头含调试栏/热区框+F 切 rangbaer_5；吸收遗留两条（spec §9）；R-1 Idle 组红已授权修复（207 绿 2026-10-08，spec §0） |
-| 7 | github-p3-public-g | 切 public+S9 公开态三项 curl 验证 | 未开始 | roadmap #5；前置=push v1-release（须用户确认）+main 停旧二选一裁决 |
+| 7 | github-p3-public-g | 切 public+S9 公开态三项 curl 验证 | 规划完成 | roadmap #5；门禁已裁（2026-10-09）：push 问答即授权+分支终态 C=推平双支+回归 main 单主线、v1-release 冻结封存；未推面 12 提交（e/f/h 三阶段） |
 | 8 | github-p3-public-h | 新模型登记缺口修复批（补录两模型+None 守卫） | 已验收 2026-10-08 | roadmap #8（2026-10-08 增补）；守卫 4 处（:197/:350/:399 日志/:712）；降级契约入 minimal-frontend-model-switch.md；spec/report 已出库（检索键见 archive） |
 
 ### 收尾待办
@@ -78,9 +78,6 @@
   uv run 前缀（裸 ruff 在 uv 布局不可移植，本批实测换行解决）；② 行数累加以插入
   文本逐行粘贴计数为准（本批 ±1~2 偏差源于规格取整口径）——与 precheck-e/d①/
   p2-release S1 门禁注记同触发点（下次规格模板维护），届时合并处理
-- [github-p3-public-c/d] 远程分支停旧：main 停 acf9ad1 落后 6+ 提交；v1-release 本地领先
-  2 纯 docs 提交（a91e2c8/cf03a58）未推，远程 roadmap 状态与现实自相矛盾——转公开
-  （roadmap #5）前置门禁一并收口：push v1-release + main 推平/切默认分支二选一裁决
 - [前端/ui.ts] Enter 发送缺 isComposing 保护：中文 IME 组词期回车选字的 keydown e.key
   同为 'Enter' 会被误当发送（ui.ts:38-40 无保护）；触发=下次动 ui.ts。（原附带的 Enter
   自动化未触发现象已结案：2026-10-08 人工实测通过，系嵌入浏览器派分工件，见 report §7.4）
