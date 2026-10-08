@@ -160,3 +160,8 @@
 ## 2026-10-08 新模型登记缺口修复批（github-p3-public-h，会话弱模型实施+review-spec 审查收尾）
 
 - 收尾清单执行（2026-10-09）：github-p3-public-h / 5 条全过 / 簿记 6ed6910 / 未登记模型补录+None 守卫 4 处落地，kazagumo 恢复可用、下拉含两新模型，207 passed，人工验收通过
+
+## 2026-10-09 切 public+版本收口 v1.0.1（github-p3-public-g，会话弱模型实施+review-spec 审查收尾）
+
+> 阶段路线图 · github-p3-public（2026-10-08 建，2026-10-09 全线收口）：a 公开克隆修复批→b l2d.su 快照出库→c 发布完整性→d 干净目录实测→e .gitattributes CRLF 根治→f README 改动总览+演示 GIF→g 切 public+分支终态 C→h 新模型登记缺口修复批；8 阶段全验收，v1.0.1 目标集清空（版本 1.0.0→1.0.1+tag v1.0.1）
+- 收尾清单执行（2026-10-09）：github-p3-public-g / 11 条全过（tag v1.0.1 本地已建，push 待用户明示）/ 实施提交 f427edb+检索键 git log --grep "v1.0.1 收口" / 切公开三项 curl 200/200/200+grep=19、远程双支终态落地、版本收口 1.0.1；spec v1/v2+report 出库（本节即检索键）

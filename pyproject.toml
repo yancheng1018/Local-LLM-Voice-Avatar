@@ -1,6 +1,6 @@
 [project]
 name = "local-llm-voice-avatar"
-version = "1.0.0"
+version = "1.0.1"
 description = "完全离线运行的本地语音 AI 伴侣（基于上游 Open-LLM-VTuber v1.2.1 二次开发）"
 requires-python = ">=3.10,<3.13"
 dependencies = [
