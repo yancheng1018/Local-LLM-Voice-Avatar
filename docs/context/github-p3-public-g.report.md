@@ -58,7 +58,7 @@
 
 ## 9. 自动化验证证据
 
-- S0.5：`git grep -n "加藤惠" -- . ':!tests'` 修复前唯一命中 spec-demo-gif.md:47；
+- S0.5：`git grep -n "<名单唯一私有名>" -- . ':!tests'` 修复前唯一命中 spec-demo-gif.md:47；
   修复后 rc=1 零命中；守卫单测 `pytest tests/test_repo_privacy_guard.py -q` →
   4 passed（修复前 1 failed/3 passed）。
 - S2.1 前置复核：ls-remote main=acf9ad1、v1-release=1000463（与规格期望一致）；
